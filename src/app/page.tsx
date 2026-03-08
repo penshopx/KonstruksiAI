@@ -1,4 +1,5 @@
 import Link from "next/link";
+import NavbarAuth from "@/components/NavbarAuth";
 
 const engineeringFields = [
   {
@@ -114,6 +115,7 @@ export default function Home() {
               <Link href="/chat" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Mulai Chat
               </Link>
+              <NavbarAuth />
             </nav>
           </div>
         </div>
