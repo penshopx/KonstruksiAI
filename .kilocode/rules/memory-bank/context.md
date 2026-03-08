@@ -13,6 +13,7 @@ The template has been expanded into a full construction AI assistant application
 - [x] Pricing page (/pricing) — Freemium/Pro/Enterprise tiered model with comparison table
 - [x] Landing page enhanced — Solver & Tools feature section, updated navbar, improved footer
 - [x] Navbar updated — Solver, Tools, Matriks, Harga links added
+- [x] Chat page upgraded — enhanced streaming simulation, copy code button, PDF/Word export
 
 ## Recently Completed (Session 3 — Next Level)
 
