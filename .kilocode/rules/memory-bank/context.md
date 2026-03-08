@@ -24,6 +24,10 @@ The template has been expanded into a full construction AI assistant application
 - [x] Interactive Matrix page (/matrix) — 21 business functions × 6 engineering columns = 126 connection points
 - [x] Matrix section added to landing page with preview
 - [x] Navigation updated with Matrix link
+- [x] Authentication system added — login, register, dashboard pages
+- [x] Drizzle ORM + SQLite database setup (konstruksi.db)
+- [x] JWT-based session management via httpOnly cookies
+- [x] NavbarAuth component for dynamic auth state in navbar
 
 ## Current Structure
 
