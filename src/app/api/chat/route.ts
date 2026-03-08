@@ -201,6 +201,117 @@ Apakah Anda ingin panduan lebih detail untuk jenis bangunan atau lokasi tertentu
 Apakah Anda ingin saya bantu analisis dokumen tender spesifik?`;
   }
 
+  if (msg.includes("energi") || msg.includes("plts") || msg.includes("solar") || msg.includes("ebt") || msg.includes("listrik") || msg.includes("pln")) {
+    return `Sebagai ${agentName}, berikut informasi energi terbarukan yang Anda butuhkan:
+
+**PANDUAN PLTS (PEMBANGKIT LISTRIK TENAGA SURYA)**
+
+**Jenis PLTS:**
+
+| Jenis | Kapasitas | Cocok Untuk | Estimasi Biaya |
+|-------|-----------|-------------|----------------|
+| PLTS Rooftop On-Grid | 2-500 kWp | Gedung, pabrik | Rp 12-15 juta/kWp |
+| PLTS Off-Grid | 1-100 kWp | Daerah terpencil | Rp 20-30 juta/kWp |
+| PLTS Utility Scale | >1 MWp | IPP, BUMN | Rp 8-12 juta/kWp |
+
+**Perizinan PLTS Rooftop:**
+- [ ] Permohonan ke PLN setempat
+- [ ] Sertifikasi instalasi (ESDM)
+- [ ] SLO (Sertifikat Laik Operasi)
+- [ ] Perjanjian jual beli listrik (jika ekspor ke PLN)
+
+**Regulasi Terbaru:**
+- Permen ESDM No. 26/2021 — PLTS Atap
+- Perpres No. 112/2022 — Percepatan EBT
+- Target bauran EBT 23% pada 2025
+
+**Insentif:**
+✅ Tax holiday untuk investasi EBT
+✅ Bebas bea masuk panel surya
+✅ Feed-in tariff untuk PLTS skala besar
+
+Apakah Anda ingin saya hitung estimasi ROI untuk proyek PLTS Anda?`;
+  }
+
+  if (msg.includes("migas") || msg.includes("minyak") || msg.includes("gas") || msg.includes("tambang") || msg.includes("iup") || msg.includes("psc")) {
+    return `Sebagai ${agentName}, berikut informasi migas & pertambangan:
+
+**PERIZINAN USAHA PERTAMBANGAN (IUP)**
+
+**Tahapan IUP Mineral:**
+
+| Tahap | Izin | Instansi | Durasi |
+|-------|------|----------|--------|
+| 1 | WIUP (Wilayah IUP) | Kementerian ESDM | 3-6 bulan |
+| 2 | IUP Eksplorasi | Gubernur/Bupati | 6-12 bulan |
+| 3 | Studi Kelayakan | Internal + ESDM | 3-6 bulan |
+| 4 | IUP Operasi Produksi | Kementerian ESDM | 6-12 bulan |
+
+**Dokumen yang Diperlukan:**
+- [ ] Akta pendirian perusahaan
+- [ ] NPWP & NIB (OSS)
+- [ ] Peta wilayah yang dimohon
+- [ ] Rencana kerja & anggaran biaya
+- [ ] Dokumen lingkungan (AMDAL)
+- [ ] Bukti kemampuan finansial
+
+**Kontrak PSC (Production Sharing Contract) Migas:**
+
+🔑 **Mekanisme Bagi Hasil:**
+- Cost Recovery: Kontraktor recover biaya operasi dulu
+- Profit Split: Sisa dibagi antara pemerintah & kontraktor
+- Typical split: 85:15 (minyak) atau 70:30 (gas) untuk pemerintah
+
+**Regulasi:**
+- UU No. 4/2009 tentang Pertambangan Mineral & Batubara
+- UU No. 22/2001 tentang Minyak & Gas Bumi
+- PP No. 96/2021 tentang Pelaksanaan Kegiatan Usaha Pertambangan
+
+Apakah Anda ingin detail lebih lanjut tentang proses perizinan atau kontrak?`;
+  }
+
+  if (msg.includes("manajemen") || msg.includes("proyek") || msg.includes("project") || msg.includes("wbs") || msg.includes("gantt")) {
+    return `Sebagai ${agentName}, berikut panduan manajemen proyek konstruksi:
+
+**MANAJEMEN PROYEK KONSTRUKSI**
+
+**Struktur WBS (Work Breakdown Structure):**
+
+\`\`\`
+Proyek Konstruksi
+├── 1. Pra-Konstruksi
+│   ├── 1.1 Perijinan & Dokumen
+│   ├── 1.2 Desain & Engineering
+│   └── 1.3 Pengadaan
+├── 2. Konstruksi
+│   ├── 2.1 Pekerjaan Sipil
+│   ├── 2.2 Pekerjaan Struktur
+│   ├── 2.3 Pekerjaan Arsitektur
+│   └── 2.4 Pekerjaan MEP
+└── 3. Pasca-Konstruksi
+    ├── 3.1 Testing & Commissioning
+    └── 3.2 Serah Terima
+\`\`\`
+
+**KPI Proyek yang Harus Dipantau:**
+
+| KPI | Target | Frekuensi |
+|-----|--------|-----------|
+| Schedule Performance Index (SPI) | ≥ 1.0 | Mingguan |
+| Cost Performance Index (CPI) | ≥ 1.0 | Mingguan |
+| Safety Incident Rate | 0 | Harian |
+| Quality Defect Rate | < 2% | Per milestone |
+| Cash Flow | Positif | Bulanan |
+
+**Tools Manajemen Proyek:**
+- **Primavera P6** — Scheduling kompleks
+- **MS Project** — Scheduling standar
+- **Procore** — Manajemen dokumen & lapangan
+- **BIM 360** — Koordinasi desain
+
+Apakah Anda ingin template laporan progress mingguan atau bulanan?`;
+  }
+
   // Default response based on agent context
   return `Sebagai **${agentName}**, saya siap membantu Anda.
 

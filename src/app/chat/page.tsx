@@ -13,6 +13,8 @@ interface Message {
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
+  reaction?: "up" | "down" | null;
+  wordCount?: number;
 }
 
 interface Conversation {
@@ -80,6 +82,14 @@ const SUGGESTED_PROMPTS = [
   ]},
 ];
 
+const KEYBOARD_SHORTCUTS = [
+  { key: "Enter", desc: "Kirim pesan" },
+  { key: "Shift+Enter", desc: "Baris baru" },
+  { key: "Ctrl+K", desc: "Chat baru" },
+  { key: "Ctrl+/", desc: "Tampilkan shortcut" },
+  { key: "Esc", desc: "Tutup panel" },
+];
+
 // ============================================================
 // MARKDOWN RENDERER
 // ============================================================
@@ -91,7 +101,7 @@ function renderMarkdown(content: string): string {
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
     const escaped = code.replace(/</g, "<").replace(/>/g, ">");
     return `<div class="my-3 rounded-lg overflow-hidden border border-slate-600">
-      ${lang ? `<div class="bg-slate-700 px-3 py-1 text-xs text-slate-400 font-mono">${lang}</div>` : ""}
+      ${lang ? `<div class="bg-slate-700 px-3 py-1 text-xs text-slate-400 font-mono flex items-center justify-between"><span>${lang}</span></div>` : ""}
       <pre class="bg-slate-800 p-3 overflow-x-auto text-sm text-green-300 font-mono leading-relaxed"><code>${escaped.trim()}</code></pre>
     </div>`;
   });
@@ -201,6 +211,34 @@ function generateTitle(firstMessage: string): string {
   return words.length > 40 ? words.substring(0, 40) + "..." : words;
 }
 
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function exportConversation(conv: Conversation): void {
+  const lines: string[] = [
+    `# ${conv.title}`,
+    `Tanggal: ${conv.createdAt.toLocaleDateString("id-ID")}`,
+    `Agen: ${conv.agentId || "KonstruksiAI"}`,
+    "",
+    "---",
+    "",
+  ];
+  conv.messages.forEach(m => {
+    const time = m.timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    lines.push(`**${m.role === "user" ? "Anda" : "AI"}** [${time}]`);
+    lines.push(m.content);
+    lines.push("");
+  });
+  const blob = new Blob([lines.join("\n")], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${conv.title.replace(/[^a-z0-9]/gi, "_")}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ============================================================
 // WELCOME SCREEN
 // ============================================================
@@ -272,6 +310,13 @@ function WelcomeScreen({ onPrompt, selectedAgent }: { onPrompt: (text: string) =
             </div>
           ))}
         </div>
+
+        {/* Keyboard shortcuts hint */}
+        <div className="mt-6 text-center">
+          <p className="text-slate-700 text-xs">
+            Tekan <kbd className="bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-slate-500 font-mono text-xs">Ctrl+/</kbd> untuk melihat semua shortcut keyboard
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -281,7 +326,19 @@ function WelcomeScreen({ onPrompt, selectedAgent }: { onPrompt: (text: string) =
 // MESSAGE COMPONENT
 // ============================================================
 
-function MessageBubble({ message, agentIcon }: { message: Message; agentIcon: string }) {
+function MessageBubble({
+  message,
+  agentIcon,
+  onReaction,
+  onRegenerate,
+  isLast,
+}: {
+  message: Message;
+  agentIcon: string;
+  onReaction: (id: string, reaction: "up" | "down") => void;
+  onRegenerate?: () => void;
+  isLast: boolean;
+}) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -297,10 +354,22 @@ function MessageBubble({ message, agentIcon }: { message: Message; agentIcon: st
           <div className="bg-orange-500 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed">
             {message.content}
           </div>
-          <div className="text-right mt-1">
+          <div className="flex items-center justify-end gap-2 mt-1">
             <span className="text-slate-600 text-xs">
               {message.timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
             </span>
+            <button
+              onClick={handleCopy}
+              className="text-slate-600 hover:text-slate-400 text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              {copied ? (
+                <span className="text-green-400">✓</span>
+              ) : (
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
         <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-1">
@@ -330,22 +399,99 @@ function MessageBubble({ message, agentIcon }: { message: Message; agentIcon: st
             />
           )}
         </div>
-        <div className="flex items-center gap-3 mt-1 px-1">
+
+        {/* Message actions */}
+        <div className="flex items-center gap-3 mt-1.5 px-1">
           <span className="text-slate-600 text-xs">
             {message.timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
           </span>
-          {!message.isStreaming && (
-            <button
-              onClick={handleCopy}
-              className="text-slate-600 hover:text-slate-400 text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              {copied ? (
-                <><span className="text-green-400">✓</span> <span className="text-green-400">Disalin</span></>
-              ) : (
-                <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg> Salin</>
-              )}
-            </button>
+          {message.wordCount && !message.isStreaming && (
+            <span className="text-slate-700 text-xs">{message.wordCount} kata</span>
           )}
+          {!message.isStreaming && (
+            <>
+              <button
+                onClick={handleCopy}
+                className="text-slate-600 hover:text-slate-400 text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Salin"
+              >
+                {copied ? (
+                  <><span className="text-green-400">✓</span> <span className="text-green-400">Disalin</span></>
+                ) : (
+                  <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg> Salin</>
+                )}
+              </button>
+
+              {/* Thumbs up */}
+              <button
+                onClick={() => onReaction(message.id, "up")}
+                className={`text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all ${
+                  message.reaction === "up" ? "text-green-400 opacity-100" : "text-slate-600 hover:text-green-400"
+                }`}
+                title="Respons bagus"
+              >
+                <svg className="w-3.5 h-3.5" fill={message.reaction === "up" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" />
+                </svg>
+              </button>
+
+              {/* Thumbs down */}
+              <button
+                onClick={() => onReaction(message.id, "down")}
+                className={`text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all ${
+                  message.reaction === "down" ? "text-red-400 opacity-100" : "text-slate-600 hover:text-red-400"
+                }`}
+                title="Respons kurang tepat"
+              >
+                <svg className="w-3.5 h-3.5" fill={message.reaction === "down" ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                </svg>
+              </button>
+
+              {/* Regenerate (only on last assistant message) */}
+              {isLast && onRegenerate && (
+                <button
+                  onClick={onRegenerate}
+                  className="text-slate-600 hover:text-orange-400 text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all"
+                  title="Buat ulang respons"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Buat ulang
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// KEYBOARD SHORTCUTS MODAL
+// ============================================================
+
+function ShortcutsModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white font-semibold">Keyboard Shortcuts</h3>
+          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="space-y-2">
+          {KEYBOARD_SHORTCUTS.map(s => (
+            <div key={s.key} className="flex items-center justify-between">
+              <span className="text-slate-400 text-sm">{s.desc}</span>
+              <kbd className="bg-slate-700 border border-slate-600 rounded px-2 py-0.5 text-slate-300 font-mono text-xs">{s.key}</kbd>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -362,6 +508,7 @@ function Sidebar({
   onSelect,
   onNew,
   onDelete,
+  onExport,
   isOpen,
   onClose,
 }: {
@@ -370,10 +517,20 @@ function Sidebar({
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onExport: (id: string) => void;
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const grouped = conversations.reduce((acc, conv) => {
+  const [search, setSearch] = useState("");
+
+  const filtered = search.trim()
+    ? conversations.filter(c =>
+        c.title.toLowerCase().includes(search.toLowerCase()) ||
+        c.messages.some(m => m.content.toLowerCase().includes(search.toLowerCase()))
+      )
+    : conversations;
+
+  const grouped = filtered.reduce((acc, conv) => {
     const now = new Date();
     const diff = now.getTime() - conv.updatedAt.getTime();
     const days = diff / (1000 * 60 * 60 * 24);
@@ -399,7 +556,7 @@ function Sidebar({
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
       `}>
         {/* Header */}
-        <div className="p-3 border-b border-slate-700/60">
+        <div className="p-3 border-b border-slate-700/60 space-y-2">
           <button
             onClick={onNew}
             className="w-full flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-3 py-2.5 text-sm font-medium transition-colors"
@@ -409,13 +566,34 @@ function Sidebar({
             </svg>
             Chat Baru
           </button>
+
+          {/* Search */}
+          <div className="relative">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Cari percakapan..."
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:border-orange-500/50 transition-colors"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto py-2">
-          {conversations.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="px-3 py-8 text-center text-slate-600 text-xs">
-              Belum ada percakapan
+              {search ? "Tidak ada hasil" : "Belum ada percakapan"}
             </div>
           ) : (
             groupOrder.map(group => {
@@ -436,14 +614,26 @@ function Sidebar({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                       </svg>
                       <span className="text-xs text-slate-300 truncate flex-1">{conv.title}</span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
-                        className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all flex-shrink-0"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onExport(conv.id); }}
+                          className="text-slate-600 hover:text-blue-400 p-0.5 transition-colors"
+                          title="Export"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
+                          className="text-slate-600 hover:text-red-400 p-0.5 transition-colors"
+                          title="Hapus"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -453,7 +643,10 @@ function Sidebar({
         </div>
 
         {/* Footer */}
-        <div className="p-3 border-t border-slate-700/60">
+        <div className="p-3 border-t border-slate-700/60 space-y-2">
+          <div className="text-xs text-slate-600 text-center">
+            {conversations.length} percakapan tersimpan
+          </div>
           <Link
             href="/"
             className="flex items-center gap-2 text-slate-500 hover:text-slate-300 text-xs transition-colors"
@@ -542,6 +735,9 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent>(AGENTS[0]);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [charCount, setCharCount] = useState(0);
+  const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -570,7 +766,29 @@ export default function ChatPage() {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + "px";
     }
+    setCharCount(input.length);
   }, [input]);
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === "k") {
+        e.preventDefault();
+        createNewConversation();
+      }
+      if (e.ctrlKey && e.key === "/") {
+        e.preventDefault();
+        setShowShortcuts(prev => !prev);
+      }
+      if (e.key === "Escape") {
+        setShowShortcuts(false);
+        setSidebarOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeConversation = conversations.find(c => c.id === activeConvId) || null;
 
@@ -589,18 +807,56 @@ export default function ChatPage() {
     if (activeConvId === id) setActiveConvId(null);
   }, [activeConvId]);
 
+  const handleExport = useCallback((id: string) => {
+    const conv = conversations.find(c => c.id === id);
+    if (conv) exportConversation(conv);
+  }, [conversations]);
+
+  const handleReaction = useCallback((messageId: string, reaction: "up" | "down") => {
+    setConversations(prev => prev.map(c =>
+      c.id === activeConvId
+        ? {
+            ...c,
+            messages: c.messages.map(m =>
+              m.id === messageId
+                ? { ...m, reaction: m.reaction === reaction ? null : reaction }
+                : m
+            ),
+          }
+        : c
+    ));
+  }, [activeConvId]);
+
+  const stopGeneration = useCallback(() => {
+    abortRef.current?.abort();
+    setIsLoading(false);
+    // Finalize any streaming message
+    setConversations(prev => prev.map(c =>
+      c.id === activeConvId
+        ? {
+            ...c,
+            messages: c.messages.map(m =>
+              m.isStreaming ? { ...m, isStreaming: false, content: m.content || "[Dihentikan]" } : m
+            ),
+          }
+        : c
+    ));
+  }, [activeConvId]);
+
   const sendMessage = useCallback(async (text?: string) => {
     const messageText = (text || input).trim();
     if (!messageText || isLoading) return;
 
     setInput("");
     setIsLoading(true);
+    abortRef.current = new AbortController();
 
     const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
       content: messageText,
       timestamp: new Date(),
+      wordCount: countWords(messageText),
     };
 
     // Create or update conversation
@@ -658,10 +914,12 @@ export default function ChatPage() {
           messages: [...historyMessages, { role: "user", content: messageText }],
           agentId: selectedAgent.id,
         }),
+        signal: abortRef.current.signal,
       });
 
       const data = await response.json();
       const responseText = data.message || "Maaf, terjadi kesalahan. Silakan coba lagi.";
+      const wc = countWords(responseText);
 
       // Simulate streaming effect
       let displayed = "";
@@ -669,6 +927,7 @@ export default function ChatPage() {
       const chunkSize = Math.max(1, Math.floor(chars.length / 40));
 
       for (let i = 0; i < chars.length; i += chunkSize) {
+        if (abortRef.current?.signal.aborted) break;
         displayed += chars.slice(i, i + chunkSize).join("");
         const current = displayed;
         setConversations(prev => prev.map(c =>
@@ -693,14 +952,15 @@ export default function ChatPage() {
               ...c,
               messages: c.messages.map(m =>
                 m.id === streamingMsgId
-                  ? { ...m, content: responseText, isStreaming: false }
+                  ? { ...m, content: responseText, isStreaming: false, wordCount: wc }
                   : m
               ),
               updatedAt: new Date(),
             }
           : c
       ));
-    } catch {
+    } catch (err) {
+      if ((err as Error).name === "AbortError") return;
       setConversations(prev => prev.map(c =>
         c.id === convId
           ? {
@@ -717,6 +977,24 @@ export default function ChatPage() {
       setIsLoading(false);
     }
   }, [input, isLoading, activeConvId, conversations, selectedAgent]);
+
+  const regenerateLastResponse = useCallback(() => {
+    if (!activeConversation || isLoading) return;
+    const msgs = activeConversation.messages;
+    // Find last user message before last assistant message
+    const lastAssistantIdx = [...msgs].reverse().findIndex(m => m.role === "assistant");
+    if (lastAssistantIdx === -1) return;
+    const lastUserMsg = [...msgs].reverse().find((m, i) => i > lastAssistantIdx && m.role === "user");
+    if (!lastUserMsg) return;
+
+    // Remove last assistant message and resend
+    setConversations(prev => prev.map(c =>
+      c.id === activeConvId
+        ? { ...c, messages: msgs.slice(0, msgs.length - 1 - lastAssistantIdx) }
+        : c
+    ));
+    setTimeout(() => sendMessage(lastUserMsg.content), 50);
+  }, [activeConversation, activeConvId, isLoading, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -736,9 +1014,13 @@ export default function ChatPage() {
   }, []);
 
   const messages = activeConversation?.messages || [];
+  const lastAssistantMsgIdx = [...messages].map((m, i) => ({ m, i })).filter(x => x.m.role === "assistant").pop()?.i ?? -1;
 
   return (
     <div className="h-screen bg-slate-950 flex overflow-hidden">
+      {/* Keyboard shortcuts modal */}
+      {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
+
       {/* Sidebar */}
       <Sidebar
         conversations={conversations}
@@ -746,6 +1028,7 @@ export default function ChatPage() {
         onSelect={selectConversation}
         onNew={createNewConversation}
         onDelete={deleteConversation}
+        onExport={handleExport}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
@@ -768,7 +1051,7 @@ export default function ChatPage() {
           <button
             onClick={createNewConversation}
             className="hidden lg:flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors"
-            title="Chat Baru"
+            title="Chat Baru (Ctrl+K)"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -785,10 +1068,37 @@ export default function ChatPage() {
             )}
           </div>
 
-          {/* Status */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-            <span className="text-green-400 text-xs hidden sm:block">Online</span>
+          {/* Actions */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Export current conversation */}
+            {activeConversation && (
+              <button
+                onClick={() => handleExport(activeConversation.id)}
+                className="text-slate-500 hover:text-slate-300 transition-colors"
+                title="Export percakapan"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </button>
+            )}
+
+            {/* Shortcuts */}
+            <button
+              onClick={() => setShowShortcuts(true)}
+              className="text-slate-500 hover:text-slate-300 transition-colors"
+              title="Keyboard shortcuts (Ctrl+/)"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+            </button>
+
+            {/* Status */}
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+              <span className="text-green-400 text-xs hidden sm:block">Online</span>
+            </div>
           </div>
         </header>
 
@@ -798,11 +1108,14 @@ export default function ChatPage() {
         ) : (
           <div className="flex-1 overflow-y-auto px-4 py-6">
             <div className="max-w-3xl mx-auto space-y-6">
-              {messages.map((message) => (
+              {messages.map((message, idx) => (
                 <MessageBubble
                   key={message.id}
                   message={message}
                   agentIcon={selectedAgent.icon}
+                  onReaction={handleReaction}
+                  onRegenerate={idx === lastAssistantMsgIdx ? regenerateLastResponse : undefined}
+                  isLast={idx === lastAssistantMsgIdx}
                 />
               ))}
               <div ref={messagesEndRef} />
@@ -820,42 +1133,63 @@ export default function ChatPage() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={`Tanya ${selectedAgent.name}... (Enter untuk kirim, Shift+Enter untuk baris baru)`}
-                className="w-full bg-transparent text-white placeholder-slate-500 px-4 pt-3 pb-2 text-sm resize-none focus:outline-none min-h-[48px] max-h-[120px] pr-14"
+                className="w-full bg-transparent text-white placeholder-slate-500 px-4 pt-3 pb-2 text-sm resize-none focus:outline-none min-h-[48px] max-h-[120px] pr-24"
                 rows={1}
                 disabled={isLoading}
               />
               <div className="absolute right-2 bottom-2 flex items-center gap-1">
-                {input.trim() && (
+                {/* Char count */}
+                {charCount > 0 && (
+                  <span className={`text-xs mr-1 ${charCount > 2000 ? "text-red-400" : "text-slate-600"}`}>
+                    {charCount}
+                  </span>
+                )}
+                {input.trim() && !isLoading && (
                   <button
                     onClick={() => setInput("")}
                     className="text-slate-500 hover:text-slate-300 p-1.5 rounded-lg transition-colors"
+                    title="Hapus teks"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 )}
-                <button
-                  onClick={() => sendMessage()}
-                  disabled={!input.trim() || isLoading}
-                  className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-700 disabled:text-slate-500 text-white w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
-                >
-                  {isLoading ? (
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                {isLoading ? (
+                  <button
+                    onClick={stopGeneration}
+                    className="bg-red-500 hover:bg-red-600 text-white w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+                    title="Hentikan generasi"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <rect x="6" y="6" width="12" height="12" rx="1" />
                     </svg>
-                  ) : (
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => sendMessage()}
+                    disabled={!input.trim()}
+                    className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-700 disabled:text-slate-500 text-white w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+                    title="Kirim (Enter)"
+                  >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
-                  )}
-                </button>
+                  </button>
+                )}
               </div>
             </div>
-            <p className="text-slate-700 text-xs mt-2 text-center">
-              KonstruksiAI dapat membuat kesalahan. Verifikasi informasi penting dengan sumber resmi.
-            </p>
+            <div className="flex items-center justify-between mt-2 px-1">
+              <p className="text-slate-700 text-xs">
+                KonstruksiAI dapat membuat kesalahan. Verifikasi informasi penting dengan sumber resmi.
+              </p>
+              <button
+                onClick={() => setShowShortcuts(true)}
+                className="text-slate-700 hover:text-slate-500 text-xs transition-colors flex-shrink-0"
+              >
+                Ctrl+/
+              </button>
+            </div>
           </div>
         </div>
       </div>
