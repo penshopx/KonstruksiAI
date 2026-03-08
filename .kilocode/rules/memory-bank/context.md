@@ -2,9 +2,17 @@
 
 ## Current State
 
-**Template Status**: ✅ KonstruksiAI Application Built — Session 4 Enhancements
+**Template Status**: ✅ KonstruksiAI Application Built — Session 5 Platform Expansion
 
 The template has been expanded into a full construction AI assistant application (KonstruksiAI) with chat interface, landing page, and three specialized feature pages.
+
+## Recently Completed (Session 5 — Platform Expansion)
+
+- [x] Engineering Solver page (/solver) — multi-step problem solver with 6 domains, structured AI output
+- [x] Engineering Tools page (/tools) — 6 calculators: RAB, balok, PLTS, beton, tender, IPAL
+- [x] Pricing page (/pricing) — Freemium/Pro/Enterprise tiered model with comparison table
+- [x] Landing page enhanced — Solver & Tools feature section, updated navbar, improved footer
+- [x] Navbar updated — Solver, Tools, Matriks, Harga links added
 
 ## Recently Completed (Session 3 — Next Level)
 

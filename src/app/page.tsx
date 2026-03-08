@@ -451,12 +451,13 @@ export default function Home() {
               </div>
             </div>
             <nav className="hidden md:flex items-center gap-4">
+              <Link href="/solver" className="text-orange-400 hover:text-orange-300 text-sm transition-colors font-medium">🔬 Solver</Link>
+              <Link href="/tools" className="text-slate-300 hover:text-white text-sm transition-colors">🔧 Tools</Link>
+              <Link href="/matrix" className="text-slate-300 hover:text-white text-sm transition-colors">📊 Matriks</Link>
               <Link href="/konstruksi" className="text-slate-300 hover:text-white text-sm transition-colors">Konstruksi</Link>
               <Link href="/energi" className="text-slate-300 hover:text-white text-sm transition-colors">Energi</Link>
               <Link href="/migas" className="text-slate-300 hover:text-white text-sm transition-colors">Migas</Link>
-              <Link href="/tender" className="text-slate-300 hover:text-white text-sm transition-colors">Tender</Link>
-              <Link href="/perijinan" className="text-slate-300 hover:text-white text-sm transition-colors">Perijinan</Link>
-              <Link href="/matrix" className="text-orange-400 hover:text-orange-300 text-sm transition-colors font-medium">📊 Matriks</Link>
+              <Link href="/pricing" className="text-slate-300 hover:text-white text-sm transition-colors">Harga</Link>
               <Link href="/chat" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Mulai Chat
               </Link>
@@ -613,6 +614,79 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Solver & Tools Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-full px-4 py-1.5 mb-4">
+            <span className="text-orange-300 text-sm font-medium">✨ Fitur Unggulan</span>
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-4">Platform Keteknikan Terlengkap</h2>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+            Lebih dari sekadar chatbot — KonstruksiAI adalah platform lengkap untuk profesional keteknikan Indonesia
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Solver Card */}
+          <Link href="/solver">
+            <div className="bg-gradient-to-br from-orange-500/10 to-slate-800 border border-orange-500/30 hover:border-orange-500/60 rounded-2xl p-7 h-full transition-all hover:-translate-y-1 group cursor-pointer">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center text-2xl">🔬</div>
+                <div>
+                  <span className="text-xs font-medium text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full">Engineering Solver</span>
+                </div>
+              </div>
+              <h3 className="text-white font-bold text-xl mb-3">Selesaikan Masalah Teknik</h3>
+              <p className="text-slate-400 text-sm leading-relaxed mb-4">
+                Deskripsikan permasalahan teknis Anda, dan AI akan menganalisis serta memberikan solusi terstruktur lengkap dengan regulasi, perhitungan, dan langkah implementasi.
+              </p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {["Struktur", "Energi", "Tender", "Perijinan", "Migas", "Manajemen"].map(tag => (
+                  <span key={tag} className="text-xs bg-orange-500/10 border border-orange-500/20 text-orange-300 px-2 py-0.5 rounded-full">{tag}</span>
+                ))}
+              </div>
+              <div className="text-orange-400 text-sm font-medium group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                Coba Engineering Solver →
+              </div>
+            </div>
+          </Link>
+
+          {/* Tools Card */}
+          <Link href="/tools">
+            <div className="bg-gradient-to-br from-blue-500/10 to-slate-800 border border-blue-500/30 hover:border-blue-500/60 rounded-2xl p-7 h-full transition-all hover:-translate-y-1 group cursor-pointer">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center text-2xl">🔧</div>
+                <div>
+                  <span className="text-xs font-medium text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">Engineering Calculators</span>
+                </div>
+              </div>
+              <h3 className="text-white font-bold text-xl mb-3">Kalkulator Teknik Instan</h3>
+              <p className="text-slate-400 text-sm leading-relaxed mb-4">
+                6 kalkulator teknik siap pakai: estimasi RAB, analisis balok beton, kalkulasi PLTS, mix design beton, skor tender, dan kapasitas IPAL.
+              </p>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {[
+                  { icon: "💰", name: "RAB Estimator" },
+                  { icon: "📐", name: "Kalkulator Balok" },
+                  { icon: "☀️", name: "Kalkulator PLTS" },
+                  { icon: "🏗️", name: "Mix Design Beton" },
+                  { icon: "📊", name: "Skor Tender" },
+                  { icon: "💧", name: "Kapasitas IPAL" },
+                ].map(tool => (
+                  <div key={tool.name} className="bg-slate-700/50 rounded-lg p-2 text-center">
+                    <div className="text-lg mb-0.5">{tool.icon}</div>
+                    <div className="text-slate-400 text-xs">{tool.name}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="text-blue-400 text-sm font-medium group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                Buka Kalkulator Teknik →
+              </div>
+            </div>
+          </Link>
+        </div>
+      </section>
+
       {/* Matrix Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="bg-gradient-to-br from-slate-800 to-slate-800/50 border border-slate-700 rounded-2xl p-8">
@@ -687,15 +761,69 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-700 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <div className="w-7 h-7 bg-orange-500 rounded-md flex items-center justify-center text-white font-bold text-sm">K</div>
-            <span className="text-white font-semibold">KonstruksiAI</span>
+      <footer className="border-t border-slate-700 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 bg-orange-500 rounded-md flex items-center justify-center text-white font-bold text-sm">K</div>
+                <span className="text-white font-semibold">KonstruksiAI</span>
+              </div>
+              <p className="text-slate-500 text-xs leading-relaxed">
+                Platform AI keteknikan terlengkap untuk profesional Indonesia
+              </p>
+            </div>
+            <div>
+              <h4 className="text-slate-300 font-semibold text-sm mb-3">Platform</h4>
+              <ul className="space-y-2">
+                {[
+                  { href: "/solver", label: "🔬 Engineering Solver" },
+                  { href: "/tools", label: "🔧 Kalkulator Teknik" },
+                  { href: "/matrix", label: "📊 Matriks Agen" },
+                  { href: "/chat", label: "💬 Chat AI" },
+                ].map(link => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="text-slate-500 hover:text-slate-300 text-xs transition-colors">{link.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-slate-300 font-semibold text-sm mb-3">Bidang Keahlian</h4>
+              <ul className="space-y-2">
+                {[
+                  { href: "/konstruksi", label: "Teknik Konstruksi" },
+                  { href: "/energi", label: "Ketenagalistrikan & EBT" },
+                  { href: "/migas", label: "Migas & Pertambangan" },
+                  { href: "/tender", label: "Tender & Pengadaan" },
+                  { href: "/perijinan", label: "Perijinan & Regulasi" },
+                ].map(link => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="text-slate-500 hover:text-slate-300 text-xs transition-colors">{link.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-slate-300 font-semibold text-sm mb-3">Perusahaan</h4>
+              <ul className="space-y-2">
+                {[
+                  { href: "/pricing", label: "Harga & Paket" },
+                  { href: "/login", label: "Masuk" },
+                  { href: "/register", label: "Daftar Gratis" },
+                ].map(link => (
+                  <li key={link.href}>
+                    <Link href={link.href} className="text-slate-500 hover:text-slate-300 text-xs transition-colors">{link.label}</Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <p className="text-slate-500 text-sm">
-            Asisten AI khusus bidang keteknikan Indonesia — Konstruksi · Energi · Migas & Pertambangan
-          </p>
+          <div className="border-t border-slate-800 pt-6 text-center">
+            <p className="text-slate-600 text-xs">
+              © 2025 KonstruksiAI — Asisten AI khusus bidang keteknikan Indonesia · Konstruksi · Energi · Migas & Pertambangan
+            </p>
+          </div>
         </div>
       </footer>
     </div>
