@@ -451,6 +451,7 @@ export default function Home() {
               </div>
             </div>
             <nav className="hidden md:flex items-center gap-4">
+              <Link href="/knowledge" className="text-purple-400 hover:text-purple-300 text-sm transition-colors font-medium">📚 Knowledge</Link>
               <Link href="/solver" className="text-orange-400 hover:text-orange-300 text-sm transition-colors font-medium">🔬 Solver</Link>
               <Link href="/tools" className="text-slate-300 hover:text-white text-sm transition-colors">🔧 Tools</Link>
               <Link href="/matrix" className="text-slate-300 hover:text-white text-sm transition-colors">📊 Matriks</Link>
@@ -593,6 +594,78 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Knowledge Base Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="bg-gradient-to-br from-purple-900/30 via-slate-900 to-purple-900/20 border border-purple-500/30 rounded-2xl p-8 md:p-12">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-purple-500/20 border border-purple-500/40 rounded-full px-3 py-1 mb-4">
+                <span className="text-purple-400 text-xs font-medium">🆕 Baru!</span>
+              </div>
+              <h2 className="text-3xl font-bold text-white mb-4">
+                Knowledge Base Keteknikan
+              </h2>
+              <p className="text-slate-400 text-lg mb-6 leading-relaxed">
+                Akses <strong className="text-purple-400">50+ artikel teknis</strong>,{" "}
+                <strong className="text-purple-400">video tutorial</strong>, dan{" "}
+                <strong className="text-purple-400">template dokumen</strong> profesional untuk bidang konstruksi, energi, dan migas.
+              </p>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="flex items-center gap-2 text-slate-300 text-sm">
+                  <span className="text-green-400">✓</span>
+                  <span>Artikel teknis lengkap</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-300 text-sm">
+                  <span className="text-green-400">✓</span>
+                  <span>Video tutorial</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-300 text-sm">
+                  <span className="text-green-400">✓</span>
+                  <span>Template & SOP</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-300 text-sm">
+                  <span className="text-green-400">✓</span>
+                  <span>RAB & perhitungan</span>
+                </div>
+              </div>
+              <Link
+                href="/knowledge"
+                className="inline-flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105"
+              >
+                📚 Jelajahi Knowledge Base
+                <span>→</span>
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-4">
+                  <span className="text-2xl mb-2 block">📐</span>
+                  <h4 className="text-slate-200 font-medium text-sm mb-1">RAB & Estimasi</h4>
+                  <p className="text-slate-500 text-xs">Panduan perhitungan anggaran proyek</p>
+                </div>
+                <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-4">
+                  <span className="text-2xl mb-2 block">📋</span>
+                  <h4 className="text-slate-200 font-medium text-sm mb-1">Tender & LPSE</h4>
+                  <p className="text-slate-500 text-xs">Strategi menang tender pemerintah</p>
+                </div>
+              </div>
+              <div className="space-y-4 mt-8">
+                <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-4">
+                  <span className="text-2xl mb-2 block">⚡</span>
+                  <h4 className="text-slate-200 font-medium text-sm mb-1">PLTS & Energi</h4>
+                  <p className="text-slate-500 text-xs">Instalasi & perawatan energi terbarukan</p>
+                </div>
+                <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-4">
+                  <span className="text-2xl mb-2 block">📜</span>
+                  <h4 className="text-slate-200 font-medium text-sm mb-1">SBU & Sertifikasi</h4>
+                  <p className="text-slate-500 text-xs">Panduan lengkap perijinan konstruksi</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+ 
       {/* Quick Questions Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8">
@@ -777,6 +850,7 @@ export default function Home() {
               <h4 className="text-slate-300 font-semibold text-sm mb-3">Platform</h4>
               <ul className="space-y-2">
                 {[
+                  { href: "/knowledge", label: "📚 Knowledge Base" },
                   { href: "/solver", label: "🔬 Engineering Solver" },
                   { href: "/tools", label: "🔧 Kalkulator Teknik" },
                   { href: "/matrix", label: "📊 Matriks Agen" },
