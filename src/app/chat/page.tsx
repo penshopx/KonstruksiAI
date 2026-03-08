@@ -13,13 +13,15 @@ interface Message {
 const suggestedTopics = [
   { icon: "📋", text: "Cara mengikuti tender LPSE" },
   { icon: "📜", text: "Syarat mendapatkan SBU" },
-  { icon: "🏗️", text: "Manajemen cashflow proyek" },
+  { icon: "☀️", text: "Perizinan PLTS rooftop" },
+  { icon: "⛏️", text: "Syarat IUP pertambangan mineral" },
   { icon: "👷", text: "Sertifikasi SKK Konstruksi" },
-  { icon: "📄", text: "Dokumen kontrak konstruksi" },
   { icon: "💰", text: "Cara menghitung RAB" },
+  { icon: "🌿", text: "AMDAL proyek konstruksi" },
+  { icon: "🛢️", text: "Kontrak PSC migas" },
 ];
 
-// Simulated AI responses for construction topics
+// Simulated AI responses for construction, energy, and mining topics
 function getAIResponse(question: string): string {
   const q = question.toLowerCase();
 
@@ -211,6 +213,176 @@ Mau template cashflow proyek konstruksi?`;
 Ada pertanyaan lain seputar perijinan konstruksi?`;
   }
 
+  if (q.includes("plts") || q.includes("solar") || q.includes("energi surya") || q.includes("panel surya")) {
+    return `## PLTS (Pembangkit Listrik Tenaga Surya)
+
+**PLTS** adalah sistem pembangkit listrik menggunakan panel surya yang semakin populer di Indonesia.
+
+### Jenis PLTS:
+1. **PLTS Rooftop** — dipasang di atap gedung/rumah
+2. **PLTS Ground-Mounted** — dipasang di lahan terbuka
+3. **PLTS Off-Grid** — sistem mandiri tanpa jaringan PLN
+4. **PLTS On-Grid** — terhubung ke jaringan PLN
+
+### Perizinan PLTS Rooftop:
+- **IUPTL** (Izin Usaha Penyediaan Tenaga Listrik) untuk kapasitas > 500 kW
+- **Persetujuan PLN** untuk koneksi ke jaringan
+- **Net Metering** — kelebihan listrik dijual ke PLN
+- Regulasi: **Permen ESDM No. 26 Tahun 2021**
+
+### Estimasi Biaya PLTS:
+| Kapasitas | Estimasi Biaya |
+|-----------|----------------|
+| 1 kWp | Rp 10-15 juta |
+| 10 kWp | Rp 80-120 juta |
+| 100 kWp | Rp 700-900 juta |
+
+### Insentif Pemerintah:
+- **Tax holiday** untuk investasi EBT
+- **Feed-in tariff** untuk PLTS skala besar
+- Target bauran EBT **23% pada 2025**
+
+Mau tahu lebih detail tentang perizinan atau teknis PLTS?`;
+  }
+
+  if (q.includes("ebt") || q.includes("energi terbarukan") || q.includes("energi baru") || q.includes("renewable")) {
+    return `## Energi Baru Terbarukan (EBT) di Indonesia
+
+Indonesia memiliki potensi EBT yang sangat besar namun belum sepenuhnya dimanfaatkan.
+
+### Potensi EBT Indonesia:
+| Jenis | Potensi | Terpasang |
+|-------|---------|-----------|
+| Hidro | 75.000 MW | ~6.000 MW |
+| Panas Bumi | 29.000 MW | ~2.300 MW |
+| Surya | 207.000 MW | ~600 MW |
+| Angin | 60.000 MW | ~150 MW |
+| Biomassa | 32.000 MW | ~1.900 MW |
+
+### Regulasi Utama EBT:
+- **UU No. 30/2007** tentang Energi
+- **Perpres No. 112/2022** tentang Percepatan Pengembangan EBT
+- **Permen ESDM No. 26/2021** tentang PLTS Atap
+
+### Perizinan Umum EBT:
+1. **IUPTL** — Izin Usaha Penyediaan Tenaga Listrik
+2. **Izin Lokasi** dari pemerintah daerah
+3. **AMDAL/UKL-UPL** sesuai skala proyek
+4. **Perjanjian Jual Beli Listrik (PJBL)** dengan PLN
+
+### Insentif Investasi EBT:
+- Tax holiday hingga 20 tahun
+- Pembebasan bea masuk peralatan
+- Kemudahan perizinan melalui OSS
+
+Ingin tahu lebih detail tentang jenis EBT tertentu?`;
+  }
+
+  if (q.includes("iup") || q.includes("izin usaha pertambangan") || q.includes("pertambangan mineral") || q.includes("tambang")) {
+    return `## IUP (Izin Usaha Pertambangan) Mineral
+
+**IUP** adalah izin yang wajib dimiliki untuk melakukan kegiatan pertambangan mineral di Indonesia.
+
+### Jenis IUP:
+1. **IUP Eksplorasi** — untuk kegiatan penyelidikan & eksplorasi
+2. **IUP Operasi Produksi** — untuk kegiatan penambangan & pengolahan
+
+### Syarat Mendapatkan IUP:
+**Administratif:**
+- Akta pendirian perusahaan (PT)
+- NPWP perusahaan
+- NIB dari OSS
+- Susunan direksi & komisaris
+
+**Teknis:**
+- Peta wilayah yang dimohon (WIUP)
+- Rencana kerja eksplorasi
+- Tenaga ahli pertambangan bersertifikat
+
+**Finansial:**
+- Laporan keuangan yang diaudit
+- Jaminan kesungguhan
+
+### Proses Pengajuan IUP:
+1. Permohonan WIUP (Wilayah IUP) ke Kementerian ESDM/Gubernur
+2. Lelang WIUP (untuk mineral logam)
+3. Pengajuan IUP Eksplorasi
+4. Kegiatan eksplorasi (3-7 tahun)
+5. Pengajuan IUP Operasi Produksi
+
+### Regulasi Terkait:
+- **UU No. 3/2020** tentang Minerba
+- **PP No. 96/2021** tentang Pelaksanaan Kegiatan Usaha Pertambangan
+
+Ada pertanyaan lebih lanjut tentang perizinan pertambangan?`;
+  }
+
+  if (q.includes("migas") || q.includes("minyak") || q.includes("gas bumi") || q.includes("psc") || q.includes("production sharing")) {
+    return `## Industri Minyak & Gas Bumi (Migas) Indonesia
+
+Indonesia adalah salah satu produsen migas terbesar di Asia Tenggara.
+
+### Struktur Industri Migas:
+**Kegiatan Hulu (Upstream):**
+- Eksplorasi & produksi minyak/gas
+- Diatur oleh **SKK Migas** (Satuan Kerja Khusus Pelaksana Kegiatan Usaha Hulu Migas)
+
+**Kegiatan Hilir (Downstream):**
+- Pengolahan, pengangkutan, penyimpanan, niaga
+- Diatur oleh **BPH Migas**
+
+### Kontrak PSC (Production Sharing Contract):
+- Kontraktor menanggung biaya eksplorasi & produksi
+- Hasil produksi dibagi antara pemerintah & kontraktor
+- **Cost Recovery** — biaya operasi dikembalikan dari produksi
+- Split produksi: biasanya 85:15 (pemerintah:kontraktor) untuk minyak
+
+### Perizinan Hulu Migas:
+1. **Wilayah Kerja (WK)** — ditetapkan pemerintah
+2. **Kontrak Kerja Sama (KKS)** dengan SKK Migas
+3. **Rencana Kerja & Anggaran (WP&B)**
+4. **Persetujuan Plan of Development (POD)**
+
+### Regulasi Utama:
+- **UU No. 22/2001** tentang Minyak dan Gas Bumi
+- **PP No. 35/2004** tentang Kegiatan Usaha Hulu Migas
+
+Mau tahu lebih detail tentang aspek teknis atau regulasi migas?`;
+  }
+
+  if (q.includes("amdal") || q.includes("ukl") || q.includes("upl") || q.includes("lingkungan hidup")) {
+    return `## AMDAL & Perizinan Lingkungan Hidup
+
+**AMDAL** (Analisis Mengenai Dampak Lingkungan) adalah kajian dampak lingkungan yang wajib untuk proyek tertentu.
+
+### Kapan Wajib AMDAL?
+Berdasarkan **PP No. 22/2021**, AMDAL wajib untuk:
+- Proyek dengan dampak lingkungan **penting**
+- Skala tertentu (luas lahan, kapasitas produksi)
+- Lokasi di kawasan lindung atau sensitif
+
+### Jenis Dokumen Lingkungan:
+| Dokumen | Kapan Digunakan |
+|---------|-----------------|
+| **AMDAL** | Dampak penting, skala besar |
+| **UKL-UPL** | Dampak tidak penting, skala menengah |
+| **SPPL** | Dampak minimal, skala kecil |
+
+### Proses AMDAL:
+1. **Pelingkupan** — identifikasi dampak potensial
+2. **Penyusunan KA-ANDAL** — kerangka acuan
+3. **Penyusunan ANDAL, RKL-RPL** — dokumen utama
+4. **Penilaian** oleh Komisi Penilai AMDAL
+5. **Penerbitan Persetujuan Lingkungan**
+
+### Integrasi dengan Perizinan:
+- AMDAL terintegrasi dalam **Persetujuan Lingkungan** (UU Cipta Kerja)
+- Persetujuan Lingkungan menjadi syarat **Perizinan Berusaha**
+- Proses melalui sistem **AMDALNET**
+
+Ada pertanyaan lebih lanjut tentang AMDAL atau perizinan lingkungan?`;
+  }
+
   if (q.includes("kontrak") || q.includes("perjanjian")) {
     return `## Kontrak Konstruksi: Panduan Lengkap
 
@@ -243,32 +415,90 @@ Ada pertanyaan lain seputar perijinan konstruksi?`;
 Mau template kontrak konstruksi standar?`;
   }
 
+  if (q.includes("arsitektur") || q.includes("arsitek") || q.includes("iai") || q.includes("desain bangunan")) {
+    return `## Arsitektur & Sertifikasi Arsitek Indonesia
+
+### Sertifikasi Arsitek (IAI):
+**IAI** (Ikatan Arsitek Indonesia) mengeluarkan sertifikasi profesi arsitek.
+
+### Jenjang Sertifikasi:
+| Jenjang | Syarat |
+|---------|--------|
+| **Arsitek Pratama** | S1 Arsitektur + 2 tahun pengalaman |
+| **Arsitek Madya** | S1 + 5 tahun pengalaman |
+| **Arsitek Utama** | S1 + 10 tahun pengalaman |
+
+### Standar Desain Bangunan:
+- **SNI 03-1726** — Tata cara perencanaan ketahanan gempa
+- **SNI 03-1727** — Beban minimum untuk perancangan bangunan
+- **Permen PUPR No. 14/2017** — Persyaratan kemudahan bangunan gedung
+
+### Green Building di Indonesia:
+- **Greenship** — sertifikasi bangunan hijau dari GBCI
+- **EDGE** — sertifikasi internasional untuk bangunan efisien
+- Regulasi: **Permen PUPR No. 2/2015** tentang Bangunan Gedung Hijau
+
+Ada pertanyaan lebih lanjut tentang arsitektur atau desain bangunan?`;
+  }
+
+  if (q.includes("sipil") || q.includes("struktur") || q.includes("beton") || q.includes("jembatan") || q.includes("jalan")) {
+    return `## Teknik Sipil: Struktur & Infrastruktur
+
+### Standar Perencanaan Struktur:
+- **SNI 2847** — Persyaratan beton struktural
+- **SNI 1729** — Spesifikasi baja struktural
+- **SNI 1726** — Tata cara perencanaan ketahanan gempa
+
+### Jenis Pondasi:
+| Jenis | Kondisi Tanah | Kedalaman |
+|-------|---------------|-----------|
+| Pondasi dangkal | Tanah keras | < 3 m |
+| Pondasi tiang pancang | Tanah lunak | 10-30 m |
+| Pondasi bored pile | Tanah keras dalam | 20-50 m |
+
+### Sertifikasi Insinyur Sipil:
+- **PII** (Persatuan Insinyur Indonesia) — Insinyur Profesional
+- **SKK Jenjang 7-9** — Ahli Teknik Sipil
+- **IPM** (Insinyur Profesional Madya) — pengalaman 5 tahun
+
+### Metode Konstruksi Modern:
+- **Precast** — elemen beton pracetak
+- **Prategang** — beton pratekan untuk bentang panjang
+- **Top-Down** — konstruksi dari atas ke bawah
+
+Mau tahu lebih detail tentang topik teknik sipil tertentu?`;
+  }
+
   // Default response
   return `## Terima kasih atas pertanyaan Anda!
 
-Saya adalah **KonstruksiAI**, asisten cerdas khusus bidang konstruksi Indonesia. Saya siap membantu Anda dengan:
+Saya adalah **KonstruksiAI**, asisten cerdas khusus bidang keteknikan Indonesia. Saya siap membantu Anda dengan:
+
+### 🏗️ Teknik Konstruksi
+- Arsitektur, Sipil, Mekanikal, Elektrikal
+- Tata Lingkungan, Rekayasa Teknik
+- Lanskap, Desain Interior, Iluminasi
+- Perencanaan Wilayah & Kota
+
+### ⚡ Ketenagalistrikan & Energi Baru Terbarukan
+- PLTS, PLTB, PLTA, Panas Bumi
+- Perizinan IUPTL & regulasi EBT
+- Transmisi & distribusi listrik
+
+### ⛏️ Migas & Pertambangan
+- Minyak & gas bumi (PSC, SKK Migas)
+- Pertambangan mineral (IUP, Minerba)
+- K3 migas & tambang
 
 ### 📋 Tender & Pengadaan
 - Proses tender LPSE/pemerintah
-- Strategi penawaran
-- Dokumen pengadaan
-
-### 🏗️ Manajemen Bisnis Konstruksi  
-- Manajemen proyek & cashflow
-- Kontrak dan subkontraktor
-- Estimasi biaya (RAB)
+- Strategi penawaran & dokumen
 
 ### 📜 Perijinan & Sertifikasi
-- SBU (Sertifikat Badan Usaha)
-- SKK (Sertifikat Kompetensi Kerja)
-- IUJK dan perijinan lainnya
+- SBU, SKK, IUJK, AMDAL
+- Sertifikasi profesi (IAI, PII, dll)
 
-Silakan tanyakan hal yang lebih spesifik, misalnya:
-- *"Apa syarat mendapatkan SBU Konstruksi?"*
-- *"Bagaimana cara mengikuti tender LPSE?"*
-- *"Jelaskan tentang SKK jenjang 7"*
-
-Saya siap membantu! 🏗️`;
+Silakan tanyakan hal yang lebih spesifik! 🏗️`;
 }
 
 export default function ChatPage() {
@@ -278,11 +508,13 @@ export default function ChatPage() {
       role: "assistant",
       content: `## Selamat datang di KonstruksiAI! 👋
 
-Saya adalah asisten AI khusus bidang **keteknikan & konstruksi Indonesia**. Saya siap membantu Anda dengan:
+Saya adalah asisten AI khusus bidang **keteknikan Indonesia**. Saya siap membantu Anda dengan:
 
+- 🏗️ **Teknik Konstruksi** — Arsitektur, Sipil, Mekanikal, Elektrikal, Lanskap, Interior, dan lainnya
+- ⚡ **Ketenagalistrikan & EBT** — PLTS, PLTB, PLTA, Panas Bumi, regulasi energi
+- ⛏️ **Migas & Pertambangan** — Minyak, gas bumi, mineral, IUP, PSC
 - 📋 **Tender & Pengadaan** — LPSE, strategi penawaran, dokumen tender
-- 🏗️ **Manajemen Bisnis Konstruksi** — cashflow, kontrak, RAB, manajemen proyek  
-- 📜 **Perijinan & Sertifikasi** — SBU, SKK, IUJK, dan regulasi konstruksi
+- 📜 **Perijinan & Sertifikasi** — SBU, SKK, IUJK, AMDAL, dan regulasi terkini
 
 **Silakan ketik pertanyaan Anda atau pilih topik di bawah ini!**`,
       timestamp: new Date(),
@@ -377,7 +609,7 @@ Saya adalah asisten AI khusus bidang **keteknikan & konstruksi Indonesia**. Saya
           </div>
         </div>
         <div className="text-slate-500 text-xs hidden sm:block">
-          Spesialis Konstruksi Indonesia
+          Konstruksi · Energi · Migas & Pertambangan
         </div>
       </header>
 
@@ -476,7 +708,7 @@ Saya adalah asisten AI khusus bidang **keteknikan & konstruksi Indonesia**. Saya
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Tanyakan seputar tender, SBU, SKK, RAB, kontrak konstruksi..."
+                placeholder="Tanyakan seputar konstruksi, energi, migas, tender, SBU, SKK, RAB..."
                 className="w-full bg-transparent text-white placeholder-slate-500 px-4 py-3 text-sm resize-none focus:outline-none min-h-[48px] max-h-[120px]"
                 rows={1}
                 disabled={isLoading}

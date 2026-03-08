@@ -1,31 +1,80 @@
 import Link from "next/link";
 
-const features = [
+const engineeringFields = [
+  {
+    category: "Teknik Konstruksi",
+    icon: "🏗️",
+    color: "border-orange-500/40 hover:border-orange-500",
+    iconBg: "bg-orange-500/20",
+    badgeColor: "text-orange-400 bg-orange-400/10",
+    href: "/konstruksi",
+    subFields: [
+      { icon: "🏛️", name: "Arsitektur" },
+      { icon: "🌉", name: "Teknik Sipil" },
+      { icon: "⚙️", name: "Mekanikal" },
+      { icon: "⚡", name: "Elektrikal" },
+      { icon: "🌿", name: "Tata Lingkungan" },
+      { icon: "🔧", name: "Rekayasa Teknik" },
+      { icon: "🌳", name: "Lanskap" },
+      { icon: "🛋️", name: "Desain Interior" },
+      { icon: "💡", name: "Iluminasi" },
+      { icon: "🗺️", name: "Perencanaan Wilayah & Kota" },
+    ],
+  },
+  {
+    category: "Ketenagalistrikan & Energi Baru Terbarukan",
+    icon: "⚡",
+    color: "border-yellow-500/40 hover:border-yellow-500",
+    iconBg: "bg-yellow-500/20",
+    badgeColor: "text-yellow-400 bg-yellow-400/10",
+    href: "/energi",
+    subFields: [
+      { icon: "☀️", name: "Energi Surya (Solar)" },
+      { icon: "💨", name: "Energi Angin" },
+      { icon: "💧", name: "Energi Air (Hidro)" },
+      { icon: "🔋", name: "Penyimpanan Energi" },
+      { icon: "🏭", name: "Pembangkit Listrik" },
+      { icon: "🔌", name: "Transmisi & Distribusi" },
+    ],
+  },
+  {
+    category: "Migas & Pertambangan",
+    icon: "⛏️",
+    color: "border-blue-500/40 hover:border-blue-500",
+    iconBg: "bg-blue-500/20",
+    badgeColor: "text-blue-400 bg-blue-400/10",
+    href: "/migas",
+    subFields: [
+      { icon: "🛢️", name: "Minyak & Gas Bumi" },
+      { icon: "⛏️", name: "Pertambangan Mineral" },
+      { icon: "🏗️", name: "Konstruksi Migas" },
+      { icon: "🔬", name: "Geologi & Eksplorasi" },
+      { icon: "🚰", name: "Pipeline & Fasilitas" },
+      { icon: "📋", name: "K3 Migas & Tambang" },
+    ],
+  },
+];
+
+const mainFeatures = [
   {
     icon: "📋",
     title: "Tender & Pengadaan",
-    description: "Bantu analisis dokumen tender, estimasi biaya, penyusunan penawaran, dan strategi pemenangan tender konstruksi.",
+    description: "Analisis dokumen tender, estimasi biaya, penyusunan penawaran, dan strategi pemenangan tender.",
     href: "/tender",
-    color: "bg-blue-50 border-blue-200",
-    iconBg: "bg-blue-100",
     badge: "Tender",
   },
   {
-    icon: "🏗️",
-    title: "Manajemen Bisnis Konstruksi",
-    description: "Panduan manajemen proyek, cashflow, kontrak, subkontraktor, dan operasional perusahaan konstruksi.",
+    icon: "🏢",
+    title: "Manajemen Bisnis",
+    description: "Panduan manajemen proyek, cashflow, kontrak, subkontraktor, dan operasional perusahaan.",
     href: "/manajemen",
-    color: "bg-orange-50 border-orange-200",
-    iconBg: "bg-orange-100",
     badge: "Manajemen",
   },
   {
     icon: "📜",
     title: "Perijinan & Sertifikasi",
-    description: "Informasi lengkap SBU, SKK, IUJK, IMB/PBG, sertifikasi profesi, dan regulasi konstruksi terkini.",
+    description: "Informasi SBU, SKK, IUJK, IMB/PBG, sertifikasi profesi, dan regulasi terkini.",
     href: "/perijinan",
-    color: "bg-green-50 border-green-200",
-    iconBg: "bg-green-100",
     badge: "Perijinan",
   },
 ];
@@ -35,8 +84,8 @@ const quickQuestions = [
   "Bagaimana cara menghitung RAB proyek gedung?",
   "Apa itu SKK dan bagaimana cara mendapatkannya?",
   "Jelaskan proses tender pemerintah (LPSE)",
-  "Apa saja dokumen yang dibutuhkan untuk IUJK?",
-  "Bagaimana manajemen cashflow proyek konstruksi?",
+  "Apa persyaratan izin usaha pertambangan mineral?",
+  "Bagaimana prosedur sertifikasi energi surya di Indonesia?",
 ];
 
 export default function Home() {
@@ -52,12 +101,14 @@ export default function Home() {
               </div>
               <div>
                 <span className="text-white font-bold text-lg">KonstruksiAI</span>
-                <span className="text-slate-400 text-xs block leading-none">Asisten Cerdas Konstruksi</span>
+                <span className="text-slate-400 text-xs block leading-none">Asisten Cerdas Keteknikan Indonesia</span>
               </div>
             </div>
-            <nav className="hidden md:flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-4">
+              <Link href="/konstruksi" className="text-slate-300 hover:text-white text-sm transition-colors">Konstruksi</Link>
+              <Link href="/energi" className="text-slate-300 hover:text-white text-sm transition-colors">Energi</Link>
+              <Link href="/migas" className="text-slate-300 hover:text-white text-sm transition-colors">Migas</Link>
               <Link href="/tender" className="text-slate-300 hover:text-white text-sm transition-colors">Tender</Link>
-              <Link href="/manajemen" className="text-slate-300 hover:text-white text-sm transition-colors">Manajemen</Link>
               <Link href="/perijinan" className="text-slate-300 hover:text-white text-sm transition-colors">Perijinan</Link>
               <Link href="/chat" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Mulai Chat
@@ -71,18 +122,18 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
         <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-full px-4 py-1.5 mb-6">
           <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></span>
-          <span className="text-orange-300 text-sm font-medium">AI Khusus Industri Konstruksi Indonesia</span>
+          <span className="text-orange-300 text-sm font-medium">AI Khusus Bidang Keteknikan Indonesia</span>
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
           Asisten AI untuk
-          <span className="text-orange-400 block">Profesional Konstruksi</span>
+          <span className="text-orange-400 block">Profesional Keteknikan</span>
         </h1>
 
         <p className="text-slate-300 text-lg sm:text-xl max-w-3xl mx-auto mb-10 leading-relaxed">
-          Dapatkan jawaban cepat dan akurat seputar <strong className="text-white">tender</strong>,{" "}
-          <strong className="text-white">manajemen bisnis konstruksi</strong>, serta{" "}
-          <strong className="text-white">perijinan & sertifikasi profesional</strong> — semua dalam satu platform.
+          Dapatkan jawaban cepat dan akurat seputar <strong className="text-white">teknik konstruksi</strong>,{" "}
+          <strong className="text-white">ketenagalistrikan & energi terbarukan</strong>, serta{" "}
+          <strong className="text-white">migas & pertambangan</strong> — semua dalam satu platform.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -93,18 +144,18 @@ export default function Home() {
             🚀 Mulai Tanya Sekarang
           </Link>
           <Link
-            href="#fitur"
+            href="#bidang"
             className="border border-slate-600 hover:border-slate-400 text-slate-300 hover:text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all"
           >
-            Lihat Fitur
+            Lihat Bidang Keahlian
           </Link>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto">
           {[
-            { value: "3", label: "Bidang Keahlian" },
-            { value: "100+", label: "Topik Konstruksi" },
+            { value: "3", label: "Sektor Industri" },
+            { value: "22+", label: "Sub-Bidang Keahlian" },
             { value: "24/7", label: "Siap Membantu" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
@@ -115,19 +166,60 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="fitur" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      {/* Engineering Fields Section */}
+      <section id="bidang" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-white mb-4">Bidang Keahlian Kami</h2>
+          <h2 className="text-3xl font-bold text-white mb-4">Bidang Keteknikan</h2>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Tiga pilar utama yang kami kuasai untuk mendukung profesional dan perusahaan konstruksi Indonesia
+            Cakupan lengkap tiga sektor utama keteknikan Indonesia
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {engineeringFields.map((field) => (
+            <Link key={field.category} href={field.href}>
+              <div className={`bg-slate-800 border ${field.color} rounded-2xl p-6 h-full transition-all hover:-translate-y-1 cursor-pointer group`}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-12 h-12 ${field.iconBg} rounded-xl flex items-center justify-center text-2xl`}>
+                    {field.icon}
+                  </div>
+                  <div>
+                    <span className={`text-xs font-medium ${field.badgeColor} px-2 py-0.5 rounded-full`}>
+                      {field.subFields.length} Sub-Bidang
+                    </span>
+                  </div>
+                </div>
+                <h3 className="text-white font-bold text-lg mb-4">{field.category}</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {field.subFields.map((sub) => (
+                    <div key={sub.name} className="flex items-center gap-1.5 text-slate-400 text-xs">
+                      <span>{sub.icon}</span>
+                      <span>{sub.name}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 text-orange-400 text-sm font-medium group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                  Eksplorasi bidang ini →
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Main Features Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-4">Layanan Utama</h2>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+            Tiga pilar layanan untuk mendukung profesional dan perusahaan keteknikan Indonesia
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {features.map((feature) => (
+          {mainFeatures.map((feature) => (
             <Link key={feature.title} href={feature.href}>
-              <div className="bg-slate-800 border border-slate-700 hover:border-orange-500/50 rounded-2xl p-6 h-full transition-all hover:bg-slate-750 hover:-translate-y-1 cursor-pointer group">
+              <div className="bg-slate-800 border border-slate-700 hover:border-orange-500/50 rounded-2xl p-6 h-full transition-all hover:-translate-y-1 cursor-pointer group">
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-12 h-12 bg-slate-700 group-hover:bg-orange-500/20 rounded-xl flex items-center justify-center text-2xl transition-colors">
                     {feature.icon}
@@ -174,7 +266,7 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl p-10 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Siap Meningkatkan Produktivitas Konstruksi Anda?
+            Siap Meningkatkan Produktivitas Keteknikan Anda?
           </h2>
           <p className="text-orange-100 text-lg mb-8 max-w-2xl mx-auto">
             Mulai percakapan dengan KonstruksiAI sekarang dan dapatkan jawaban ahli dalam hitungan detik.
@@ -196,7 +288,7 @@ export default function Home() {
             <span className="text-white font-semibold">KonstruksiAI</span>
           </div>
           <p className="text-slate-500 text-sm">
-            Asisten AI khusus bidang keteknikan & konstruksi Indonesia
+            Asisten AI khusus bidang keteknikan Indonesia — Konstruksi · Energi · Migas & Pertambangan
           </p>
         </div>
       </footer>
