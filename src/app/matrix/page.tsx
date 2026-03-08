@@ -34,6 +34,11 @@ const engineeringColumns = [
   { id: "elektrikal", name: "Teknik Elektrikal", shortName: "Elektrikal", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30", headerColor: "bg-yellow-500/30" },
   { id: "tatalingkungan", name: "Teknik Tata Lingkungan", shortName: "Lingkungan", color: "bg-green-500/20 text-green-300 border-green-500/30", headerColor: "bg-green-500/30" },
   { id: "manajemen", name: "Manajemen Konstruksi", shortName: "Manajemen", color: "bg-red-500/20 text-red-300 border-red-500/30", headerColor: "bg-red-500/30" },
+  // Domain baru: Ketenagalistrikan, EBT, Pertambangan, Migas
+  { id: "ketenagalistrikan", name: "Ketenagalistrikan", shortName: "Listrik", color: "bg-amber-500/20 text-amber-300 border-amber-500/30", headerColor: "bg-amber-500/30" },
+  { id: "ebt", name: "Energi Baru Terbarukan", shortName: "EBT", color: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30", headerColor: "bg-cyan-500/30" },
+  { id: "pertambangan_mineral", name: "Pertambangan Mineral", shortName: "Minerba", color: "bg-slate-500/20 text-slate-300 border-slate-500/30", headerColor: "bg-slate-500/30" },
+  { id: "migas_energi", name: "Migas & Energi Fosil", shortName: "Migas", color: "bg-rose-500/20 text-rose-300 border-rose-500/30", headerColor: "bg-rose-500/30" },
 ];
 
 // Matrix content: [KBLIbusinessFunctionId][SKKNIengineeringColumnId] = topic description
