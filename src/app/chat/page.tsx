@@ -7,6 +7,14 @@ import Link from "next/link";
 // TYPES
 // ============================================================
 
+interface FileAttachment {
+  name: string;
+  type: string;
+  size: number;
+  content: string;
+  pageCount?: number;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -16,6 +24,7 @@ interface Message {
   reaction?: "up" | "down" | null;
   wordCount?: number;
   starred?: boolean;
+  attachment?: FileAttachment;
 }
 
 interface Conversation {
@@ -616,6 +625,18 @@ function MessageBubble({
           ) : (
             <div className={`bg-orange-500 text-white rounded-2xl rounded-tr-sm px-4 py-3 ${fontSizeClass} leading-relaxed`}>
               {message.content}
+              {/* Attachment indicator */}
+              {message.attachment && (
+                <div className="mt-2 pt-2 border-t border-white/20 flex items-center gap-2">
+                  <svg className="w-4 h-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="text-xs opacity-90">
+                    {message.attachment.name}
+                    {message.attachment.pageCount && ` · ${message.attachment.pageCount} halaman`}
+                  </span>
+                </div>
+              )}
             </div>
           )}
           <div className="flex items-center justify-end gap-2 mt-1">
@@ -1186,6 +1207,12 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatSearchRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // File attachment state
+  const [pendingAttachment, setPendingAttachment] = useState<FileAttachment | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  
   // Draft auto-save key: per conversation
   const draftKey = activeConvId ? `konstruksi_draft_${activeConvId}` : "konstruksi_draft_new";
 
@@ -1405,19 +1432,24 @@ export default function ChatPage() {
 
   const sendMessage = useCallback(async (text?: string) => {
     const messageText = (text || input).trim();
-    if (!messageText || isLoading) return;
+    const attachment = pendingAttachment;
+    
+    // Allow sending if there's either text or attachment
+    if ((!messageText && !attachment) || isLoading) return;
 
     setInput("");
     localStorage.removeItem(draftKey);
     setIsLoading(true);
+    setPendingAttachment(null); // Clear attachment after sending
     abortRef.current = new AbortController();
 
     const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: messageText,
+      content: messageText || (attachment ? `[Dokumen: ${attachment.name}]` : ""),
       timestamp: new Date(),
-      wordCount: countWords(messageText),
+      wordCount: countWords(messageText || ""),
+      attachment: attachment || undefined,
     };
 
     // Create or update conversation
@@ -1473,11 +1505,20 @@ export default function ChatPage() {
           }))
         : [];
 
+      // Build user message content with attachment if present
+      let userContent = messageText;
+      if (attachment) {
+        const attachmentContext = `\n\n[File terlampir: ${attachment.name}${attachment.pageCount ? ` - ${attachment.pageCount} halaman` : ""}]\n\nKonten dokumen:\n---\n${attachment.content}\n---\n`;
+        userContent = messageText
+          ? `${messageText}\n\n${attachmentContext}`
+          : `Silakan analisa dokumen berikut:\n${attachmentContext}`;
+      }
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...historyMessages, { role: "user", content: messageText }],
+          messages: [...historyMessages, { role: "user", content: userContent }],
           agentId: selectedAgent.id,
         }),
         signal: abortRef.current.signal,
@@ -1583,6 +1624,67 @@ export default function ChatPage() {
       e.preventDefault();
       sendMessage();
     }
+  };
+
+  // File upload handlers
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File terlalu besar. Maksimum 10MB.");
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = ["application/pdf", "text/plain", "text/markdown"];
+    if (!allowedTypes.includes(file.type)) {
+      alert("Tipe file tidak didukung. Hanya PDF, TXT, dan MD yang diperbolehkan.");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Gagal mengupload file");
+      }
+
+      setPendingAttachment({
+        name: data.filename,
+        type: data.type,
+        size: data.size,
+        content: data.content,
+        pageCount: data.pageCount,
+      });
+
+      // Focus textarea after upload
+      textareaRef.current?.focus();
+    } catch (error) {
+      console.error("Upload error:", error);
+      alert(error instanceof Error ? error.message : "Gagal mengupload file");
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveAttachment = () => {
+    setPendingAttachment(null);
   };
 
   // Handle query param on mount
@@ -1838,16 +1940,54 @@ export default function ChatPage() {
         {/* Input area */}
         <div className="flex-shrink-0 border-t border-slate-700/60 bg-slate-900/80 backdrop-blur-sm px-4 py-4">
           <div className="max-w-3xl mx-auto">
+            {/* Attachment preview */}
+            {pendingAttachment && (
+              <div className="mb-2 flex items-center gap-2 bg-slate-800/50 border border-slate-700 rounded-lg px-3 py-2">
+                <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-300 truncate">{pendingAttachment.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {pendingAttachment.pageCount ? `${pendingAttachment.pageCount} halaman · ` : ""}
+                    {(pendingAttachment.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+                <button
+                  onClick={handleRemoveAttachment}
+                  className="text-slate-500 hover:text-red-400 p-1 rounded transition-colors"
+                  title="Hapus lampiran"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+            
+            {/* Upload progress */}
+            {isUploading && (
+              <div className="mb-2 flex items-center gap-2 text-slate-400 text-sm">
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Mengupload file...</span>
+              </div>
+            )}
+            
             <div className="relative bg-slate-800 border border-slate-700 focus-within:border-orange-500/60 rounded-2xl overflow-hidden transition-colors shadow-lg">
               <textarea
                 ref={textareaRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={`Tanya ${selectedAgent.name}... (Enter untuk kirim, Shift+Enter untuk baris baru)`}
+                placeholder={pendingAttachment
+                  ? "Tambahkan pesan (opsional) atau langsung kirim..."
+                  : `Tanya ${selectedAgent.name}... (Enter untuk kirim, Shift+Enter untuk baris baru)`}
                 className="w-full bg-transparent text-white placeholder-slate-500 px-4 pt-3 pb-2 text-sm resize-none focus:outline-none min-h-[48px] max-h-[120px] pr-24"
                 rows={1}
-                disabled={isLoading}
+                disabled={isLoading || isUploading}
               />
               <div className="absolute right-2 bottom-2 flex items-center gap-1">
                 {/* Char count */}
@@ -1856,6 +1996,29 @@ export default function ChatPage() {
                     {charCount}
                   </span>
                 )}
+                
+                {/* File upload button */}
+                {!isLoading && !isUploading && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-slate-500 hover:text-orange-400 p-1.5 rounded-lg transition-colors"
+                    title="Upload file (PDF, TXT, MD)"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                  </button>
+                )}
+                
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                
                 {input.trim() && !isLoading && (
                   <button
                     onClick={() => setInput("")}
@@ -1880,7 +2043,7 @@ export default function ChatPage() {
                 ) : (
                   <button
                     onClick={() => sendMessage()}
-                    disabled={!input.trim()}
+                    disabled={!input.trim() && !pendingAttachment}
                     className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-700 disabled:text-slate-500 text-white w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
                     title="Kirim (Enter)"
                   >
