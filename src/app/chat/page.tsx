@@ -136,12 +136,21 @@ function renderMarkdown(content: string, highlight?: string): string {
     html = html.replace(regex, `<mark class="bg-yellow-400/40 text-yellow-100 rounded px-0.5">$1</mark>`);
   }
 
-  // Code blocks (must be before inline code)
+  // Code blocks (must be before inline code) - with copy button
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
     const escaped = code.replace(/</g, "<").replace(/>/g, ">");
-    return `<div class="my-3 rounded-lg overflow-hidden border border-slate-600">
-      ${lang ? `<div class="bg-slate-700 px-3 py-1 text-xs text-slate-400 font-mono flex items-center justify-between"><span>${lang}</span></div>` : ""}
-      <pre class="bg-slate-800 p-3 overflow-x-auto text-sm text-green-300 font-mono leading-relaxed"><code>${escaped.trim()}</code></pre>
+    const codeId = `code-${Math.random().toString(36).substr(2, 9)}`;
+    return `<div class="my-3 rounded-lg overflow-hidden border border-slate-600 group">
+      <div class="bg-slate-700 px-3 py-1.5 text-xs text-slate-400 font-mono flex items-center justify-between">
+        <span>${lang || "code"}</span>
+        <button onclick="window.copyCode('${codeId}', this)" class="text-slate-400 hover:text-white transition-colors flex items-center gap-1 text-xs" title="Salin kode">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+          <span class="copy-text">Salin</span>
+        </button>
+      </div>
+      <pre id="${codeId}" class="bg-slate-800 p-3 overflow-x-auto text-sm text-green-300 font-mono leading-relaxed"><code>${escaped.trim()}</code></pre>
     </div>`;
   });
 
@@ -254,7 +263,8 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-function exportConversation(conv: Conversation): void {
+// Export to Markdown
+function exportConversationMarkdown(conv: Conversation): void {
   const lines: string[] = [
     `# ${conv.title}`,
     `Tanggal: ${conv.createdAt.toLocaleDateString("id-ID")}`,
@@ -276,6 +286,157 @@ function exportConversation(conv: Conversation): void {
   a.download = `${conv.title.replace(/[^a-z0-9]/gi, "_")}.md`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// Export to PDF using print dialog
+function exportConversationPDF(conv: Conversation): void {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  const messagesHtml = conv.messages.map(m => {
+    const time = m.timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    const isUser = m.role === "user";
+    return `
+      <div style="margin-bottom: 16px; ${isUser ? 'text-align: right;' : ''}">
+        <div style="font-size: 11px; color: #666; margin-bottom: 4px;">
+          <strong>${isUser ? "Anda" : "AI"}</strong> [${time}]
+        </div>
+        <div style="
+          display: inline-block;
+          max-width: 80%;
+          padding: 12px 16px;
+          border-radius: 12px;
+          font-size: 13px;
+          line-height: 1.5;
+          white-space: pre-wrap;
+          ${isUser
+            ? 'background: #f97316; color: white; border-bottom-right-radius: 4px;'
+            : 'background: #f1f5f9; color: #1e293b; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0;'}
+        ">${escapeHtml(m.content)}</div>
+      </div>
+    `;
+  }).join("");
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${conv.title} - KonstruksiAI</title>
+      <style>
+        @page { margin: 20mm; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+          background: white;
+        }
+        .header {
+          border-bottom: 2px solid #f97316;
+          padding-bottom: 16px;
+          margin-bottom: 24px;
+        }
+        .header h1 { margin: 0 0 8px 0; font-size: 20px; color: #1e293b; }
+        .header p { margin: 0; font-size: 12px; color: #64748b; }
+        pre {
+          background: #f8fafc;
+          padding: 12px;
+          border-radius: 8px;
+          overflow-x: auto;
+          font-family: monospace;
+          font-size: 12px;
+          border: 1px solid #e2e8f0;
+        }
+        code { font-family: monospace; background: #f1f5f9; padding: 2px 4px; border-radius: 4px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>${escapeHtml(conv.title)}</h1>
+        <p>Tanggal: ${conv.createdAt.toLocaleDateString("id-ID")} | Agen: ${conv.agentId || "KonstruksiAI"}</p>
+      </div>
+      <div class="messages">
+        ${messagesHtml}
+      </div>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+  
+  setTimeout(() => {
+    printWindow.print();
+  }, 250);
+}
+
+// Export to Word (.docx)
+function exportConversationWord(conv: Conversation): void {
+  const messagesHtml = conv.messages.map(m => {
+    const time = m.timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+    const isUser = m.role === "user";
+    const content = escapeHtml(m.content).replace(/\n/g, "<br/>");
+    return `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; width: 80px;">
+          <strong>${isUser ? "Anda" : "AI"}</strong><br/>
+          <span style="font-size: 10px; color: #666;">${time}</span>
+        </td>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; ${isUser ? 'background: #fff7ed;' : ''}">
+          ${content}
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  const html = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'>
+    <head>
+      <meta charset="utf-8">
+      <title>${conv.title}</title>
+      <style>
+        body { font-family: Calibri, sans-serif; font-size: 11pt; }
+        h1 { color: #1e293b; border-bottom: 2px solid #f97316; padding-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; }
+        td { font-size: 11pt; line-height: 1.5; }
+      </style>
+    </head>
+    <body>
+      <h1>${escapeHtml(conv.title)}</h1>
+      <p style="color: #666; font-size: 10pt; margin-bottom: 20px;">
+        Tanggal: ${conv.createdAt.toLocaleDateString("id-ID")} | Agen: ${conv.agentId || "KonstruksiAI"}
+      </p>
+      <table>
+        ${messagesHtml}
+      </table>
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob([html], { type: "application/msword" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${conv.title.replace(/[^a-z0-9]/gi, "_")}.doc`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function escapeHtml(text: string): string {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function exportConversation(conv: Conversation, format: "markdown" | "pdf" | "word" = "markdown"): void {
+  switch (format) {
+    case "pdf":
+      exportConversationPDF(conv);
+      break;
+    case "word":
+      exportConversationWord(conv);
+      break;
+    default:
+      exportConversationMarkdown(conv);
+  }
 }
 
 // ============================================================
@@ -659,7 +820,7 @@ function Sidebar({
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
-  onExport: (id: string) => void;
+  onExport: (id: string, format: "markdown" | "pdf" | "word") => void;
   onLabel: (id: string, label: ConversationLabel | undefined) => void;
   isOpen: boolean;
   onClose: () => void;
@@ -817,15 +978,55 @@ function Sidebar({
                                 ))}
                               </div>
                             </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); onExport(conv.id); }}
-                              className="text-slate-600 hover:text-blue-400 p-0.5 transition-colors"
-                              title="Export"
-                            >
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                              </svg>
-                            </button>
+                            {/* Export dropdown */}
+                            <div className="relative export-menu-container" onClick={e => e.stopPropagation()}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const menu = e.currentTarget.nextElementSibling as HTMLElement;
+                                  // Close other open menus first
+                                  document.querySelectorAll('.export-menu').forEach((m) => {
+                                    if (m !== menu) m.classList.add('hidden');
+                                  });
+                                  menu?.classList.toggle('hidden');
+                                }}
+                                className="text-slate-600 hover:text-blue-400 p-0.5 transition-colors"
+                                title="Export"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                              </button>
+                              <div className="export-menu hidden absolute right-0 top-5 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-1 w-32">
+                                <button
+                                  onClick={() => { onExport(conv.id, "markdown"); document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden')); }}
+                                  className="w-full text-left px-2 py-1.5 rounded text-xs text-slate-400 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-1.5"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  Markdown
+                                </button>
+                                <button
+                                  onClick={() => { onExport(conv.id, "pdf"); document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden')); }}
+                                  className="w-full text-left px-2 py-1.5 rounded text-xs text-slate-400 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-1.5"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                  </svg>
+                                  PDF
+                                </button>
+                                <button
+                                  onClick={() => { onExport(conv.id, "word"); document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden')); }}
+                                  className="w-full text-left px-2 py-1.5 rounded text-xs text-slate-400 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-1.5"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  Word
+                                </button>
+                              </div>
+                            </div>
                             <button
                               onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
                               className="text-slate-600 hover:text-red-400 p-0.5 transition-colors"
@@ -988,7 +1189,7 @@ export default function ChatPage() {
   // Draft auto-save key: per conversation
   const draftKey = activeConvId ? `konstruksi_draft_${activeConvId}` : "konstruksi_draft_new";
 
-  // Load from localStorage
+  // Load from localStorage + setup global functions
   useEffect(() => {
     const saved = loadConversations();
     setConversations(saved);
@@ -999,6 +1200,32 @@ export default function ChatPage() {
     // Restore draft for new conversation
     const draft = localStorage.getItem("konstruksi_draft_new");
     if (draft) setInput(draft);
+
+    // Setup copy code function for markdown code blocks
+    (window as { copyCode?: (id: string, btn: HTMLElement) => void }).copyCode = (id: string, btn: HTMLElement) => {
+      const pre = document.getElementById(id);
+      if (pre) {
+        const code = pre.textContent || "";
+        navigator.clipboard.writeText(code);
+        const textSpan = btn.querySelector(".copy-text");
+        if (textSpan) textSpan.textContent = "Tersalin!";
+        setTimeout(() => {
+          if (textSpan) textSpan.textContent = "Salin";
+        }, 2000);
+      }
+    };
+
+    // Click outside to close export menus
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.export-menu-container') && !target.closest('.header-export-menu')) {
+        document.querySelectorAll('.export-menu, .header-export-dropdown').forEach(m => m.classList.add('hidden'));
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   // Save to localStorage
@@ -1128,9 +1355,9 @@ export default function ChatPage() {
     if (activeConvId === id) setActiveConvId(null);
   }, [activeConvId]);
 
-  const handleExport = useCallback((id: string) => {
+  const handleExport = useCallback((id: string, format: "markdown" | "pdf" | "word" = "markdown") => {
     const conv = conversations.find(c => c.id === id);
-    if (conv) exportConversation(conv);
+    if (conv) exportConversation(conv, format);
   }, [conversations]);
 
   const handleReaction = useCallback((messageId: string, reaction: "up" | "down") => {
@@ -1254,28 +1481,45 @@ export default function ChatPage() {
       const responseText = data.message || "Maaf, terjadi kesalahan. Silakan coba lagi.";
       const wc = countWords(responseText);
 
-      // Simulate streaming effect
+      // Enhanced streaming simulation - word by word with natural pacing
+      const words = responseText.split(/(\s+)/); // Keep whitespace as separate tokens
       let displayed = "";
-      const chars = responseText.split("");
-      const chunkSize = Math.max(1, Math.floor(chars.length / 40));
+      let wordIndex = 0;
+      
+      // Variable speed for natural feel (faster for punctuation, slower for sentences)
+      const getDelay = (token: string): number => {
+        if (/[.!?]$/.test(token)) return 80; // Pause after sentences
+        if (/[,;]$/.test(token)) return 50;  // Slight pause after commas
+        if (/\s+/.test(token)) return 10;    // Fast for whitespace
+        if (token.length > 8) return 40;      // Slower for long words
+        return 25;                            // Normal speed
+      };
 
-      for (let i = 0; i < chars.length; i += chunkSize) {
+      while (wordIndex < words.length) {
         if (abortRef.current?.signal.aborted) break;
-        displayed += chars.slice(i, i + chunkSize).join("");
-        const current = displayed;
+        
+        // Batch multiple tokens for smoother animation
+        const batchSize = Math.min(2 + Math.floor(Math.random() * 2), words.length - wordIndex);
+        const batch = words.slice(wordIndex, wordIndex + batchSize);
+        const token = batch.join("");
+        
+        displayed += token;
+        wordIndex += batchSize;
+        
         setConversations(prev => prev.map(c =>
           c.id === convId
             ? {
                 ...c,
                 messages: c.messages.map(m =>
                   m.id === streamingMsgId
-                    ? { ...m, content: current, isStreaming: true }
+                    ? { ...m, content: displayed, isStreaming: true }
                     : m
                 ),
               }
             : c
         ));
-        await new Promise(r => setTimeout(r, 15));
+        
+        await new Promise(r => setTimeout(r, getDelay(token)));
       }
 
       // Finalize
@@ -1428,15 +1672,49 @@ export default function ChatPage() {
 
             {/* Export current conversation */}
             {activeConversation && (
-              <button
-                onClick={() => handleExport(activeConversation.id)}
-                className="text-slate-500 hover:text-slate-300 transition-colors"
-                title="Export percakapan"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              </button>
+              <div className="relative header-export-menu">
+                <button
+                  onClick={() => {
+                    const menu = document.querySelector('.header-export-dropdown') as HTMLElement;
+                    menu?.classList.toggle('hidden');
+                  }}
+                  className="text-slate-500 hover:text-slate-300 transition-colors"
+                  title="Export percakapan"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </button>
+                <div className="header-export-dropdown hidden absolute right-0 top-8 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-1 w-36">
+                  <button
+                    onClick={() => { handleExport(activeConversation.id, "markdown"); document.querySelector('.header-export-dropdown')?.classList.add('hidden'); }}
+                    className="w-full text-left px-3 py-2 rounded text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Markdown
+                  </button>
+                  <button
+                    onClick={() => { handleExport(activeConversation.id, "pdf"); document.querySelector('.header-export-dropdown')?.classList.add('hidden'); }}
+                    className="w-full text-left px-3 py-2 rounded text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    PDF
+                  </button>
+                  <button
+                    onClick={() => { handleExport(activeConversation.id, "word"); document.querySelector('.header-export-dropdown')?.classList.add('hidden'); }}
+                    className="w-full text-left px-3 py-2 rounded text-sm text-slate-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Word
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Shortcuts */}
