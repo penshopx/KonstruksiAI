@@ -1,3 +1,205 @@
+import Link from "next/link";
+
+const features = [
+  {
+    icon: "📋",
+    title: "Tender & Pengadaan",
+    description: "Bantu analisis dokumen tender, estimasi biaya, penyusunan penawaran, dan strategi pemenangan tender konstruksi.",
+    href: "/tender",
+    color: "bg-blue-50 border-blue-200",
+    iconBg: "bg-blue-100",
+    badge: "Tender",
+  },
+  {
+    icon: "🏗️",
+    title: "Manajemen Bisnis Konstruksi",
+    description: "Panduan manajemen proyek, cashflow, kontrak, subkontraktor, dan operasional perusahaan konstruksi.",
+    href: "/manajemen",
+    color: "bg-orange-50 border-orange-200",
+    iconBg: "bg-orange-100",
+    badge: "Manajemen",
+  },
+  {
+    icon: "📜",
+    title: "Perijinan & Sertifikasi",
+    description: "Informasi lengkap SBU, SKK, IUJK, IMB/PBG, sertifikasi profesi, dan regulasi konstruksi terkini.",
+    href: "/perijinan",
+    color: "bg-green-50 border-green-200",
+    iconBg: "bg-green-100",
+    badge: "Perijinan",
+  },
+];
+
+const quickQuestions = [
+  "Apa syarat mendapatkan SBU Konstruksi?",
+  "Bagaimana cara menghitung RAB proyek gedung?",
+  "Apa itu SKK dan bagaimana cara mendapatkannya?",
+  "Jelaskan proses tender pemerintah (LPSE)",
+  "Apa saja dokumen yang dibutuhkan untuk IUJK?",
+  "Bagaimana manajemen cashflow proyek konstruksi?",
+];
+
 export default function Home() {
-  return <main className="min-h-screen bg-neutral-900" />;
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      {/* Header / Navbar */}
+      <header className="border-b border-slate-700 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                K
+              </div>
+              <div>
+                <span className="text-white font-bold text-lg">KonstruksiAI</span>
+                <span className="text-slate-400 text-xs block leading-none">Asisten Cerdas Konstruksi</span>
+              </div>
+            </div>
+            <nav className="hidden md:flex items-center gap-6">
+              <Link href="/tender" className="text-slate-300 hover:text-white text-sm transition-colors">Tender</Link>
+              <Link href="/manajemen" className="text-slate-300 hover:text-white text-sm transition-colors">Manajemen</Link>
+              <Link href="/perijinan" className="text-slate-300 hover:text-white text-sm transition-colors">Perijinan</Link>
+              <Link href="/chat" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                Mulai Chat
+              </Link>
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
+        <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-full px-4 py-1.5 mb-6">
+          <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></span>
+          <span className="text-orange-300 text-sm font-medium">AI Khusus Industri Konstruksi Indonesia</span>
+        </div>
+
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+          Asisten AI untuk
+          <span className="text-orange-400 block">Profesional Konstruksi</span>
+        </h1>
+
+        <p className="text-slate-300 text-lg sm:text-xl max-w-3xl mx-auto mb-10 leading-relaxed">
+          Dapatkan jawaban cepat dan akurat seputar <strong className="text-white">tender</strong>,{" "}
+          <strong className="text-white">manajemen bisnis konstruksi</strong>, serta{" "}
+          <strong className="text-white">perijinan & sertifikasi profesional</strong> — semua dalam satu platform.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+          <Link
+            href="/chat"
+            className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all hover:scale-105 shadow-lg shadow-orange-500/25"
+          >
+            🚀 Mulai Tanya Sekarang
+          </Link>
+          <Link
+            href="#fitur"
+            className="border border-slate-600 hover:border-slate-400 text-slate-300 hover:text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all"
+          >
+            Lihat Fitur
+          </Link>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto">
+          {[
+            { value: "3", label: "Bidang Keahlian" },
+            { value: "100+", label: "Topik Konstruksi" },
+            { value: "24/7", label: "Siap Membantu" },
+          ].map((stat) => (
+            <div key={stat.label} className="text-center">
+              <div className="text-3xl font-bold text-orange-400">{stat.value}</div>
+              <div className="text-slate-400 text-sm mt-1">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="fitur" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-4">Bidang Keahlian Kami</h2>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+            Tiga pilar utama yang kami kuasai untuk mendukung profesional dan perusahaan konstruksi Indonesia
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {features.map((feature) => (
+            <Link key={feature.title} href={feature.href}>
+              <div className="bg-slate-800 border border-slate-700 hover:border-orange-500/50 rounded-2xl p-6 h-full transition-all hover:bg-slate-750 hover:-translate-y-1 cursor-pointer group">
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-12 h-12 bg-slate-700 group-hover:bg-orange-500/20 rounded-xl flex items-center justify-center text-2xl transition-colors">
+                    {feature.icon}
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-xs font-medium text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full">
+                      {feature.badge}
+                    </span>
+                  </div>
+                </div>
+                <h3 className="text-white font-bold text-xl mb-3">{feature.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">{feature.description}</p>
+                <div className="mt-4 text-orange-400 text-sm font-medium group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                  Pelajari lebih lanjut →
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Quick Questions Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-white mb-2">Pertanyaan Populer</h2>
+            <p className="text-slate-400">Klik untuk langsung bertanya ke AI</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {quickQuestions.map((q) => (
+              <Link
+                key={q}
+                href={`/chat?q=${encodeURIComponent(q)}`}
+                className="bg-slate-700 hover:bg-slate-600 border border-slate-600 hover:border-orange-500/50 rounded-xl px-4 py-3 text-slate-300 hover:text-white text-sm transition-all text-left"
+              >
+                💬 {q}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl p-10 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Siap Meningkatkan Produktivitas Konstruksi Anda?
+          </h2>
+          <p className="text-orange-100 text-lg mb-8 max-w-2xl mx-auto">
+            Mulai percakapan dengan KonstruksiAI sekarang dan dapatkan jawaban ahli dalam hitungan detik.
+          </p>
+          <Link
+            href="/chat"
+            className="bg-white text-orange-600 hover:bg-orange-50 px-8 py-4 rounded-xl font-bold text-lg transition-all hover:scale-105 inline-block shadow-lg"
+          >
+            🏗️ Mulai Gratis Sekarang
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-slate-700 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <div className="w-7 h-7 bg-orange-500 rounded-md flex items-center justify-center text-white font-bold text-sm">K</div>
+            <span className="text-white font-semibold">KonstruksiAI</span>
+          </div>
+          <p className="text-slate-500 text-sm">
+            Asisten AI khusus bidang keteknikan & konstruksi Indonesia
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
 }
