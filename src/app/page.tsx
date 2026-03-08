@@ -110,6 +110,7 @@ export default function Home() {
               <Link href="/migas" className="text-slate-300 hover:text-white text-sm transition-colors">Migas</Link>
               <Link href="/tender" className="text-slate-300 hover:text-white text-sm transition-colors">Tender</Link>
               <Link href="/perijinan" className="text-slate-300 hover:text-white text-sm transition-colors">Perijinan</Link>
+              <Link href="/matrix" className="text-orange-400 hover:text-orange-300 text-sm transition-colors font-medium">📊 Matriks</Link>
               <Link href="/chat" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Mulai Chat
               </Link>
@@ -155,7 +156,7 @@ export default function Home() {
         <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto">
           {[
             { value: "3", label: "Sektor Industri" },
-            { value: "22+", label: "Sub-Bidang Keahlian" },
+            { value: "126", label: "Topik Konsultasi" },
             { value: "24/7", label: "Siap Membantu" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
@@ -258,6 +259,52 @@ export default function Home() {
                 💬 {q}
               </Link>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Matrix Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/50 border border-slate-700 rounded-2xl p-8">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-full px-3 py-1 mb-4">
+                <span className="text-orange-300 text-xs font-medium">📊 Fitur Baru</span>
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-3">Matriks Ruang Lingkup</h2>
+              <p className="text-slate-400 mb-4 leading-relaxed">
+                Eksplorasi <strong className="text-white">126 titik koneksi</strong> antara bidang keteknikan konstruksi dengan 21 fungsi bisnis & profesional — dari Real Estate, Finance, Legal, HR, Marketing, hingga Medical dan IT.
+              </p>
+              <div className="flex flex-wrap gap-2 mb-6">
+                {["🏠 Real Estate", "💰 Finance", "👨‍⚖️ Legal", "👋 HR", "💻 IT", "📈 Marketing", "🏥 Medical", "+14 lainnya"].map((tag) => (
+                  <span key={tag} className="text-xs bg-slate-700 text-slate-300 px-2.5 py-1 rounded-full">{tag}</span>
+                ))}
+              </div>
+              <Link
+                href="/matrix"
+                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105 inline-flex items-center gap-2"
+              >
+                📊 Buka Matriks Interaktif
+              </Link>
+            </div>
+            <div className="hidden md:block flex-shrink-0">
+              <div className="bg-slate-900/60 border border-slate-700 rounded-xl p-4 w-64">
+                <div className="text-slate-500 text-xs mb-2 font-medium">Preview Matriks</div>
+                <div className="grid grid-cols-4 gap-1">
+                  {["Konstruksi", "Tender", "Bisnis", "Energi"].map((col) => (
+                    <div key={col} className="bg-orange-500/20 text-orange-300 text-xs text-center py-1 rounded font-medium">{col}</div>
+                  ))}
+                  {["🏠", "💰", "👨‍⚖️", "💼", "🎓", "📈", "🏥", "💻"].map((icon, i) => (
+                    <div key={i} className="bg-slate-700/50 text-center py-1.5 rounded text-sm">{icon}</div>
+                  ))}
+                  {Array.from({ length: 16 }).map((_, i) => (
+                    <div key={i} className="bg-slate-800 border border-slate-700/50 rounded h-5 flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 bg-slate-600 rounded-full"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
