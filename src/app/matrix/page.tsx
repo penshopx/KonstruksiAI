@@ -4,207 +4,228 @@ import Link from "next/link";
 import { useState } from "react";
 
 const businessFunctions = [
-  { id: "real-estate", icon: "🏠", name: "Real Estate", desc: "Properti & Investasi" },
-  { id: "engineering", icon: "🔧", name: "Engineering", desc: "Rekayasa & Teknik" },
-  { id: "public-relations", icon: "📣", name: "Public Relations", desc: "Hubungan Publik" },
-  { id: "finance", icon: "💰", name: "Finance", desc: "Keuangan & Akuntansi" },
-  { id: "information-technology", icon: "💻", name: "Information Technology", desc: "Teknologi Informasi" },
-  { id: "creative", icon: "🎨", name: "Creative", desc: "Desain & Kreatif" },
-  { id: "religious-services", icon: "👼", name: "Religious Services", desc: "Layanan Keagamaan" },
-  { id: "human-resources", icon: "👋", name: "Human Resources", desc: "SDM & Ketenagakerjaan" },
-  { id: "sales", icon: "💸", name: "Sales", desc: "Penjualan & Pemasaran" },
-  { id: "retail", icon: "🛍️", name: "Retail", desc: "Ritel & Distribusi" },
-  { id: "entrepreneur", icon: "⚡", name: "Entrepreneur", desc: "Kewirausahaan" },
-  { id: "education", icon: "🎓", name: "Education", desc: "Pendidikan & Pelatihan" },
-  { id: "personal-development", icon: "💪", name: "Personal Development", desc: "Pengembangan Diri" },
-  { id: "administrative", icon: "💁‍♀️", name: "Administrative", desc: "Administrasi & Tata Usaha" },
-  { id: "legal", icon: "👨‍⚖️", name: "Legal", desc: "Hukum & Regulasi" },
-  { id: "customer-success", icon: "🤝", name: "Customer Success", desc: "Kepuasan Pelanggan" },
-  { id: "executive-management", icon: "💼", name: "Executive Management", desc: "Manajemen Eksekutif" },
-  { id: "medical", icon: "🏥", name: "Medical", desc: "Kesehatan & K3" },
-  { id: "customer-service", icon: "📞", name: "Customer Service", desc: "Layanan Pelanggan" },
-  { id: "marketing", icon: "📈", name: "Marketing", desc: "Pemasaran & Branding" },
-  { id: "media-communications", icon: "📡", name: "Media & Communications", desc: "Media & Komunikasi" },
+  { id: "perencanaan", icon: "📅", name: "Perencanaan Proyek", desc: "Perencanaan & Jadwal" },
+  { id: "desain", icon: "📐", name: "Desain & Engineering", desc: "Rekayasa & Teknik" },
+  { id: "estimasi", icon: "💰", name: "Estimasi & RAB", desc: "Biaya & Anggaran" },
+  { id: "pengadaan", icon: "📋", name: "Pengadaan & Tender", desc: "Procurement" },
+  { id: "pelaksanaan", icon: "🏗️", name: "Pelaksanaan Konstruksi", desc: "Eksekusi Lapangan" },
+  { id: "pengawasan", icon: "🔍", name: "Pengawasan & QC", desc: "Quality Control" },
+  { id: "k3", icon: "⛑️", name: "K3 & Keselamatan", desc: "Health, Safety, Environment" },
+  { id: "lingkungan", icon: "🌿", name: "Lingkungan & AMDAL", desc: "Analisis Dampak" },
+  { id: "perijinan", icon: "📜", name: "Perijinan & Regulasi", desc: "Izin & Sertifikasi" },
+  { id: "kontrak", icon: "🤝", name: "Kontrak & Hukum", desc: "Legal & Kontrak" },
+  { id: "keuangan", icon: "💹", name: "Keuangan & Akuntansi", desc: "Finance & Accounting" },
+  { id: "sdm", icon: "👥", name: "SDM & Organisasi", desc: "Human Resources" },
+  { id: "teknologi", icon: "💻", name: "Teknologi & Inovasi", desc: "BIM & Digitalisasi" },
+  { id: "logistik", icon: "🚛", name: "Logistik & Material", desc: "Supply Chain" },
+  { id: "komisioning", icon: "✅", name: "Komisioning & Serah Terima", desc: "Testing & Handover" },
+  { id: "operasi", icon: "⚙️", name: "Operasi & Pemeliharaan", desc: "O&M" },
+  { id: "audit", icon: "🔎", name: "Audit & Compliance", desc: "Pemeriksaan" },
+  { id: "risiko", icon: "⚠️", name: "Manajemen Risiko", desc: "Risk Management" },
+  { id: "komunikasi", icon: "📣", name: "Komunikasi & Stakeholder", desc: "Hubungan Pemangku" },
+  { id: "laporan", icon: "📊", name: "Pelaporan & Dokumentasi", desc: "Reporting" },
+  { id: "strategi", icon: "🎯", name: "Strategi & Pengembangan Bisnis", desc: "Business Development" },
 ];
 
 const engineeringColumns = [
-  { id: "konstruksi", name: "Teknik Konstruksi", shortName: "Konstruksi", color: "bg-orange-500/20 text-orange-300 border-orange-500/30", headerColor: "bg-orange-500/30" },
-  { id: "tender", name: "Tender & Pengadaan", shortName: "Tender", color: "bg-blue-500/20 text-blue-300 border-blue-500/30", headerColor: "bg-blue-500/30" },
-  { id: "manajemen", name: "Bisnis Konstruksi", shortName: "Bisnis", color: "bg-green-500/20 text-green-300 border-green-500/30", headerColor: "bg-green-500/30" },
-  { id: "energi", name: "Energi & EBT", shortName: "Energi", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30", headerColor: "bg-yellow-500/30" },
-  { id: "migas", name: "Migas & Tambang", shortName: "Migas", color: "bg-purple-500/20 text-purple-300 border-purple-500/30", headerColor: "bg-purple-500/30" },
-  { id: "perijinan", name: "Perijinan & Sertifikasi", shortName: "Perijinan", color: "bg-red-500/20 text-red-300 border-red-500/30", headerColor: "bg-red-500/30" },
+  { id: "konstruksi_gedung", name: "Konstruksi Gedung", shortName: "Gedung", color: "bg-orange-500/20 text-orange-300 border-orange-500/30", headerColor: "bg-orange-500/30" },
+  { id: "konstruksi_jalan", name: "Konstruksi Jalan & Jembatan", shortName: "Jalan", color: "bg-blue-500/20 text-blue-300 border-blue-500/30", headerColor: "bg-blue-500/30" },
+  { id: "mekanikal", name: "Teknik Mekanikal", shortName: "Mekanikal", color: "bg-purple-500/20 text-purple-300 border-purple-500/30", headerColor: "bg-purple-500/30" },
+  { id: "elektrikal", name: "Teknik Elektrikal", shortName: "Elektrikal", color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30", headerColor: "bg-yellow-500/30" },
+  { id: "tatalingkungan", name: "Teknik Tata Lingkungan", shortName: "Lingkungan", color: "bg-green-500/20 text-green-300 border-green-500/30", headerColor: "bg-green-500/30" },
+  { id: "manajemen", name: "Manajemen Konstruksi", shortName: "Manajemen", color: "bg-red-500/20 text-red-300 border-red-500/30", headerColor: "bg-red-500/30" },
 ];
 
-// Matrix content: [businessFunctionId][engineeringColumnId] = topic description
+// Matrix content: [KBLIbusinessFunctionId][SKKNIengineeringColumnId] = topic description
 const matrixTopics: Record<string, Record<string, string>> = {
-  "real-estate": {
-    "konstruksi": "Desain arsitektur, IMB/PBG, valuasi properti, green building",
-    "tender": "Pengadaan material bangunan, kontraktor properti",
-    "manajemen": "Investasi properti, manajemen aset, ROI proyek",
-    "energi": "PLTS atap, green building, efisiensi energi gedung",
-    "migas": "Properti kawasan industri migas, fasilitas tambang",
-    "perijinan": "IMB, PBG, sertifikat laik fungsi, HGB/HM",
+  // KBLI 41011/41012 - Konstruksi Gedung
+  "gedung": {
+    "konstruksi_gedung": "Desain struktur gedung, fondasi, kolom, balok, plat, BIM",
+    "konstruksi_jalan": "Parkir gedung, akses jalan internal, drainase kawasan",
+    "mekanikal": "HVAC, AC, sistem plumbing, fire protection mekanikal",
+    "elektrikal": "Distribusi listrik, genset, panel, lighting, CCTV, PV system",
+    "tatalingkungan": "Landscape, taman rooftop, pengolahan air limbah gedung",
+    "manajemen": "Manajemen proyek gedung, scheduling, cost control, QC",
   },
-  "engineering": {
-    "konstruksi": "Teknik sipil, struktur, mekanikal, elektrikal, BIM",
-    "tender": "Spesifikasi teknis, bill of quantity, evaluasi teknis",
-    "manajemen": "Manajemen proyek, value engineering, QA/QC",
-    "energi": "Rekayasa sistem energi, PLTS, PLTB, PLTA",
-    "migas": "Rekayasa migas, pipeline, fasilitas produksi",
-    "perijinan": "Sertifikasi insinyur (PII), SKK, SKA teknik",
+  // KBLI 42101 - Konstruksi Jalan & Rel Kereta
+  "jalan": {
+    "konstruksi_gedung": "Ruang operasi jalan tol, gedung kontrol, gerbang tol",
+    "konstruksi_jalan": "Perkerasan jalan, aspal, beton, drainase, jembatan",
+    "mekanikal": "Sistem penerangan jalan, traffic light, VMS",
+    "elektrikal": "Listrik jalur, signal铁路, komunikasi kereta",
+    "tatalingkungan": "Tree planting jalan,批処理, lingkungan sekitar jalan",
+    "manajemen": "Manajemen proyek jalan, kontraktor, progres, quality",
   },
-  "public-relations": {
-    "konstruksi": "Komunikasi proyek, community engagement, CSR konstruksi",
-    "tender": "Publikasi tender, pengumuman pemenang, transparansi",
-    "manajemen": "Reputasi perusahaan konstruksi, stakeholder management",
-    "energi": "Sosialisasi proyek EBT, komunikasi dampak lingkungan",
-    "migas": "Hubungan masyarakat sekitar tambang, CSR migas",
-    "perijinan": "Sosialisasi perijinan, konsultasi publik AMDAL",
+  // KBLI 42103 - Konstruksi Jembatan & Terowongan
+  "jembatan": {
+    "konstruksi_gedung": "Pier, abutment, fondasi jembatan, struktur penahan",
+    "konstruksi_jalan": "Konstruksi gelagar, box girder, cable stayed, suspensi",
+    "mekanikal": "Expansion joint, bearing, sistem drainase jembatan",
+    "elektrikal": "Lighting jembatan, sistem keamanan, monitoring",
+    "tatalingkungan": "Dampak lingkungan jembatan,批处理生态",
+    "manajemen": "Manajemen konstruksi jembatan, metodestring, keselamatan",
   },
-  "finance": {
-    "konstruksi": "RAB, estimasi biaya, cost control proyek konstruksi",
-    "tender": "Analisis harga satuan, HPS, jaminan penawaran",
-    "manajemen": "Cash flow proyek, laporan keuangan kontraktor",
-    "energi": "Pembiayaan proyek EBT, CAPEX/OPEX pembangkit",
-    "migas": "Valuasi cadangan, cost recovery, bagi hasil PSC",
-    "perijinan": "Biaya perijinan, jaminan reklamasi tambang",
+  // KBLI 42201-42204 - Konstruksi Jaringan Utilitas
+  "utilitas": {
+    "konstruksi_gedung": "Utility building, pompa, kompartemen utilitas",
+    "konstruksi_jalan": "Pemasangan pipa, kabel, ducting bawah tanah",
+    "mekanikal": "Sistem pompa, kompresor, katup kontrol",
+    "elektrikal": "Jaringan distribusi listrik, trafo, jaringan fiber optik",
+    "tatalingkungan": "Pengelolaan air bersih, limbah, sanitasi",
+    "manajemen": "Manajemen jaringan utilitas, pemeliharaan, operasi",
   },
-  "information-technology": {
-    "konstruksi": "BIM (Building Information Modeling), software konstruksi",
-    "tender": "E-procurement, SPSE, sistem informasi pengadaan",
-    "manajemen": "ERP konstruksi, project management software",
-    "energi": "SCADA, monitoring sistem energi, smart grid",
-    "migas": "Sistem informasi migas, GIS eksplorasi, digital oilfield",
-    "perijinan": "OSS (Online Single Submission), perijinan digital",
+  // KBLI 42911-42913 - Konstruksi Bangunan Air & Pelabuhan
+  "bangunan_air": {
+    "konstruksi_gedung": "Gedung pelabuhan, dermaga, warehouse pelabuhan",
+    "konstruksi_jalan": "Pantai, breakwater, quay wall, trestle",
+    "mekanikal": "Cargo handling equipment, crane, conveyor, sistem消火",
+    "elektrikal": "Listrik pelabuhan, shore connection, lighting",
+    "tatalingkungan": "Dredging, pengelolaan sediment,批处理海岸",
+    "manajemen": "Manajemen proyek pelabuhan, scheduling, kontraktor",
   },
-  "creative": {
-    "konstruksi": "Desain arsitektur, interior, lanskap, visualisasi 3D",
-    "tender": "Desain dokumen tender, presentasi penawaran",
-    "manajemen": "Branding perusahaan konstruksi, desain laporan",
-    "energi": "Desain fasilitas EBT, visualisasi proyek energi",
-    "migas": "Desain fasilitas industri, infografis migas",
-    "perijinan": "Desain dokumen perijinan, peta kawasan",
+  // KBLI 41013 - Konstruksi Pabrik & Industri
+  "pabrik": {
+    "konstruksi_gedung": "Struktur pabrik, warehouse, office building pabrik",
+    "konstruksi_jalan": "Jalan akses pabrik, parking, drainase kawasan",
+    "mekanikal": "Mesin produksi, pipeline, sistem udara terkompresi",
+    "elektrikal": "Power plant internal, distribusi listrik pabrik",
+    "tatalingkungan": "IPAL, pengelolaan limbah industri,批处理废气",
+    "manajemen": "Manajemen proyek industri, EPC, commissioning",
   },
-  "religious-services": {
-    "konstruksi": "Konstruksi masjid, gereja, pura, vihara — standar & regulasi",
-    "tender": "Pengadaan untuk fasilitas ibadah, wakaf produktif",
-    "manajemen": "Manajemen yayasan keagamaan, pengelolaan aset wakaf",
-    "energi": "PLTS untuk pesantren & rumah ibadah, efisiensi energi",
-    "migas": "Regulasi pertambangan di kawasan adat/keagamaan",
-    "perijinan": "IMB rumah ibadah, izin pendirian lembaga keagamaan",
+  // KBLI 43211 - Instalasi Kelistrikan
+  "listrik": {
+    "konstruksi_gedung": "Instalasi listrik gedung, wiring, panel, DB",
+    "konstruksi_jalan": "Instalasi listrik jalan toll, lampu jalan",
+    "mekanikal": "Motor control, pompa listrik, sistem pendingin",
+    "elektrikal": "Instalasi Listrik, genset, UPS, PV system, grounding",
+    "tatalingkungan": "Energi terbarukan gedung, efisiensi energi",
+    "manajemen": "Manajemen proyek elektrikal, safety, compliance",
   },
-  "human-resources": {
-    "konstruksi": "Sertifikasi tenaga kerja konstruksi, SKK, pelatihan",
-    "tender": "Kualifikasi SDM dalam dokumen tender, tenaga ahli",
-    "manajemen": "Manajemen SDM proyek, struktur organisasi kontraktor",
-    "energi": "Sertifikasi teknisi EBT, pelatihan operator pembangkit",
-    "migas": "K3 migas, sertifikasi pekerja tambang, BNSP",
-    "perijinan": "SKA, SKT, sertifikasi profesi, LPJK",
+  // KBLI 43212 - Instalasi Mekanikal
+  "mekanikal": {
+    "konstruksi_gedung": "Instalasi AC, ventilasi, sistem fire protection",
+    "konstruksi_jalan": "Instalasi mekanikal jembatan, expansion joint",
+    "mekanikal": "Piping, ducting, sprinkler, fire alarm, lift/escalator",
+    "elektrikal": "Kontrol mekanikal, sensor, building automation",
+    "tatalingkungan": "HVAC, ventilasi, kualitas udara dalam ruangan",
+    "manajemen": "Manajemen proyek MEP, commissioning, O&M",
   },
-  "sales": {
-    "konstruksi": "Penjualan jasa konstruksi, proposal teknis, portofolio",
-    "tender": "Strategi pemenangan tender, negosiasi kontrak",
-    "manajemen": "Business development kontraktor, pipeline proyek",
-    "energi": "Penjualan listrik EBT, PPA (Power Purchase Agreement)",
-    "migas": "Penjualan komoditas tambang, offtake agreement",
-    "perijinan": "Konsultasi perijinan sebagai layanan bisnis",
+  // KBLI 43301-43309 - Finishing Bangunan
+  "finishing": {
+    "konstruksi_gedung": "Finishing dinding, lantai, plafon,江西, cat",
+    "konstruksi_jalan": "Finishing jalan, marking, guardrail",
+    "mekanikal": "Finishing mechanical room, installation perangkat mekanikal",
+    "elektrikal": "Finishing panel room, instalasi devices elektrikal",
+    "tatalingkungan": "Taman, landscape,批处理 dalam gedung",
+    "manajemen": "Manajemen finishing, quality control, progress",
   },
-  "retail": {
-    "konstruksi": "Toko material bangunan, distribusi produk konstruksi",
-    "tender": "Pengadaan material retail untuk proyek konstruksi",
-    "manajemen": "Manajemen rantai pasok material konstruksi",
-    "energi": "Penjualan panel surya, peralatan EBT retail",
-    "migas": "Distribusi BBM, SPBU, agen gas LPG",
-    "perijinan": "Izin usaha perdagangan material konstruksi",
+  // KBLI 77302 - Sewa Alat Konstruksi
+  "persewaan": {
+    "konstruksi_gedung": "Sewa tower crane, scaffolding, formwork gedung",
+    "konstruksi_jalan": "Sewa excavator, bulldozer, asphalt finisher jalan",
+    "mekanikal": "Sewa genset, kompresor, alat berat mekanikal",
+    "elektrikal": "Sewa genset mobile, lighting tower",
+    "tatalingkungan": "Sewa alat pengolahan air,批处理 waste",
+    "manajemen": "Manajemen rental alat, maintenance, availability",
   },
-  "entrepreneur": {
-    "konstruksi": "Memulai usaha konstruksi, BUJK, modal awal",
-    "tender": "Strategi ikut tender untuk perusahaan baru",
-    "manajemen": "Manajemen startup konstruksi, scaling bisnis",
-    "energi": "Peluang bisnis EBT, startup energi terbarukan",
-    "migas": "Peluang bisnis di sektor migas, IUP, IUJP",
-    "perijinan": "Pendirian perusahaan konstruksi, SBU, IUJK",
+  // KBLI 71101/71102 - Jasa Desain & Arsitektur
+  "desain": {
+    "konstruksi_gedung": "Desain arsitektur gedung, denah, tampak, 3D render",
+    "konstruksi_jalan": "Desain geometrik jalan, interchange, roundabout",
+    "mekanikal": "Desain MEP, HVAC layout, plumbing design",
+    "elektrikal": "Desain distribusi listrik, lighting design, PFFA",
+    "tatalingkungan": "Desain landscape, taman,批处理 lingkungan",
+    "manajemen": "Desain manajemen proyek, construction methodology",
   },
-  "education": {
-    "konstruksi": "Kurikulum teknik sipil/arsitektur, sertifikasi dosen",
-    "tender": "Pelatihan pengadaan barang/jasa, sertifikasi LKPP",
-    "manajemen": "Pelatihan manajemen proyek, PMP, PRINCE2",
-    "energi": "Kurikulum energi terbarukan, pelatihan teknisi EBT",
-    "migas": "Pendidikan geologi/pertambangan, sertifikasi POU",
-    "perijinan": "Pelatihan perijinan konstruksi, workshop regulasi",
+  // KBLI 71102 - Jasa Konsultansi Konstruksi
+  "konsultansi": {
+    "konstruksi_gedung": "Konsultansi sipil gedung, struktur, fondasi",
+    "konstruksi_jalan": "Konsultansi jalan, jembatan, drainase",
+    "mekanikal": "Konsultansi MEP, fire protection, HVAC",
+    "elektrikal": "Konsultansi elektrikal, power system, coordination",
+    "tatalingkungan": "Konsultansi AMDAL, UKL-UPL,批处理环境",
+    "manajemen": "Konsultansi manajemen proyek, peer review, supervision",
   },
-  "personal-development": {
-    "konstruksi": "Karir insinyur konstruksi, pengembangan kompetensi teknik",
-    "tender": "Skill negosiasi, manajemen kontrak, sertifikasi pengadaan",
-    "manajemen": "Leadership proyek, manajemen waktu, soft skills PM",
-    "energi": "Karir di sektor EBT, sertifikasi energi terbarukan",
-    "migas": "Karir di industri migas, sertifikasi profesional tambang",
-    "perijinan": "Memahami regulasi konstruksi, update peraturan terbaru",
+  // KBLI 4111 - Jasa Pengadaan Konstruksi
+  "pengadaan": {
+    "konstruksi_gedung": "Pengadaan material gedung, steel, beton, formwork",
+    "konstruksi_jalan": "Pengadaan aspal, beton, material jalan",
+    "mekanikal": "Pengadaan AC, lift, fire equipment",
+    "elektrikal": "Pengadaan panel, kabel, transformator",
+    "tatalingkungan": "Pengadaan tanaman, material landscape",
+    "manajemen": "Procurement management, tender, vendor evaluation",
   },
-  "administrative": {
-    "konstruksi": "Administrasi proyek konstruksi, dokumen kontrak, arsip",
-    "tender": "Administrasi pengadaan, dokumen lelang, BAST",
-    "manajemen": "Tata kelola perusahaan konstruksi, SOP, prosedur",
-    "energi": "Administrasi perijinan EBT, laporan operasional",
-    "migas": "Administrasi IUP, laporan produksi, dokumen K3",
-    "perijinan": "Pengurusan dokumen perijinan, OSS, PTSP",
+  // KBLI 71102 - Manajemen Proyek Konstruksi
+  "manajemen": {
+    "konstruksi_gedung": "Project management gedung, PMO, reporting",
+    "konstruksi_jalan": "Manajemen proyek jalan, koordinasi lapangan",
+    "mekanikal": "Manajemen MEP, coordination, clash detection",
+    "elektrikal": "Manajemen Elektrikal, scheduling, commissioning",
+    "tatalingkungan": "Manajemen lingkungan proyek, monitoring, compliance",
+    "manajemen": "Project management overall, cost, time, quality",
   },
-  "legal": {
-    "konstruksi": "Kontrak konstruksi (FIDIC, UUJK), sengketa proyek",
-    "tender": "Hukum pengadaan, Perpres 16/2018, sanksi blacklist",
-    "manajemen": "Hukum perusahaan konstruksi, tanggung jawab hukum",
-    "energi": "Regulasi EBT, Perpres 112/2022, PPA hukum",
-    "migas": "UU Minerba, UU Migas, PSC, kontrak karya",
-    "perijinan": "Hukum perijinan, OSS, sanksi pelanggaran izin",
+  // KBLI 71201 - Jasa Inspeksi & Pengujian
+  "inpeksi": {
+    "konstruksi_gedung": "Inspeksi struktur gedung, QC, pengujian beton",
+    "konstruksi_jalan": "Inspeksi kualitas jalan, thickness, density",
+    "mekanikal": "Inspeksi AC, fire system, pressure testing",
+    "elektrikal": "Inspeksi instalasi listrik, grounding, relay test",
+    "tatalingkungan": "Pengujian kualitas air, udara,批处理",
+    "manajemen": "QA/QC management, audit, compliance check",
   },
-  "customer-success": {
-    "konstruksi": "Kepuasan klien proyek konstruksi, after-sales service",
-    "tender": "Manajemen hubungan dengan pemberi kerja, evaluasi kinerja",
-    "manajemen": "Customer relationship management kontraktor",
-    "energi": "Layanan purna jual sistem EBT, maintenance SLA",
-    "migas": "Hubungan dengan mitra bisnis migas, offtaker management",
-    "perijinan": "Layanan konsultasi perijinan, pendampingan klien",
+  // KBLI 43110 - Pembongkaran & Persiapan Lahan
+  "demolisi": {
+    "konstruksi_gedung": "Demolisi gedung, dekonstruksi, selective dismantling",
+    "konstruksi_jalan": "Demolisi jalan lama, pembongkaran jembatan",
+    "mekanikal": "Pembongkaran sistem mekanikal, dem歧途",
+    "elektrikal": "Pembongkaran instalasi listrik lama",
+    "tatalingkungan": "Rehabilitasi lahan,批处理 contaminated land",
+    "manajemen": "Manajemen demolisi, waste management, safety",
   },
-  "executive-management": {
-    "konstruksi": "Strategi perusahaan konstruksi, governance, board",
-    "tender": "Kebijakan pengadaan korporat, strategi tender besar",
-    "manajemen": "Manajemen portofolio proyek, corporate strategy",
-    "energi": "Kebijakan energi perusahaan, transisi energi",
-    "migas": "Strategi ekspansi migas, manajemen risiko korporat",
-    "perijinan": "Compliance perusahaan, manajemen risiko regulasi",
+  // KBLI 05-08 - Pertambangan & Penggalian
+  "pertambangan": {
+    "konstruksi_gedung": "Fasilitas pendukung tambang, crusher, stockpile",
+    "konstruksi_jalan": "Jalan tambang, haul road, bridge crusher",
+    "mekanikal": "Mesin tambang, conveyor, sistem crushing",
+    "elektrikal": "Listrik tambang, distribution, crusher elektrikal",
+    "tatalingkungan": "Reklamasi tambang,批处理 tailing, AMDAL tambang",
+    "manajemen": "Manajemen operasi tambang, production, safety",
   },
-  "medical": {
-    "konstruksi": "Konstruksi rumah sakit, fasilitas kesehatan, standar K3",
-    "tender": "Pengadaan alat kesehatan, konstruksi fasilitas medis",
-    "manajemen": "Manajemen proyek fasilitas kesehatan",
-    "energi": "Sistem energi rumah sakit, backup power, PLTS RS",
-    "migas": "K3 industri migas, kesehatan kerja tambang, HIPERKES",
-    "perijinan": "Izin mendirikan RS, sertifikasi fasilitas kesehatan",
+  // KBLI 42202/42203 - Konstruksi Pembangkit Energi
+  "energi": {
+    "konstruksi_gedung": "Gedung kontrol pembangkit, turbine hall",
+    "konstruksi_jalan": "Konstruksi PLTS ground mount, PLTB foundation",
+    "mekanikal": "Turbin, generator, boiler, cooling system",
+    "elektrikal": "Generator, transformator, switchyard, grid connection",
+    "tatalingkungan": "Dampak lingkungan pembangkit,批处理,鸟类保护",
+    "manajemen": "Manajemen proyek pembangkit, EPC, COD, O&M",
   },
-  "customer-service": {
-    "konstruksi": "Layanan informasi proyek, complaint handling konstruksi",
-    "tender": "Layanan informasi pengadaan, aanwijzing, sanggahan",
-    "manajemen": "Layanan pelanggan perusahaan konstruksi",
-    "energi": "Layanan pelanggan PLN, pengaduan gangguan listrik",
-    "migas": "Layanan informasi migas, pengaduan masyarakat",
-    "perijinan": "Layanan informasi perijinan, PTSP, call center OSS",
+  // KBLI 42204 - Jaringan Telekomunikasi
+  "telekomunikasi": {
+    "konstruksi_gedung": "Gedung BTS, data center, server room",
+    "konstruksi_jalan": "Jaringan fiber optik, ducting jalan",
+    "mekanikal": "Sistem pendingin data center, HVAC tower",
+    "elektrikal": "Power system telekomunikasi, backup power",
+    "tatal环境污染": "批处理 radiasi,电场,磁场",
+    "manajemen": "Manajemen jaringan telekomunikasi, maintenance",
   },
-  "marketing": {
-    "konstruksi": "Pemasaran jasa konstruksi, portofolio proyek, branding",
-    "tender": "Strategi pemasaran untuk memenangkan tender",
-    "manajemen": "Marketing plan perusahaan konstruksi, digital marketing",
-    "energi": "Pemasaran produk EBT, edukasi pasar energi hijau",
-    "migas": "Pemasaran komoditas tambang, market intelligence",
-    "perijinan": "Pemasaran jasa konsultasi perijinan",
+  // KBLI 38110-38220 - Pengelolaan Limbah & Sampah
+  "limbah": {
+    "konstruksi_gedung": "Fasilitas pengelolaan limbah,批处理 plant",
+    "konstruksi_jalan": "Landfill construction,批处理 cell",
+    "mekanikal": "Incinerator, shredder,批处理 equipment",
+    "elektrikal": "Power generation from waste, biogas system",
+    "tatalingkungan": "Pengelolaan limbah B3,批处理, recycling",
+    "manajemen": "Manajemen sampah,批处理 operations, compliance",
   },
-  "media-communications": {
-    "konstruksi": "Liputan proyek konstruksi, jurnalisme teknik, dokumentasi",
-    "tender": "Publikasi pengumuman tender, transparansi pengadaan",
-    "manajemen": "Komunikasi korporat kontraktor, laporan tahunan",
-    "energi": "Komunikasi transisi energi, edukasi publik EBT",
-    "migas": "Komunikasi industri migas, laporan keberlanjutan",
-    "perijinan": "Sosialisasi regulasi, publikasi kebijakan perijinan",
+  // KBLI 43213/43214 - Sistem Keamanan & Proteksi Kebakaran
+  "keamanan": {
+    "konstruksi_gedung": "Ruang server security, control room",
+    "konstruksi_jalan": "Sistem keamanan jalan toll, CCTV, barrier",
+    "mekanikal": "Fire pump, sprinkler, fire alarm, smoke control",
+    "elektrikal": "CCTV, access control, intrusion detection, alarm",
+    "tatalingkungan": "Monitoring lingkungan,批处理 safety",
+    "manajemen": "Sistem keamanan terintegrasi, O&M, monitoring",
   },
 };
 
@@ -367,10 +388,16 @@ export default function MatrixPage() {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Link
-                    href={buildChatUrl(selectedCell.row, selectedCell.col)}
+                    href={`/agent/${selectedCell.row}/${selectedCell.col}`}
                     className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
                   >
-                    💬 Konsultasi AI Sekarang
+                    🤖 Buka AI Agent
+                  </Link>
+                  <Link
+                    href={buildChatUrl(selectedCell.row, selectedCell.col)}
+                    className="border border-orange-500/50 hover:border-orange-400 text-orange-300 hover:text-orange-200 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    💬 Chat Cepat
                   </Link>
                   <button
                     onClick={() => setSelectedCell(null)}
@@ -393,19 +420,19 @@ export default function MatrixPage() {
         {/* Info Cards */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-            <div className="text-2xl mb-2">📊</div>
-            <h3 className="text-white font-semibold mb-1">126 Titik Koneksi</h3>
-            <p className="text-slate-400 text-sm">21 fungsi bisnis × 6 bidang keteknikan = 126 kombinasi topik konsultasi</p>
+            <div className="text-2xl mb-2">🤖</div>
+            <h3 className="text-white font-semibold mb-1">126 AI Agent Spesialis</h3>
+            <p className="text-slate-400 text-sm">21 fungsi bisnis × 6 bidang keteknikan = 126 AI Agent dengan keahlian unik masing-masing</p>
           </div>
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
             <div className="text-2xl mb-2">🎯</div>
-            <h3 className="text-white font-semibold mb-1">Konsultasi Kontekstual</h3>
-            <p className="text-slate-400 text-sm">Klik sel matriks untuk langsung ke chat dengan konteks bidang yang spesifik</p>
+            <h3 className="text-white font-semibold mb-1">Berikan Tugas Nyata</h3>
+            <p className="text-slate-400 text-sm">Setiap agent bisa diberi tugas: buat RAB, analisis kontrak, susun jadwal, dan lainnya</p>
           </div>
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-            <div className="text-2xl mb-2">🔗</div>
-            <h3 className="text-white font-semibold mb-1">Lintas Disiplin</h3>
-            <p className="text-slate-400 text-sm">Teknik konstruksi terhubung dengan semua aspek bisnis dan profesional</p>
+            <div className="text-2xl mb-2">📄</div>
+            <h3 className="text-white font-semibold mb-1">Output Siap Pakai</h3>
+            <p className="text-slate-400 text-sm">Agent menghasilkan dokumen, laporan, checklist, dan analisis yang bisa langsung digunakan</p>
           </div>
         </div>
       </section>
