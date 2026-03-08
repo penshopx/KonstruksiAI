@@ -1422,9 +1422,11 @@ export default function ChatPage() {
 
     // Create or update conversation
     let convId = activeConvId;
+    let currentConv: Conversation | undefined;
+    
     if (!convId) {
       convId = `conv_${Date.now()}`;
-      const newConv: Conversation = {
+      currentConv = {
         id: convId,
         title: generateTitle(messageText),
         messages: [userMsg],
@@ -1432,9 +1434,13 @@ export default function ChatPage() {
         updatedAt: new Date(),
         agentId: selectedAgent.id,
       };
-      setConversations(prev => [newConv, ...prev]);
+      setConversations(prev => [currentConv!, ...prev]);
       setActiveConvId(convId);
     } else {
+      const existingConv = conversations.find(c => c.id === convId);
+      currentConv = existingConv
+        ? { ...existingConv, messages: [...existingConv.messages, userMsg], updatedAt: new Date() }
+        : undefined;
       setConversations(prev => prev.map(c =>
         c.id === convId
           ? { ...c, messages: [...c.messages, userMsg], updatedAt: new Date() }
@@ -1459,7 +1465,7 @@ export default function ChatPage() {
     ));
 
     try {
-      const currentConv = conversations.find(c => c.id === convId);
+      // Build history from the updated conversation (not stale state)
       const historyMessages = currentConv
         ? currentConv.messages.filter(m => !m.isStreaming).slice(-10).map(m => ({
             role: m.role as "user" | "assistant",

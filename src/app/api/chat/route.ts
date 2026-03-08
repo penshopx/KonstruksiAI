@@ -31,9 +31,31 @@ export interface ChatResponse {
 function generateSimulatedResponse(
   userMessage: string,
   agentSystemPrompt: string,
-  agentName: string
+  agentName: string,
+  conversationHistory: ChatMessage[] = []
 ): string {
-  const msg = userMessage.toLowerCase();
+  // Build context from conversation history for follow-up responses
+  const hasHistory = conversationHistory.length > 1;
+  const isFollowUp = hasHistory &&
+    !userMessage.toLowerCase().match(/^(halo|hai|hi|hello|apa kabar|selamat)/);
+  
+  let contextHint = "";
+  if (isFollowUp && conversationHistory.length >= 2) {
+    // Get the last 2 exchanges for context
+    const recentHistory = conversationHistory.slice(-4, -1);
+    const topic = recentHistory.map(m => m.content).join(" ").toLowerCase();
+    
+    if (topic.includes("rab") || topic.includes("biaya") || topic.includes("harga")) {
+      contextHint = "[Ini pertanyaan lanjutan tentang RAB/biaya] ";
+    } else if (topic.includes("tender") || topic.includes("lpse")) {
+      contextHint = "[Ini pertanyaan lanjutan tentang tender] ";
+    } else if (topic.includes("sertifikat") || topic.includes("sbu") || topic.includes("skk")) {
+      contextHint = "[Ini pertanyaan lanjutan tentang sertifikasi] ";
+    } else if (topic.includes("plts") || topic.includes("panel surya") || topic.includes("ebt")) {
+      contextHint = "[Ini pertanyaan lanjutan tentang energi terbarukan] ";
+    }
+  }
+  const msg = (contextHint + userMessage).toLowerCase();
 
   // Detect task type from message
   if (msg.includes("rab") || msg.includes("rencana anggaran") || msg.includes("estimasi biaya")) {
@@ -817,7 +839,8 @@ Selalu berikan jawaban dalam bahasa Indonesia yang profesional, terstruktur, dan
     const simulatedResponse = generateSimulatedResponse(
       lastUserMessage,
       agentSystemPrompt,
-      agentName
+      agentName,
+      messages
     );
 
     return NextResponse.json({
