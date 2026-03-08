@@ -37,27 +37,69 @@ function generateSimulatedResponse(
 
   // Detect task type from message
   if (msg.includes("rab") || msg.includes("rencana anggaran") || msg.includes("estimasi biaya")) {
-    return `Sebagai ${agentName}, saya akan membantu menyusun RAB untuk Anda.
+    // Extract area size from message if provided (e.g., "36 m2", "100 meter")
+    const areaMatch = msg.match(/(\d+)\s*meter\s*persegi|(\d+)\s*m2|(\d+)\s*m²|luas\s*(\d+)/i);
+    const area = areaMatch ? parseInt(areaMatch[1] || areaMatch[2] || areaMatch[3] || areaMatch[4] || "100") : 100;
+    
+    // Calculate realistic estimates based on area
+    const isSmallHouse = area <= 50;
+    const isMediumHouse = area <= 150;
+    
+    // Realistic pricing for Indonesian construction (2024)
+    const biayaPerM2 = isSmallHouse ? 3500000 : isMediumHouse ? 4500000 : 5500000;
+    const totalBiaya = area * biayaPerM2;
+    
+    const persiapan = Math.round(totalBiaya * 0.05);
+    const pondasi = Math.round(totalBiaya * 0.15);
+    const struktur = Math.round(totalBiaya * 0.35);
+    const arsitektur = Math.round(totalBiaya * 0.30);
+    const mep = Math.round(totalBiaya * 0.15);
+    const totalLangsung = persiapan + pondasi + struktur + arsitektur + mep;
+    const overhead = Math.round(totalLangsung * 0.10);
+    const ppn = Math.round((totalLangsung + overhead) * 0.11);
+    const grandTotal = totalLangsung + overhead + ppn;
+    
+    const formatRupiah = (num: number) => "Rp " + num.toLocaleString("id-ID");
+    
+    return `Sebagai ${agentName}, berikut estimasi RAB untuk proyek Anda:
 
-**Struktur RAB yang akan saya buat:**
+**📊 RENCANA ANGGARAN BIAYA**
+*Proyek: Rumah Tinggal | Luas: ${area} m²*
 
-| No | Uraian Pekerjaan | Volume | Satuan | Harga Satuan | Total |
-|----|-----------------|--------|--------|--------------|-------|
-| 1 | Pekerjaan Persiapan | 1 | Ls | Rp 50.000.000 | Rp 50.000.000 |
-| 2 | Pekerjaan Tanah | 500 | m³ | Rp 150.000 | Rp 75.000.000 |
-| 3 | Pekerjaan Pondasi | 200 | m³ | Rp 1.200.000 | Rp 240.000.000 |
-| 4 | Pekerjaan Struktur | 800 | m³ | Rp 2.500.000 | Rp 2.000.000.000 |
-| 5 | Pekerjaan Arsitektur | 1.000 | m² | Rp 1.500.000 | Rp 1.500.000.000 |
-| 6 | Pekerjaan MEP | 1 | Ls | Rp 800.000.000 | Rp 800.000.000 |
+| No | Uraian Pekerjaan | % | Estimasi Biaya |
+|----|------------------|---|----------------|
+| 1 | Pekerjaan Persiapan | 5% | ${formatRupiah(persiapan)} |
+| 2 | Pekerjaan Pondasi & Tanah | 15% | ${formatRupiah(pondasi)} |
+| 3 | Pekerjaan Struktur (Sloof, Kolom, Balok, Ring) | 35% | ${formatRupiah(struktur)} |
+| 4 | Pekerjaan Arsitektur (Dinding, Lantai, Atap) | 30% | ${formatRupiah(arsitektur)} |
+| 5 | Pekerjaan MEP (Listrik, Air, Sanitasi) | 15% | ${formatRupiah(mep)} |
 
-**Total Biaya Langsung: Rp 4.665.000.000**
-**Overhead & Profit (12%): Rp 559.800.000**
-**PPN (11%): Rp 575.148.000**
-**TOTAL RAB: Rp 5.799.948.000**
+**Subtotal Pekerjaan:** ${formatRupiah(totalLangsung)}
+**Overhead & Profit (10%):** ${formatRupiah(overhead)}
+**PPN (11%):** ${formatRupiah(ppn)}
+**💰 TOTAL ESTIMASI: ${formatRupiah(grandTotal)}**
 
-*Catatan: Ini adalah estimasi awal. Untuk RAB yang lebih akurat, mohon berikan gambar teknik dan spesifikasi detail proyek Anda.*
+---
 
-Apakah Anda ingin saya breakdown lebih detail untuk item pekerjaan tertentu?`;
+**📋 Asumsi Perhitungan:**
+- Harga per m²: ${formatRupiah(biayaPerM2)}/m² (${isSmallHouse ? "tipe sederhana" : isMediumHouse ? "tipe menengah" : "tipe premium"})
+- Material: Beton K-225, Baja tulangan U-24, Bata merah/ringan
+- Spesifikasi: Standard rumah tinggal Indonesia
+- Lokasi: Pulau Jawa (harga material regional)
+
+**⚠️ Catatan Penting:**
+Estimasi ini bersifat indikatif. Biaya aktual dapat bervariasi 15-25% tergantung:
+- Lokasi proyek (biaya transportasi material)
+- Spesifikasi material yang dipilih
+- Kondisi tanah dan akses lokasi
+- Fluktuasi harga material
+
+Untuk RAB detail dengan item pekerjaan lengkap (AHSP), saya butuh:
+- Denah rumah dengan ukuran
+- Detail spesifikasi material
+- Kondisi lokasi pekerjaan
+
+Apakah Anda ingin breakdown lebih detail untuk komponen tertentu?`;
   }
 
   if (msg.includes("jadwal") || msg.includes("schedule") || msg.includes("timeline")) {
@@ -583,9 +625,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Get agent context
-    let agentSystemPrompt = `Anda adalah KonstruksiAI, asisten AI profesional untuk industri konstruksi dan engineering Indonesia. 
-Anda memiliki keahlian mendalam dalam teknik konstruksi, energi, migas, tender, manajemen bisnis, dan perijinan.
-Selalu berikan jawaban dalam bahasa Indonesia yang profesional dan terstruktur.`;
+    let agentSystemPrompt = `Anda adalah KonstruksiAI, asisten AI profesional untuk industri konstruksi dan engineering Indonesia.
+
+KEAHLIAN ANDA:
+- Teknik konstruksi, struktur bangunan, dan estimasi biaya (RAB)
+- Energi terbarukan (PLTS, PLTB, EBT) dan ketenagalistrikan
+- Migas, pertambangan, dan regulasi ESDM
+- Tender, pengadaan, dan manajemen proyek konstruksi
+- Perijinan bangunan (PBG, SLF) dan regulasi K3
+
+PANDUAN ESTIMASI BIAYA (RAB):
+- Rumah sederhana (tipe 21-36): Rp 3-4 juta/m²
+- Rumah menengah (tipe 45-120): Rp 4-6 juta/m²
+- Rumah premium (tipe 150+): Rp 6-10 juta/m²
+- Gedung komersial: Rp 8-15 juta/m²
+- Bangunan industri: Rp 10-20 juta/m²
+- Selalu perhitungkan: material (60%), upah (25%), overhead & profit (10%), PPN 11%
+
+PENTING: Berikan estimasi yang REALISTIS sesuai kondisi pasar Indonesia 2024. Jika user meminta RAB rumah kecil, jangan berikan angka miliaran.
+
+Selalu berikan jawaban dalam bahasa Indonesia yang profesional, terstruktur, dan praktis.`;
     
     let agentName = "KonstruksiAI";
 
@@ -715,8 +774,10 @@ Selalu berikan jawaban dalam bahasa Indonesia yang profesional dan terstruktur.`
     }
 
     // Try Groq (fast & free tier available)
+    console.log("[Chat API] Groq API Key configured:", groqApiKey ? "Yes (" + groqApiKey.slice(0, 10) + "...)" : "No");
     if (groqApiKey) {
       try {
+        console.log("[Chat API] Attempting Groq API call...");
         const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -736,13 +797,17 @@ Selalu berikan jawaban dalam bahasa Indonesia yang profesional dan terstruktur.`
 
         if (response.ok) {
           const data = await response.json();
+          console.log("[Chat API] Groq API success!");
           return NextResponse.json({
             message: data.choices[0]?.message?.content || "Maaf, tidak ada respons.",
             agentName,
           });
+        } else {
+          const errorText = await response.text();
+          console.error("[Chat API] Groq API error response:", response.status, errorText);
         }
-      } catch {
-        console.error("Groq API error, falling back to simulation");
+      } catch (error) {
+        console.error("[Chat API] Groq API fetch error:", error);
       }
     }
 
