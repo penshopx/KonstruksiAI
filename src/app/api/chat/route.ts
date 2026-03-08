@@ -342,6 +342,162 @@ Apakah Anda ingin saya hitung estimasi ROI untuk proyek PLTS Anda?`;
 Apakah Anda ingin detail lebih lanjut tentang proses perizinan atau kontrak?`;
   }
 
+  if (msg.includes("struktur") || msg.includes("beton") || msg.includes("baja") || msg.includes("pondasi") || msg.includes("kolom") || msg.includes("balok")) {
+    return `Sebagai ${agentName}, berikut panduan teknik struktur:
+
+**TEKNIK STRUKTUR BANGUNAN**
+
+**Sistem Struktur Utama:**
+
+| Sistem | Material | Keunggulan | Cocok Untuk |
+|--------|----------|------------|-------------|
+| Rangka Beton Bertulang | Beton + Baja tulangan | Tahan gempa, fleksibel | Gedung bertingkat |
+| Struktur Baja | Profil baja WF/H | Cepat, bentang lebar | Gudang, pabrik, jembatan |
+| Prategang (Prestressed) | Beton + strand | Bentang panjang, tipis | Jembatan, parkir |
+| Komposit | Beton + baja | Efisien, kuat | Gedung tinggi |
+
+**Mutu Beton (SNI 2847:2019):**
+
+| Kode | f'c (MPa) | Penggunaan |
+|------|-----------|------------|
+| K-175 / fc' 14.5 | 14.5 | Lantai kerja, non-struktural |
+| K-250 / fc' 20.75 | 20.75 | Struktur umum |
+| K-300 / fc' 24.9 | 24.9 | Kolom, balok, pelat |
+| K-350 / fc' 29.05 | 29.05 | Struktur khusus, jembatan |
+| K-400 / fc' 33.2 | 33.2 | Prategang, high-rise |
+
+**Analisis Beban (SNI 1727:2020):**
+- **Beban Mati (DL):** Berat sendiri struktur + finishing
+- **Beban Hidup (LL):** Hunian 2.4 kN/m², kantor 2.4 kN/m², parkir 4.8 kN/m²
+- **Beban Gempa (E):** Sesuai peta gempa SNI 1726:2019
+- **Beban Angin (W):** Sesuai SNI 1727:2020
+
+**Kombinasi Beban (LRFD):**
+\`\`\`
+1.4D
+1.2D + 1.6L
+1.2D + 1.0E + 1.0L
+0.9D + 1.0E
+\`\`\`
+
+**Software Analisis Struktur:**
+- **ETABS** — Gedung bertingkat, analisis gempa
+- **SAP2000** — Struktur umum, jembatan
+- **STAAD.Pro** — Struktur baja, industri
+- **SAFE** — Pelat dan pondasi
+
+**Regulasi:**
+- SNI 2847:2019 — Persyaratan beton struktural
+- SNI 1726:2019 — Tata cara perencanaan ketahanan gempa
+- SNI 1727:2020 — Beban minimum untuk perancangan bangunan
+
+Apakah Anda ingin perhitungan struktur untuk elemen tertentu?`;
+  }
+
+  if (msg.includes("mekanikal") || msg.includes("hvac") || msg.includes("plumbing") || msg.includes("pipa") || msg.includes("pompa") || msg.includes("ac")) {
+    return `Sebagai ${agentName}, berikut panduan sistem mekanikal bangunan:
+
+**SISTEM MEKANIKAL BANGUNAN (MEP)**
+
+**1. HVAC (Heating, Ventilation & Air Conditioning)**
+
+| Sistem | Kapasitas | Cocok Untuk | Estimasi Biaya |
+|--------|-----------|-------------|----------------|
+| Split AC | 0.5-5 PK | Ruangan kecil-sedang | Rp 3-15 juta/unit |
+| VRF/VRV | 5-50 PK | Gedung komersial | Rp 15-50 juta/unit |
+| Chiller + AHU | >50 TR | Gedung besar | Rp 500 juta - 5 M |
+| Cooling Tower | Sesuai chiller | Sistem terpusat | Rp 100-500 juta |
+
+**Standar Desain HVAC:**
+- ASHRAE 62.1 — Ventilasi kualitas udara dalam ruangan
+- SNI 03-6572 — Tata cara perancangan sistem ventilasi
+- Suhu nyaman: 22-26°C, RH 50-60%
+
+**2. Sistem Plumbing**
+
+\`\`\`
+Sumber Air → Tangki Bawah (Ground Tank)
+    ↓ Pompa Transfer
+Tangki Atas (Roof Tank)
+    ↓ Gravitasi
+Distribusi ke Fixture
+    ↓
+Sistem Drainase → IPAL → Saluran Kota
+\`\`\`
+
+**Kebutuhan Air (SNI 03-7065):**
+- Hunian: 120 liter/orang/hari
+- Kantor: 50 liter/orang/hari
+- Hotel: 250 liter/kamar/hari
+- Rumah Sakit: 500 liter/tempat tidur/hari
+
+**3. Sistem Pemadam Kebakaran**
+
+| Sistem | Standar | Penggunaan |
+|--------|---------|------------|
+| Sprinkler | NFPA 13 / SNI | Gedung >3 lantai |
+| Hydrant | SNI 03-1745 | Semua gedung |
+| FM200/CO2 | NFPA 2001 | Server room, panel |
+| Foam | NFPA 11 | Gudang BBM, hangar |
+
+**Regulasi:**
+- Permen PUPR No. 26/2008 — Persyaratan teknis sistem proteksi kebakaran
+- SNI 03-6481 — Sistem plumbing
+- ASHRAE Standards untuk HVAC
+
+Apakah Anda ingin detail perhitungan untuk sistem tertentu?`;
+  }
+
+  if (msg.includes("lingkungan") || msg.includes("amdal") || msg.includes("ukl") || msg.includes("upl") || msg.includes("limbah") || msg.includes("ipal")) {
+    return `Sebagai ${agentName}, berikut panduan lingkungan hidup untuk proyek konstruksi:
+
+**DOKUMEN LINGKUNGAN HIDUP**
+
+**Jenis Dokumen Berdasarkan Skala Proyek:**
+
+| Dokumen | Threshold | Proses | Waktu |
+|---------|-----------|--------|-------|
+| **AMDAL** | Proyek besar/strategis | Komisi AMDAL | 75-180 hari |
+| **UKL-UPL** | Proyek menengah | Dinas LH | 14-30 hari |
+| **SPPL** | Proyek kecil | Dinas LH | 7-14 hari |
+| **DELH/DPLH** | Proyek existing | Komisi/Dinas LH | 30-90 hari |
+
+**Kriteria Wajib AMDAL (PP 22/2021):**
+- Luas lahan > 5 ha (perumahan)
+- Gedung > 10.000 m² atau > 8 lantai
+- Kawasan industri > 50 ha
+- Jalan tol, bendungan, pelabuhan
+
+**Komponen AMDAL:**
+\`\`\`
+1. Kerangka Acuan (KA-ANDAL)
+2. ANDAL (Analisis Dampak Lingkungan)
+3. RKL (Rencana Pengelolaan Lingkungan)
+4. RPL (Rencana Pemantauan Lingkungan)
+\`\`\`
+
+**Sistem IPAL (Instalasi Pengolahan Air Limbah):**
+
+| Tahap | Proses | Tujuan |
+|-------|--------|--------|
+| Primer | Sedimentasi, skimming | Padatan tersuspensi |
+| Sekunder | Biologis (aerobik/anaerobik) | BOD, COD |
+| Tersier | Filtrasi, disinfeksi | Patogen, nutrisi |
+
+**Baku Mutu Air Limbah (PermenLHK P.68/2016):**
+- BOD: ≤ 30 mg/L
+- COD: ≤ 100 mg/L
+- TSS: ≤ 30 mg/L
+- pH: 6-9
+
+**Regulasi:**
+- UU No. 32/2009 tentang Perlindungan & Pengelolaan Lingkungan Hidup
+- PP No. 22/2021 tentang Penyelenggaraan Perlindungan & Pengelolaan LH
+- PermenLHK P.18/2021 tentang AMDAL, UKL-UPL, SPPL
+
+Apakah Anda ingin panduan penyusunan dokumen lingkungan untuk proyek tertentu?`;
+  }
+
   if (msg.includes("manajemen") || msg.includes("proyek") || msg.includes("project") || msg.includes("wbs") || msg.includes("gantt")) {
     return `Sebagai ${agentName}, berikut panduan manajemen proyek konstruksi:
 

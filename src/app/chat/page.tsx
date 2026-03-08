@@ -25,7 +25,10 @@ interface Conversation {
   createdAt: Date;
   updatedAt: Date;
   agentId?: string;
+  label?: ConversationLabel;
 }
+
+type ConversationLabel = "penting" | "proyek" | "referensi" | "arsip";
 
 interface Agent {
   id: string;
@@ -88,9 +91,17 @@ const KEYBOARD_SHORTCUTS = [
   { key: "Shift+Enter", desc: "Baris baru" },
   { key: "Ctrl+K", desc: "Chat baru" },
   { key: "Ctrl+F", desc: "Cari dalam percakapan" },
+  { key: "Ctrl+E", desc: "Edit pesan terakhir" },
   { key: "Ctrl+/", desc: "Tampilkan shortcut" },
-  { key: "Esc", desc: "Tutup panel" },
+  { key: "Esc", desc: "Tutup panel / batalkan edit" },
 ];
+
+const LABEL_CONFIG: Record<ConversationLabel, { color: string; bg: string; border: string; label: string }> = {
+  penting: { color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/30", label: "🔴 Penting" },
+  proyek: { color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30", label: "🔵 Proyek" },
+  referensi: { color: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/30", label: "🟢 Referensi" },
+  arsip: { color: "text-slate-400", bg: "bg-slate-500/10", border: "border-slate-500/30", label: "⚫ Arsip" },
+};
 
 type FontSize = "sm" | "base" | "lg";
 
@@ -360,6 +371,7 @@ function MessageBubble({
   onReaction,
   onRegenerate,
   onStar,
+  onEdit,
   isLast,
   fontSize,
   searchQuery,
@@ -369,12 +381,16 @@ function MessageBubble({
   onReaction: (id: string, reaction: "up" | "down") => void;
   onRegenerate?: () => void;
   onStar: (id: string) => void;
+  onEdit?: (id: string, newContent: string) => void;
   isLast: boolean;
   fontSize: FontSize;
   searchQuery?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const [relativeTime, setRelativeTime] = useState(() => formatRelativeTime(message.timestamp));
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(message.content);
+  const editRef = useRef<HTMLTextAreaElement>(null);
 
   // Update relative time every 30s
   useEffect(() => {
@@ -390,15 +406,57 @@ function MessageBubble({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const startEdit = () => {
+    setEditText(message.content);
+    setIsEditing(true);
+    setTimeout(() => {
+      editRef.current?.focus();
+      editRef.current?.select();
+    }, 50);
+  };
+
+  const submitEdit = () => {
+    const trimmed = editText.trim();
+    if (trimmed && trimmed !== message.content && onEdit) {
+      onEdit(message.id, trimmed);
+    }
+    setIsEditing(false);
+  };
+
+  const cancelEdit = () => {
+    setEditText(message.content);
+    setIsEditing(false);
+  };
+
   const fontSizeClass = fontSize === "sm" ? "text-xs" : fontSize === "lg" ? "text-base" : "text-sm";
 
   if (message.role === "user") {
     return (
       <div className="flex gap-3 justify-end group">
         <div className="max-w-[80%] sm:max-w-[70%]">
-          <div className={`bg-orange-500 text-white rounded-2xl rounded-tr-sm px-4 py-3 ${fontSizeClass} leading-relaxed`}>
-            {message.content}
-          </div>
+          {isEditing ? (
+            <div className="bg-slate-800 border border-orange-500/60 rounded-2xl rounded-tr-sm overflow-hidden">
+              <textarea
+                ref={editRef}
+                value={editText}
+                onChange={e => setEditText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitEdit(); }
+                  if (e.key === "Escape") cancelEdit();
+                }}
+                className={`w-full bg-transparent text-white px-4 pt-3 pb-2 ${fontSizeClass} resize-none focus:outline-none min-h-[48px] max-h-[200px]`}
+                rows={3}
+              />
+              <div className="flex items-center justify-end gap-2 px-3 pb-2">
+                <button onClick={cancelEdit} className="text-slate-500 hover:text-slate-300 text-xs px-2 py-1 rounded transition-colors">Batal</button>
+                <button onClick={submitEdit} className="bg-orange-500 hover:bg-orange-600 text-white text-xs px-3 py-1 rounded-lg transition-colors">Simpan</button>
+              </div>
+            </div>
+          ) : (
+            <div className={`bg-orange-500 text-white rounded-2xl rounded-tr-sm px-4 py-3 ${fontSizeClass} leading-relaxed`}>
+              {message.content}
+            </div>
+          )}
           <div className="flex items-center justify-end gap-2 mt-1">
             {/* Star button */}
             <button
@@ -412,6 +470,18 @@ function MessageBubble({
             >
               {message.starred ? "★" : "☆"}
             </button>
+            {/* Edit button (user messages only) */}
+            {onEdit && !isEditing && (
+              <button
+                onClick={startEdit}
+                className="text-slate-600 hover:text-orange-400 text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Edit pesan"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+            )}
             {/* Copy button */}
             <button
               onClick={handleCopy}
@@ -580,6 +650,7 @@ function Sidebar({
   onNew,
   onDelete,
   onExport,
+  onLabel,
   isOpen,
   onClose,
 }: {
@@ -589,6 +660,7 @@ function Sidebar({
   onNew: () => void;
   onDelete: (id: string) => void;
   onExport: (id: string) => void;
+  onLabel: (id: string, label: ConversationLabel | undefined) => void;
   isOpen: boolean;
   onClose: () => void;
 }) {
@@ -702,39 +774,74 @@ function Sidebar({
                   <div className="px-3 py-1 text-xs font-medium text-slate-600 uppercase tracking-wider">{group}</div>
                   {items.map(conv => {
                     const hasStarred = conv.messages.some(m => m.starred);
+                    const labelCfg = conv.label ? LABEL_CONFIG[conv.label] : null;
                     return (
                       <div
                         key={conv.id}
-                        className={`group flex items-center gap-2 mx-2 px-2 py-2 rounded-lg cursor-pointer transition-colors ${
+                        className={`group flex flex-col mx-2 px-2 py-2 rounded-lg cursor-pointer transition-colors ${
                           activeId === conv.id ? "bg-slate-700" : "hover:bg-slate-800"
                         }`}
                         onClick={() => { onSelect(conv.id); onClose(); }}
                       >
-                        <svg className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                        <span className="text-xs text-slate-300 truncate flex-1">{conv.title}</span>
-                        {hasStarred && <span className="text-yellow-400 text-xs flex-shrink-0">★</span>}
-                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onExport(conv.id); }}
-                            className="text-slate-600 hover:text-blue-400 p-0.5 transition-colors"
-                            title="Export"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
-                            className="text-slate-600 hover:text-red-400 p-0.5 transition-colors"
-                            title="Hapus"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          </button>
+                        <div className="flex items-center gap-2">
+                          <svg className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                          <span className="text-xs text-slate-300 truncate flex-1">{conv.title}</span>
+                          {hasStarred && <span className="text-yellow-400 text-xs flex-shrink-0">★</span>}
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                            {/* Label picker */}
+                            <div className="relative" onClick={e => e.stopPropagation()}>
+                              <button
+                                className="text-slate-600 hover:text-purple-400 p-0.5 transition-colors"
+                                title="Beri label"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  const menu = e.currentTarget.nextElementSibling as HTMLElement;
+                                  if (menu) menu.classList.toggle("hidden");
+                                }}
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                              </button>
+                              <div className="hidden absolute right-0 top-5 z-50 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-1 w-32">
+                                {(Object.keys(LABEL_CONFIG) as ConversationLabel[]).map(lbl => (
+                                  <button
+                                    key={lbl}
+                                    onClick={() => { onLabel(conv.id, conv.label === lbl ? undefined : lbl); }}
+                                    className={`w-full text-left px-2 py-1 rounded text-xs transition-colors ${conv.label === lbl ? "bg-slate-700 text-white" : "text-slate-400 hover:bg-slate-700 hover:text-white"}`}
+                                  >
+                                    {LABEL_CONFIG[lbl].label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onExport(conv.id); }}
+                              className="text-slate-600 hover:text-blue-400 p-0.5 transition-colors"
+                              title="Export"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
+                              className="text-slate-600 hover:text-red-400 p-0.5 transition-colors"
+                              title="Hapus"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
+                        {labelCfg && (
+                          <div className={`mt-1 ml-5 inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full ${labelCfg.bg} ${labelCfg.color} border ${labelCfg.border} w-fit`}>
+                            {labelCfg.label}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -878,6 +985,8 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatSearchRef = useRef<HTMLInputElement>(null);
+  // Draft auto-save key: per conversation
+  const draftKey = activeConvId ? `konstruksi_draft_${activeConvId}` : "konstruksi_draft_new";
 
   // Load from localStorage
   useEffect(() => {
@@ -887,6 +996,9 @@ export default function ChatPage() {
     if (savedFontSize && ["sm", "base", "lg"].includes(savedFontSize)) {
       setFontSize(savedFontSize);
     }
+    // Restore draft for new conversation
+    const draft = localStorage.getItem("konstruksi_draft_new");
+    if (draft) setInput(draft);
   }, []);
 
   // Save to localStorage
@@ -900,6 +1012,22 @@ export default function ChatPage() {
   useEffect(() => {
     localStorage.setItem("konstruksi_fontsize", fontSize);
   }, [fontSize]);
+
+  // Draft auto-save: save input to localStorage whenever it changes
+  useEffect(() => {
+    if (input.trim()) {
+      localStorage.setItem(draftKey, input);
+    } else {
+      localStorage.removeItem(draftKey);
+    }
+  }, [input, draftKey]);
+
+  // Restore draft when switching conversations
+  useEffect(() => {
+    const draft = localStorage.getItem(draftKey);
+    setInput(draft || "");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConvId]);
 
   // Auto-scroll
   useEffect(() => {
@@ -947,6 +1075,27 @@ export default function ChatPage() {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleEdit = useCallback((messageId: string, newContent: string) => {
+    setConversations(prev => prev.map(c =>
+      c.id === activeConvId
+        ? {
+            ...c,
+            messages: c.messages.map(m =>
+              m.id === messageId
+                ? { ...m, content: newContent, wordCount: countWords(newContent) }
+                : m
+            ),
+          }
+        : c
+    ));
+  }, [activeConvId]);
+
+  const handleLabel = useCallback((convId: string, label: ConversationLabel | undefined) => {
+    setConversations(prev => prev.map(c =>
+      c.id === convId ? { ...c, label } : c
+    ));
   }, []);
 
   const activeConversation = conversations.find(c => c.id === activeConvId) || null;
@@ -1032,6 +1181,7 @@ export default function ChatPage() {
     if (!messageText || isLoading) return;
 
     setInput("");
+    localStorage.removeItem(draftKey);
     setIsLoading(true);
     abortRef.current = new AbortController();
 
@@ -1159,6 +1309,7 @@ export default function ChatPage() {
     } finally {
       setIsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input, isLoading, activeConvId, conversations, selectedAgent]);
 
   const regenerateLastResponse = useCallback(() => {
@@ -1219,6 +1370,7 @@ export default function ChatPage() {
         onNew={createNewConversation}
         onDelete={deleteConversation}
         onExport={handleExport}
+        onLabel={handleLabel}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
@@ -1370,6 +1522,7 @@ export default function ChatPage() {
                       onReaction={handleReaction}
                       onRegenerate={idx === lastAssistantMsgIdx ? regenerateLastResponse : undefined}
                       onStar={handleStar}
+                      onEdit={message.role === "user" ? handleEdit : undefined}
                       isLast={idx === lastAssistantMsgIdx}
                       fontSize={fontSize}
                       searchQuery={isSearchMatch ? chatSearchQuery : undefined}
@@ -1378,6 +1531,22 @@ export default function ChatPage() {
                 );
               })}
               <div ref={messagesEndRef} />
+            </div>
+          </div>
+        )}
+
+        {/* Typing indicator */}
+        {isLoading && (
+          <div className="px-4 pb-1">
+            <div className="max-w-3xl mx-auto">
+              <div className="flex items-center gap-2 text-slate-500 text-xs">
+                <span className="flex gap-0.5">
+                  <span className="w-1 h-1 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                  <span className="w-1 h-1 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                  <span className="w-1 h-1 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+                </span>
+                <span>{selectedAgent.name} sedang mengetik...</span>
+              </div>
             </div>
           </div>
         )}
@@ -1439,9 +1608,17 @@ export default function ChatPage() {
               </div>
             </div>
             <div className="flex items-center justify-between mt-2 px-1">
-              <p className="text-slate-700 text-xs">
-                KonstruksiAI dapat membuat kesalahan. Verifikasi informasi penting dengan sumber resmi.
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-slate-700 text-xs">
+                  KonstruksiAI dapat membuat kesalahan. Verifikasi informasi penting dengan sumber resmi.
+                </p>
+                {input.trim() && (
+                  <span className="text-slate-700 text-xs flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-orange-500/50 rounded-full"></span>
+                    Draft tersimpan
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => setShowShortcuts(true)}
                 className="text-slate-700 hover:text-slate-500 text-xs transition-colors flex-shrink-0"

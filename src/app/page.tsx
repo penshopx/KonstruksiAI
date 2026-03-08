@@ -99,6 +99,47 @@ const STATS = [
   { value: 8, label: "Agen AI", suffix: "" },
 ];
 
+const FAQ_ITEMS = [
+  {
+    q: "Apakah KonstruksiAI bisa membantu menyusun RAB proyek?",
+    a: "Ya! KonstruksiAI dapat membantu menyusun Rencana Anggaran Biaya (RAB) dengan detail. Cukup berikan informasi proyek seperti jenis bangunan, luas, lokasi, dan spesifikasi, dan AI akan menghasilkan estimasi biaya yang terstruktur.",
+  },
+  {
+    q: "Apakah informasi regulasi yang diberikan selalu terbaru?",
+    a: "KonstruksiAI dilatih dengan regulasi konstruksi Indonesia terkini termasuk UU Cipta Kerja, Perpres 16/2018, dan peraturan PUPR terbaru. Namun selalu disarankan untuk memverifikasi dengan sumber resmi untuk keputusan penting.",
+  },
+  {
+    q: "Bisakah KonstruksiAI membantu proses tender LPSE?",
+    a: "Tentu! AI kami memiliki keahlian khusus dalam tender pemerintah melalui LPSE. Mulai dari analisis dokumen tender, strategi penawaran, penyusunan metode pelaksanaan, hingga checklist dokumen kualifikasi.",
+  },
+  {
+    q: "Apakah ada batasan jumlah pertanyaan yang bisa diajukan?",
+    a: "Tidak ada batasan! Anda bisa mengajukan pertanyaan sebanyak yang Anda butuhkan. Setiap percakapan tersimpan secara lokal di browser Anda sehingga bisa diakses kembali kapan saja.",
+  },
+  {
+    q: "Apakah KonstruksiAI bisa membuat dokumen K3 seperti JSA dan HIRARC?",
+    a: "Ya, KonstruksiAI dapat membantu membuat Job Safety Analysis (JSA), HIRARC, prosedur tanggap darurat, dan dokumen K3 lainnya sesuai standar SMK3 dan ISO 45001.",
+  },
+  {
+    q: "Bagaimana cara menggunakan fitur Matriks Ruang Lingkup?",
+    a: "Buka halaman Matriks dari menu navigasi. Di sana Anda akan menemukan grid interaktif 21×6 yang menghubungkan 21 fungsi bisnis dengan 6 kolom keteknikan. Klik setiap titik koneksi untuk membuka agen AI yang relevan.",
+  },
+];
+
+const PLAN_FEATURES = [
+  { feature: "Chat dengan AI", free: true, pro: true },
+  { feature: "8 Agen Spesialis", free: true, pro: true },
+  { feature: "Riwayat percakapan lokal", free: true, pro: true },
+  { feature: "Export percakapan (.md)", free: true, pro: true },
+  { feature: "Matriks Ruang Lingkup", free: true, pro: true },
+  { feature: "Bintang & label percakapan", free: true, pro: true },
+  { feature: "Koneksi LLM real-time", free: false, pro: true },
+  { feature: "Riwayat cloud (sync)", free: false, pro: true },
+  { feature: "Template dokumen premium", free: false, pro: true },
+  { feature: "Analisis dokumen PDF", free: false, pro: true },
+  { feature: "Prioritas dukungan", free: false, pro: true },
+];
+
 const TESTIMONIALS = [
   {
     initials: "BS",
@@ -265,6 +306,125 @@ function TestimonialsSection() {
             </div>
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// FAQ SECTION
+// ============================================================
+
+function FAQSection() {
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="text-center mb-12">
+        <h2 className="text-3xl font-bold text-white mb-4">Pertanyaan yang Sering Diajukan</h2>
+        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+          Temukan jawaban atas pertanyaan umum tentang KonstruksiAI
+        </p>
+      </div>
+
+      <div className="max-w-3xl mx-auto space-y-3">
+        {FAQ_ITEMS.map((item, i) => (
+          <div
+            key={i}
+            className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden transition-all"
+          >
+            <button
+              onClick={() => setOpenIndex(openIndex === i ? null : i)}
+              className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-slate-700/50 transition-colors"
+            >
+              <span className="text-white font-medium text-sm pr-4">{item.q}</span>
+              <svg
+                className={`w-5 h-5 text-orange-400 flex-shrink-0 transition-transform duration-200 ${openIndex === i ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {openIndex === i && (
+              <div className="px-6 pb-4 text-slate-400 text-sm leading-relaxed border-t border-slate-700/50 pt-3">
+                {item.a}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// PRICING / PLAN COMPARISON
+// ============================================================
+
+function PlanComparisonSection() {
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="text-center mb-12">
+        <h2 className="text-3xl font-bold text-white mb-4">Paket Layanan</h2>
+        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+          Mulai gratis, upgrade kapan saja
+        </p>
+      </div>
+
+      <div className="max-w-3xl mx-auto">
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
+          {/* Header */}
+          <div className="grid grid-cols-3 border-b border-slate-700">
+            <div className="px-6 py-4 text-slate-400 text-sm font-medium">Fitur</div>
+            <div className="px-6 py-4 text-center border-l border-slate-700">
+              <div className="text-white font-bold">Gratis</div>
+              <div className="text-slate-500 text-xs mt-0.5">Selamanya</div>
+            </div>
+            <div className="px-6 py-4 text-center border-l border-slate-700 bg-orange-500/5">
+              <div className="text-orange-400 font-bold">Pro</div>
+              <div className="text-slate-500 text-xs mt-0.5">Segera hadir</div>
+            </div>
+          </div>
+
+          {/* Rows */}
+          {PLAN_FEATURES.map((row, i) => (
+            <div
+              key={row.feature}
+              className={`grid grid-cols-3 border-b border-slate-700/50 ${i % 2 === 0 ? "" : "bg-slate-800/50"}`}
+            >
+              <div className="px-6 py-3 text-slate-300 text-sm">{row.feature}</div>
+              <div className="px-6 py-3 text-center border-l border-slate-700/50">
+                {row.free ? (
+                  <span className="text-green-400 text-base">✓</span>
+                ) : (
+                  <span className="text-slate-600 text-base">—</span>
+                )}
+              </div>
+              <div className="px-6 py-3 text-center border-l border-slate-700/50 bg-orange-500/5">
+                {row.pro ? (
+                  <span className="text-green-400 text-base">✓</span>
+                ) : (
+                  <span className="text-slate-600 text-base">—</span>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* CTA row */}
+          <div className="grid grid-cols-3 pt-4 pb-5">
+            <div className="px-6"></div>
+            <div className="px-6 text-center border-l border-slate-700/50">
+              <span className="text-slate-400 text-sm">Aktif sekarang</span>
+            </div>
+            <div className="px-6 text-center border-l border-slate-700/50">
+              <button className="bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs px-4 py-1.5 rounded-lg hover:bg-orange-500/30 transition-colors">
+                Daftar Antrian
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -501,6 +661,12 @@ export default function Home() {
 
       {/* Testimonials */}
       <TestimonialsSection />
+
+      {/* FAQ */}
+      <FAQSection />
+
+      {/* Plan Comparison */}
+      <PlanComparisonSection />
 
       {/* CTA Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
