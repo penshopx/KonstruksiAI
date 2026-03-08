@@ -87,7 +87,55 @@ Apakah Anda ingin saya breakdown lebih detail untuk item pekerjaan tertentu?`;
 Apakah Anda ingin saya buat jadwal yang lebih detail dengan critical path?`;
   }
 
-  if (msg.includes("k3") || msg.includes("keselamatan") || msg.includes("safety") || msg.includes("jsa")) {
+  if (msg.includes("arsitektur") || msg.includes("desain") || msg.includes("bim")) {
+    return `Sebagai ${agentName}, berikut informasi terkait Arsitektur & Desain:
+
+**BUILDING INFORMATION MODELING (BIM)**
+
+**Apa itu BIM?**
+BIM adalah proses berbasis model 3D cerdas yang memberikan wawasan dan alat bagi para profesional arsitektur, teknik, dan konstruksi untuk merencanakan, merancang, membangun, dan mengelola bangunan & infrastruktur secara efisien.
+
+**Level BIM di Indonesia:**
+
+| Level | Deskripsi | Status |
+|-------|-----------|--------|
+| BIM Level 0 | 2D CAD saja | Masih banyak digunakan |
+| BIM Level 1 | 2D + 3D modeling | Wajib proyek pemerintah >Rp 100 M |
+| BIM Level 2 | Kolaborasi lintas disiplin | Best practice |
+| BIM Level 3 | Full integrated BIM | Emerging |
+
+**Software BIM yang Umum Digunakan:**
+
+| Software | Kegunaan | Vendor |
+|----------|----------|--------|
+| **Autodesk Revit** | Arsitektur, Struktur, MEP | Autodesk |
+| **AutoCAD** | 2D drafting & dokumentasi | Autodesk |
+| **SketchUp** | Desain konseptual 3D | Trimble |
+| **ArchiCAD** | BIM arsitektur | Graphisoft |
+| **Navisworks** | Clash detection & review | Autodesk |
+| **Lumion** | Rendering & visualisasi | Act-3D |
+
+**Standar Gambar Arsitektur:**
+- SNI 03-1728 — Tata cara perencanaan struktur baja
+- Permen PUPR No. 22/2018 — Pembangunan bangunan gedung negara
+- Persyaratan teknis gambar: skala, notasi, simbol standar
+
+**Proses PBG (Persetujuan Bangunan Gedung):**
+
+\`\`\`
+Konsep Desain → DED (Detail Engineering Design) →
+Review TABG → Penerbitan PBG → Pelaksanaan →
+SLF (Sertifikat Laik Fungsi)
+\`\`\`
+
+**Regulasi BIM di Indonesia:**
+- SE Menteri PUPR No. 22/2018 — Persyaratan BIM proyek pemerintah
+- Permen PUPR No. 9/2021 — Pedoman BIM bangunan gedung & infrastruktur
+
+Apakah Anda ingin informasi lebih detail tentang software BIM tertentu atau proses sertifikasi BIM?`;
+  }
+
+  if (msg.includes("k3") || msg.includes("keselamatan") || msg.includes("safety") || msg.includes("jsa") || msg.includes("smk3")) {
     return `Sebagai ${agentName}, berikut analisis K3 yang saya siapkan:
 
 **JOB SAFETY ANALYSIS (JSA)**
@@ -110,31 +158,55 @@ Apakah Anda ingin saya buat jadwal yang lebih detail dengan critical path?`;
 Apakah Anda ingin saya buat HIRARC atau prosedur darurat yang lebih lengkap?`;
   }
 
-  if (msg.includes("kontrak") || msg.includes("perjanjian") || msg.includes("klausul")) {
-    return `Sebagai ${agentName}, berikut analisis kontrak yang saya siapkan:
+  if (msg.includes("kontrak") || msg.includes("perjanjian") || msg.includes("klausul") || msg.includes("fidic") || msg.includes("sengketa")) {
+    return `Sebagai ${agentName}, berikut panduan kontrak & hukum konstruksi:
 
-**REVIEW KONTRAK KONSTRUKSI**
+**JENIS KONTRAK KONSTRUKSI**
 
-**Klausul-klausul yang perlu diperhatikan:**
+| Jenis Kontrak | Karakteristik | Risiko Kontraktor | Cocok Untuk |
+|---------------|--------------|-------------------|-------------|
+| **Lump Sum** | Harga tetap, scope tetap | Tinggi | Proyek jelas & well-defined |
+| **Unit Price** | Harga per satuan, volume bervariasi | Sedang | Pekerjaan tanah, jalan |
+| **Cost Plus Fee** | Biaya aktual + fee | Rendah | Proyek darurat/kompleks |
+| **Turnkey EPC** | Desain+bangun+serah terima | Sangat tinggi | Industri, power plant |
 
-🔴 **RISIKO TINGGI:**
-1. **Klausul Pembayaran** — Pastikan termin pembayaran jelas (DP, progress, retensi)
-2. **Klausul Denda** — Denda keterlambatan maksimal 5% dari nilai kontrak (sesuai Perpres 16/2018)
-3. **Klausul Force Majeure** — Harus mencakup pandemi, bencana alam, kebijakan pemerintah
+**FIDIC CONDITIONS OF CONTRACT:**
 
-🟡 **RISIKO SEDANG:**
-4. **Klausul Variasi** — Prosedur persetujuan perubahan pekerjaan
-5. **Klausul Klaim** — Batas waktu pengajuan klaim (biasanya 28 hari)
-6. **Klausul Garansi** — Masa pemeliharaan dan tanggung jawab
+🔑 **Suite FIDIC (Edisi 2017):**
+- **Red Book** — Pekerjaan sipil, kontraktor desain minor
+- **Yellow Book** — EPC, kontraktor desain penuh
+- **Silver Book** — Turnkey, risiko pada kontraktor
+- **Green Book** — Kontrak nilai kecil, simplified
 
-🟢 **REKOMENDASI:**
-- Tambahkan klausul eskalasi harga material
-- Perjelas definisi "selesai" dan kriteria serah terima
-- Pastikan mekanisme penyelesaian sengketa (mediasi → arbitrase)
+**Klausul Penting:**
+- Clause 8: Commencement, Delays & Suspension
+- Clause 13: Variations & Adjustments
+- Clause 20: Claims, Disputes & Arbitration
 
-**Referensi:** FIDIC Red Book 2017, UU No. 2/2017 Jasa Konstruksi
+**PENYELESAIAN SENGKETA KONSTRUKSI:**
 
-Apakah ada klausul spesifik yang ingin Anda review lebih detail?`;
+\`\`\`
+Negosiasi (Level 1)
+    ↓ gagal (28 hari)
+Mediasi (Level 2)
+    ↓ gagal
+Adjudikasi/DAB — FIDIC
+    ↓ banding
+Arbitrase (Final) — BANI, ICC
+\`\`\`
+
+🔴 **Klausul Kritis:**
+1. **Force Majeure** — pastikan cakupan jelas (pandemi, kebijakan pemerintah)
+2. **Eskalasi harga** — indeksasi material (baja, beton, BBM)
+3. **Retensi** — maksimal 5% sesuai Perpres 16/2018
+4. **Denda penalti** — batas maksimal 5% dari nilai kontrak
+
+**Regulasi:**
+- UU No. 2/2017 tentang Jasa Konstruksi
+- Perpres No. 16/2018 jo. 12/2021 (Pengadaan)
+- UU No. 30/1999 tentang Arbitrase & Penyelesaian Sengketa
+
+Apakah Anda ingin analisis klausul kontrak tertentu atau panduan negosiasi FIDIC?`;
   }
 
   if (msg.includes("perijinan") || msg.includes("izin") || msg.includes("pbg") || msg.includes("imb")) {

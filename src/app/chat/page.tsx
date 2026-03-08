@@ -15,6 +15,7 @@ interface Message {
   isStreaming?: boolean;
   reaction?: "up" | "down" | null;
   wordCount?: number;
+  starred?: boolean;
 }
 
 interface Conversation {
@@ -86,16 +87,43 @@ const KEYBOARD_SHORTCUTS = [
   { key: "Enter", desc: "Kirim pesan" },
   { key: "Shift+Enter", desc: "Baris baru" },
   { key: "Ctrl+K", desc: "Chat baru" },
+  { key: "Ctrl+F", desc: "Cari dalam percakapan" },
   { key: "Ctrl+/", desc: "Tampilkan shortcut" },
   { key: "Esc", desc: "Tutup panel" },
 ];
 
+type FontSize = "sm" | "base" | "lg";
+
 // ============================================================
-// MARKDOWN RENDERER
+// HELPERS
 // ============================================================
 
-function renderMarkdown(content: string): string {
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  const diffMins = Math.floor(diffSecs / 60);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSecs < 10) return "baru saja";
+  if (diffSecs < 60) return `${diffSecs} detik lalu`;
+  if (diffMins < 60) return `${diffMins} menit lalu`;
+  if (diffHours < 24) return `${diffHours} jam lalu`;
+  if (diffDays < 7) return `${diffDays} hari lalu`;
+  return date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+}
+
+function renderMarkdown(content: string, highlight?: string): string {
   let html = content;
+
+  // Highlight search matches in raw text before markdown processing
+  if (highlight && highlight.trim()) {
+    const escaped = highlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escaped})`, "gi");
+    // Apply highlight only to non-markdown characters (rough approach)
+    html = html.replace(regex, `<mark class="bg-yellow-400/40 text-yellow-100 rounded px-0.5">$1</mark>`);
+  }
 
   // Code blocks (must be before inline code)
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
@@ -331,15 +359,30 @@ function MessageBubble({
   agentIcon,
   onReaction,
   onRegenerate,
+  onStar,
   isLast,
+  fontSize,
+  searchQuery,
 }: {
   message: Message;
   agentIcon: string;
   onReaction: (id: string, reaction: "up" | "down") => void;
   onRegenerate?: () => void;
+  onStar: (id: string) => void;
   isLast: boolean;
+  fontSize: FontSize;
+  searchQuery?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const [relativeTime, setRelativeTime] = useState(() => formatRelativeTime(message.timestamp));
+
+  // Update relative time every 30s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRelativeTime(formatRelativeTime(message.timestamp));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [message.timestamp]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -347,29 +390,44 @@ function MessageBubble({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const fontSizeClass = fontSize === "sm" ? "text-xs" : fontSize === "lg" ? "text-base" : "text-sm";
+
   if (message.role === "user") {
     return (
       <div className="flex gap-3 justify-end group">
         <div className="max-w-[80%] sm:max-w-[70%]">
-          <div className="bg-orange-500 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed">
+          <div className={`bg-orange-500 text-white rounded-2xl rounded-tr-sm px-4 py-3 ${fontSizeClass} leading-relaxed`}>
             {message.content}
           </div>
           <div className="flex items-center justify-end gap-2 mt-1">
-            <span className="text-slate-600 text-xs">
-              {message.timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
-            </span>
+            {/* Star button */}
+            <button
+              onClick={() => onStar(message.id)}
+              className={`text-xs transition-all ${
+                message.starred
+                  ? "text-yellow-400 opacity-100"
+                  : "text-slate-600 hover:text-yellow-400 opacity-0 group-hover:opacity-100"
+              }`}
+              title={message.starred ? "Hapus bintang" : "Bintangi pesan"}
+            >
+              {message.starred ? "★" : "☆"}
+            </button>
+            {/* Copy button */}
             <button
               onClick={handleCopy}
               className="text-slate-600 hover:text-slate-400 text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               {copied ? (
-                <span className="text-green-400">✓</span>
+                <span className="text-green-400 text-xs">Tersalin!</span>
               ) : (
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               )}
             </button>
+            <span className="text-slate-600 text-xs" title={message.timestamp.toLocaleString("id-ID")}>
+              {relativeTime}
+            </span>
           </div>
         </div>
         <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-1">
@@ -394,29 +452,42 @@ function MessageBubble({
             </div>
           ) : (
             <div
-              className="text-sm leading-relaxed text-slate-200 prose-custom"
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
+              className={`${fontSizeClass} leading-relaxed text-slate-200 prose-custom`}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content, searchQuery) }}
             />
           )}
         </div>
 
         {/* Message actions */}
         <div className="flex items-center gap-3 mt-1.5 px-1">
-          <span className="text-slate-600 text-xs">
-            {message.timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+          <span className="text-slate-600 text-xs" title={message.timestamp.toLocaleString("id-ID")}>
+            {relativeTime}
           </span>
           {message.wordCount && !message.isStreaming && (
             <span className="text-slate-700 text-xs">{message.wordCount} kata</span>
           )}
           {!message.isStreaming && (
             <>
+              {/* Star */}
+              <button
+                onClick={() => onStar(message.id)}
+                className={`text-sm transition-all ${
+                  message.starred
+                    ? "text-yellow-400 opacity-100"
+                    : "text-slate-600 hover:text-yellow-400 opacity-0 group-hover:opacity-100"
+                }`}
+                title={message.starred ? "Hapus bintang" : "Bintangi pesan"}
+              >
+                {message.starred ? "★" : "☆"}
+              </button>
+
               <button
                 onClick={handleCopy}
                 className="text-slate-600 hover:text-slate-400 text-xs flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                 title="Salin"
               >
                 {copied ? (
-                  <><span className="text-green-400">✓</span> <span className="text-green-400">Disalin</span></>
+                  <><span className="text-green-400">✓</span> <span className="text-green-400">Tersalin!</span></>
                 ) : (
                   <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg> Salin</>
                 )}
@@ -522,13 +593,18 @@ function Sidebar({
   onClose: () => void;
 }) {
   const [search, setSearch] = useState("");
+  const [starredOnly, setStarredOnly] = useState(false);
 
-  const filtered = search.trim()
+  let filtered = search.trim()
     ? conversations.filter(c =>
         c.title.toLowerCase().includes(search.toLowerCase()) ||
         c.messages.some(m => m.content.toLowerCase().includes(search.toLowerCase()))
       )
     : conversations;
+
+  if (starredOnly) {
+    filtered = filtered.filter(c => c.messages.some(m => m.starred));
+  }
 
   const grouped = filtered.reduce((acc, conv) => {
     const now = new Date();
@@ -541,6 +617,8 @@ function Sidebar({
   }, {} as Record<string, Conversation[]>);
 
   const groupOrder = ["Hari ini", "7 hari terakhir", "30 hari terakhir", "Lebih lama"];
+
+  const starredCount = conversations.filter(c => c.messages.some(m => m.starred)).length;
 
   return (
     <>
@@ -557,15 +635,29 @@ function Sidebar({
       `}>
         {/* Header */}
         <div className="p-3 border-b border-slate-700/60 space-y-2">
-          <button
-            onClick={onNew}
-            className="w-full flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-3 py-2.5 text-sm font-medium transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Chat Baru
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onNew}
+              className="flex-1 flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl px-3 py-2.5 text-sm font-medium transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Chat Baru
+            </button>
+            {/* Starred filter toggle */}
+            <button
+              onClick={() => setStarredOnly(v => !v)}
+              className={`p-2.5 rounded-xl border transition-colors text-sm ${
+                starredOnly
+                  ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-400"
+                  : "bg-slate-800 border-slate-700 text-slate-500 hover:text-yellow-400 hover:border-yellow-500/30"
+              }`}
+              title={starredOnly ? "Tampilkan semua" : "Filter pesan berbintang"}
+            >
+              ★
+            </button>
+          </div>
 
           {/* Search */}
           <div className="relative">
@@ -587,13 +679,19 @@ function Sidebar({
               </button>
             )}
           </div>
+
+          {starredOnly && (
+            <div className="text-xs text-yellow-400/70 px-1">
+              ★ {starredCount} percakapan berbintang
+            </div>
+          )}
         </div>
 
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto py-2">
           {filtered.length === 0 ? (
             <div className="px-3 py-8 text-center text-slate-600 text-xs">
-              {search ? "Tidak ada hasil" : "Belum ada percakapan"}
+              {starredOnly ? "Tidak ada percakapan berbintang" : search ? "Tidak ada hasil" : "Belum ada percakapan"}
             </div>
           ) : (
             groupOrder.map(group => {
@@ -602,40 +700,44 @@ function Sidebar({
               return (
                 <div key={group} className="mb-2">
                   <div className="px-3 py-1 text-xs font-medium text-slate-600 uppercase tracking-wider">{group}</div>
-                  {items.map(conv => (
-                    <div
-                      key={conv.id}
-                      className={`group flex items-center gap-2 mx-2 px-2 py-2 rounded-lg cursor-pointer transition-colors ${
-                        activeId === conv.id ? "bg-slate-700" : "hover:bg-slate-800"
-                      }`}
-                      onClick={() => { onSelect(conv.id); onClose(); }}
-                    >
-                      <svg className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <span className="text-xs text-slate-300 truncate flex-1">{conv.title}</span>
-                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onExport(conv.id); }}
-                          className="text-slate-600 hover:text-blue-400 p-0.5 transition-colors"
-                          title="Export"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
-                          className="text-slate-600 hover:text-red-400 p-0.5 transition-colors"
-                          title="Hapus"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                  {items.map(conv => {
+                    const hasStarred = conv.messages.some(m => m.starred);
+                    return (
+                      <div
+                        key={conv.id}
+                        className={`group flex items-center gap-2 mx-2 px-2 py-2 rounded-lg cursor-pointer transition-colors ${
+                          activeId === conv.id ? "bg-slate-700" : "hover:bg-slate-800"
+                        }`}
+                        onClick={() => { onSelect(conv.id); onClose(); }}
+                      >
+                        <svg className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span className="text-xs text-slate-300 truncate flex-1">{conv.title}</span>
+                        {hasStarred && <span className="text-yellow-400 text-xs flex-shrink-0">★</span>}
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onExport(conv.id); }}
+                            className="text-slate-600 hover:text-blue-400 p-0.5 transition-colors"
+                            title="Export"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDelete(conv.id); }}
+                            className="text-slate-600 hover:text-red-400 p-0.5 transition-colors"
+                            title="Hapus"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               );
             })
@@ -725,6 +827,36 @@ function AgentSelector({ selected, onSelect }: { selected: Agent; onSelect: (age
 }
 
 // ============================================================
+// FONT SIZE BUTTON
+// ============================================================
+
+function FontSizeControl({ fontSize, onChange }: { fontSize: FontSize; onChange: (s: FontSize) => void }) {
+  const sizes: { value: FontSize; label: string }[] = [
+    { value: "sm", label: "S" },
+    { value: "base", label: "M" },
+    { value: "lg", label: "L" },
+  ];
+  return (
+    <div className="flex items-center gap-0.5 bg-slate-800 border border-slate-700 rounded-lg p-0.5">
+      {sizes.map(s => (
+        <button
+          key={s.value}
+          onClick={() => onChange(s.value)}
+          className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+            fontSize === s.value
+              ? "bg-orange-500 text-white"
+              : "text-slate-500 hover:text-slate-300"
+          }`}
+          title={`Ukuran teks ${s.value === "sm" ? "kecil" : s.value === "base" ? "sedang" : "besar"}`}
+        >
+          {s.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
 // MAIN CHAT PAGE
 // ============================================================
 
@@ -737,15 +869,24 @@ export default function ChatPage() {
   const [selectedAgent, setSelectedAgent] = useState<Agent>(AGENTS[0]);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [charCount, setCharCount] = useState(0);
+  const [fontSize, setFontSize] = useState<FontSize>("base");
+  const [showChatSearch, setShowChatSearch] = useState(false);
+  const [chatSearchQuery, setChatSearchQuery] = useState("");
+  const [chatSearchIndex, setChatSearchIndex] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const chatSearchRef = useRef<HTMLInputElement>(null);
 
   // Load from localStorage
   useEffect(() => {
     const saved = loadConversations();
     setConversations(saved);
+    const savedFontSize = localStorage.getItem("konstruksi_fontsize") as FontSize | null;
+    if (savedFontSize && ["sm", "base", "lg"].includes(savedFontSize)) {
+      setFontSize(savedFontSize);
+    }
   }, []);
 
   // Save to localStorage
@@ -754,6 +895,11 @@ export default function ChatPage() {
       saveConversations(conversations);
     }
   }, [conversations]);
+
+  // Persist font size
+  useEffect(() => {
+    localStorage.setItem("konstruksi_fontsize", fontSize);
+  }, [fontSize]);
 
   // Auto-scroll
   useEffect(() => {
@@ -769,6 +915,13 @@ export default function ChatPage() {
     setCharCount(input.length);
   }, [input]);
 
+  // Focus search input when shown
+  useEffect(() => {
+    if (showChatSearch) {
+      setTimeout(() => chatSearchRef.current?.focus(), 50);
+    }
+  }, [showChatSearch]);
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -780,9 +933,15 @@ export default function ChatPage() {
         e.preventDefault();
         setShowShortcuts(prev => !prev);
       }
+      if (e.ctrlKey && e.key === "f") {
+        e.preventDefault();
+        setShowChatSearch(prev => !prev);
+      }
       if (e.key === "Escape") {
         setShowShortcuts(false);
         setSidebarOpen(false);
+        setShowChatSearch(false);
+        setChatSearchQuery("");
       }
     };
     document.addEventListener("keydown", handler);
@@ -792,6 +951,17 @@ export default function ChatPage() {
 
   const activeConversation = conversations.find(c => c.id === activeConvId) || null;
 
+  // Compute search matches
+  const messages = activeConversation?.messages || [];
+  const searchMatches = chatSearchQuery.trim()
+    ? messages.reduce((acc, msg, idx) => {
+        if (msg.content.toLowerCase().includes(chatSearchQuery.toLowerCase())) {
+          acc.push(idx);
+        }
+        return acc;
+      }, [] as number[])
+    : [];
+
   const createNewConversation = useCallback(() => {
     setActiveConvId(null);
     setInput("");
@@ -800,6 +970,8 @@ export default function ChatPage() {
 
   const selectConversation = useCallback((id: string) => {
     setActiveConvId(id);
+    setChatSearchQuery("");
+    setShowChatSearch(false);
   }, []);
 
   const deleteConversation = useCallback((id: string) => {
@@ -827,10 +999,22 @@ export default function ChatPage() {
     ));
   }, [activeConvId]);
 
+  const handleStar = useCallback((messageId: string) => {
+    setConversations(prev => prev.map(c =>
+      c.id === activeConvId
+        ? {
+            ...c,
+            messages: c.messages.map(m =>
+              m.id === messageId ? { ...m, starred: !m.starred } : m
+            ),
+          }
+        : c
+    ));
+  }, [activeConvId]);
+
   const stopGeneration = useCallback(() => {
     abortRef.current?.abort();
     setIsLoading(false);
-    // Finalize any streaming message
     setConversations(prev => prev.map(c =>
       c.id === activeConvId
         ? {
@@ -898,7 +1082,6 @@ export default function ChatPage() {
     ));
 
     try {
-      // Get conversation history for context
       const currentConv = conversations.find(c => c.id === convId);
       const historyMessages = currentConv
         ? currentConv.messages.filter(m => !m.isStreaming).slice(-10).map(m => ({
@@ -981,13 +1164,11 @@ export default function ChatPage() {
   const regenerateLastResponse = useCallback(() => {
     if (!activeConversation || isLoading) return;
     const msgs = activeConversation.messages;
-    // Find last user message before last assistant message
     const lastAssistantIdx = [...msgs].reverse().findIndex(m => m.role === "assistant");
     if (lastAssistantIdx === -1) return;
     const lastUserMsg = [...msgs].reverse().find((m, i) => i > lastAssistantIdx && m.role === "user");
     if (!lastUserMsg) return;
 
-    // Remove last assistant message and resend
     setConversations(prev => prev.map(c =>
       c.id === activeConvId
         ? { ...c, messages: msgs.slice(0, msgs.length - 1 - lastAssistantIdx) }
@@ -1013,8 +1194,17 @@ export default function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const messages = activeConversation?.messages || [];
   const lastAssistantMsgIdx = [...messages].map((m, i) => ({ m, i })).filter(x => x.m.role === "assistant").pop()?.i ?? -1;
+
+  const navigateSearch = (dir: 1 | -1) => {
+    if (searchMatches.length === 0) return;
+    setChatSearchIndex(prev => {
+      const next = prev + dir;
+      if (next < 0) return searchMatches.length - 1;
+      if (next >= searchMatches.length) return 0;
+      return next;
+    });
+  };
 
   return (
     <div className="h-screen bg-slate-950 flex overflow-hidden">
@@ -1070,6 +1260,20 @@ export default function ChatPage() {
 
           {/* Actions */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Font size control */}
+            <FontSizeControl fontSize={fontSize} onChange={setFontSize} />
+
+            {/* Search in chat */}
+            <button
+              onClick={() => setShowChatSearch(v => !v)}
+              className={`transition-colors ${showChatSearch ? "text-orange-400" : "text-slate-500 hover:text-slate-300"}`}
+              title="Cari dalam percakapan (Ctrl+F)"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+
             {/* Export current conversation */}
             {activeConversation && (
               <button
@@ -1102,22 +1306,77 @@ export default function ChatPage() {
           </div>
         </header>
 
+        {/* In-chat search bar */}
+        {showChatSearch && messages.length > 0 && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-900/90 border-b border-slate-700/60">
+            <svg className="w-4 h-4 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              ref={chatSearchRef}
+              type="text"
+              value={chatSearchQuery}
+              onChange={e => { setChatSearchQuery(e.target.value); setChatSearchIndex(0); }}
+              placeholder="Cari dalam percakapan..."
+              className="flex-1 bg-transparent text-white text-sm placeholder-slate-500 focus:outline-none"
+            />
+            {chatSearchQuery && (
+              <span className="text-slate-500 text-xs whitespace-nowrap">
+                {searchMatches.length > 0 ? `${chatSearchIndex + 1}/${searchMatches.length}` : "0 hasil"}
+              </span>
+            )}
+            {searchMatches.length > 1 && (
+              <>
+                <button onClick={() => navigateSearch(-1)} className="text-slate-500 hover:text-slate-300 p-0.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                  </svg>
+                </button>
+                <button onClick={() => navigateSearch(1)} className="text-slate-500 hover:text-slate-300 p-0.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => { setShowChatSearch(false); setChatSearchQuery(""); }}
+              className="text-slate-500 hover:text-slate-300"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* Messages or Welcome */}
         {messages.length === 0 ? (
           <WelcomeScreen onPrompt={sendMessage} selectedAgent={selectedAgent} />
         ) : (
           <div className="flex-1 overflow-y-auto px-4 py-6">
             <div className="max-w-3xl mx-auto space-y-6">
-              {messages.map((message, idx) => (
-                <MessageBubble
-                  key={message.id}
-                  message={message}
-                  agentIcon={selectedAgent.icon}
-                  onReaction={handleReaction}
-                  onRegenerate={idx === lastAssistantMsgIdx ? regenerateLastResponse : undefined}
-                  isLast={idx === lastAssistantMsgIdx}
-                />
-              ))}
+              {messages.map((message, idx) => {
+                const isSearchMatch = chatSearchQuery.trim() ? searchMatches.includes(idx) : false;
+                const isCurrentMatch = chatSearchQuery.trim() && searchMatches[chatSearchIndex] === idx;
+                return (
+                  <div
+                    key={message.id}
+                    className={isCurrentMatch ? "ring-1 ring-yellow-400/50 rounded-2xl" : isSearchMatch ? "ring-1 ring-yellow-400/20 rounded-2xl" : ""}
+                  >
+                    <MessageBubble
+                      message={message}
+                      agentIcon={selectedAgent.icon}
+                      onReaction={handleReaction}
+                      onRegenerate={idx === lastAssistantMsgIdx ? regenerateLastResponse : undefined}
+                      onStar={handleStar}
+                      isLast={idx === lastAssistantMsgIdx}
+                      fontSize={fontSize}
+                      searchQuery={isSearchMatch ? chatSearchQuery : undefined}
+                    />
+                  </div>
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
           </div>

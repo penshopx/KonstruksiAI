@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import NavbarAuth from "@/components/NavbarAuth";
 
@@ -89,6 +92,188 @@ const quickQuestions = [
   "Bagaimana prosedur sertifikasi energi surya di Indonesia?",
 ];
 
+const STATS = [
+  { value: 126, label: "Titik Koneksi", suffix: "" },
+  { value: 3, label: "Sektor Industri", suffix: "" },
+  { value: 26, label: "Sub-Bidang", suffix: "+" },
+  { value: 8, label: "Agen AI", suffix: "" },
+];
+
+const TESTIMONIALS = [
+  {
+    initials: "BS",
+    name: "Budi Santoso",
+    title: "Direktur PT Maju Konstruksi",
+    company: "Jakarta",
+    quote:
+      "KonstruksiAI sangat membantu tim kami dalam menyusun RAB dengan cepat dan akurat. Proses yang biasanya butuh 2 hari kerja sekarang bisa selesai dalam hitungan jam.",
+    color: "bg-orange-500",
+  },
+  {
+    initials: "RH",
+    name: "Ratih Handayani",
+    title: "Manajer K3 – PT EBT Nusantara",
+    company: "Surabaya",
+    quote:
+      "Fitur K3 dan JSA-nya luar biasa detail. Sangat membantu kami mempersiapkan dokumen keselamatan untuk proyek PLTS berskala besar di Jawa Timur.",
+    color: "bg-blue-500",
+  },
+  {
+    initials: "AF",
+    name: "Ahmad Fauzi",
+    title: "Konsultan Tender Senior",
+    company: "Bandung",
+    quote:
+      "Platform terbaik untuk profesional konstruksi Indonesia. Panduan tender LPSE dan strategi penawarannya sangat relevan dengan kondisi pasar saat ini.",
+    color: "bg-green-600",
+  },
+];
+
+// ============================================================
+// ANIMATED COUNTER HOOK
+// ============================================================
+
+function useCounter(target: number, duration = 1500, started: boolean) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!started) return;
+    const startTime = performance.now();
+    const step = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * target));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [started, target, duration]);
+
+  return count;
+}
+
+// ============================================================
+// STATS SECTION
+// ============================================================
+
+function StatsSection() {
+  const [started, setStarted] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setStarted(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const counts = [
+    useCounter(STATS[0].value, 1200, started),
+    useCounter(STATS[1].value, 800, started),
+    useCounter(STATS[2].value, 1000, started),
+    useCounter(STATS[3].value, 700, started),
+  ];
+
+  return (
+    <section ref={ref} className="bg-slate-950 border-y border-slate-800 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          {STATS.map((stat, i) => (
+            <div key={stat.label} className="text-center">
+              <div className="text-4xl font-bold text-orange-400 tabular-nums">
+                {counts[i]}{stat.suffix}
+              </div>
+              <div className="text-slate-400 text-sm mt-1 font-medium">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// TESTIMONIALS SECTION
+// ============================================================
+
+function TestimonialsSection() {
+  const [visibleIndexes, setVisibleIndexes] = useState<number[]>([]);
+  const refs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const observers: IntersectionObserver[] = [];
+    refs.current.forEach((el, i) => {
+      if (!el) return;
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting) {
+            setVisibleIndexes(prev => [...prev, i]);
+            observer.disconnect();
+          }
+        },
+        { threshold: 0.2 }
+      );
+      observer.observe(el);
+      observers.push(observer);
+    });
+    return () => observers.forEach(o => o.disconnect());
+  }, []);
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="text-center mb-12">
+        <h2 className="text-3xl font-bold text-white mb-4">Apa Kata Mereka</h2>
+        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+          Dipercaya oleh profesional dan perusahaan keteknikan terkemuka di Indonesia
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {TESTIMONIALS.map((t, i) => (
+          <div
+            key={t.name}
+            ref={el => { refs.current[i] = el; }}
+            className={`bg-slate-800 border border-slate-700 rounded-2xl p-6 transition-all duration-700 ${
+              visibleIndexes.includes(i)
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-8"
+            }`}
+            style={{ transitionDelay: `${i * 150}ms` }}
+          >
+            {/* Quote */}
+            <div className="text-orange-400 text-3xl leading-none mb-4">&ldquo;</div>
+            <p className="text-slate-300 text-sm leading-relaxed mb-6">{t.quote}</p>
+
+            {/* Author */}
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 ${t.color} rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>
+                {t.initials}
+              </div>
+              <div>
+                <div className="text-white text-sm font-semibold">{t.name}</div>
+                <div className="text-slate-500 text-xs">{t.title}</div>
+                <div className="text-slate-600 text-xs">{t.company}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// MAIN PAGE
+// ============================================================
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -154,7 +339,7 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Stats */}
+        {/* Stats hero */}
         <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto">
           {[
             { value: "3", label: "Sektor Industri" },
@@ -168,6 +353,9 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* Animated Stats Bar */}
+      <StatsSection />
 
       {/* Engineering Fields Section */}
       <section id="bidang" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -310,6 +498,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Testimonials */}
+      <TestimonialsSection />
 
       {/* CTA Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
