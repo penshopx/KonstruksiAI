@@ -4,6 +4,7 @@ import { getSafetyProceduresResponse } from "@/lib/safety-procedures";
 import { getTestReportsResponse } from "@/lib/test-reports";
 import { getBillOfMaterialsResponse } from "@/lib/bill-of-materials";
 import { getEquipmentManualResponse } from "@/lib/equipment-manuals";
+import { getRegulatoryComplianceResponse } from "@/lib/regulatory-compliance";
 
 // ============================================================
 // Chat API Route — KonstruksiAI
@@ -123,6 +124,19 @@ Apa yang ingin Anda diskusikan?`;
     const document = getEquipmentManualResponse(msg);
     const outro = `\n---\n\n📌 **Ingin saya buatkan dokumen manual peralatan yang lebih detail untuk peralatan spesifik Anda?**`;
     return document + outro;
+  }
+
+  // === REGULATORY COMPLIANCE ===
+  if (msg.includes("regulasi") || msg.includes("compliance") || msg.includes("kepatuhan") || 
+      msg.includes("sni") || msg.includes("puil") || msg.includes("standar") || 
+      msg.includes("izin") || msg.includes("permit") || msg.includes("audit") || 
+      msg.includes("lisensi") || msg.includes("sertifikasi") || msg.includes("permen") ||
+      msg.includes("amdall") || msg.includes("ukl") || msg.includes("upl") ||
+      msg.includes("lingkungan") || msg.includes("k3") || msg.includes("keselamatan")) {
+    const intro = "📋 **DOKUMENTASI KEPATUHAN REGULASI - ELECTRICAL ENGINEERING**\n\nSebagai Electrical Engineer dengan 30 tahun pengalaman, berikut dokumentasi kepatuhan regulasi untuk proyek teknik elektro:\n";
+    const document = getRegulatoryComplianceResponse(msg);
+    const outro = "\n\n📌 **Ingin saya buatkan dokumen compliance untuk jenis proyek tertentu (Gedung Komersial, Pabrik Industri, atau PLTS)?**";
+    return intro + document + outro;
   }
 
   // === EXISTING HANDLERS ===
