@@ -6,6 +6,7 @@ import { getBillOfMaterialsResponse } from "@/lib/bill-of-materials";
 import { getEquipmentManualResponse } from "@/lib/equipment-manuals";
 import { getRegulatoryComplianceResponse } from "@/lib/regulatory-compliance";
 import { getTestPlansResponse } from "@/lib/test-plans-response";
+import { getEnergyEfficiencyResponse } from "@/lib/energy-efficiency-response";
 
 // ============================================================
 // Chat API Route — KonstruksiAI
@@ -158,6 +159,28 @@ Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut dokumen komprehe
     const intro = "📋 **DOKUMENTASI KEPATUHAN REGULASI - ELECTRICAL ENGINEERING**\n\nSebagai Electrical Engineer dengan 30 tahun pengalaman, berikut dokumentasi kepatuhan regulasi untuk proyek teknik elektro:\n";
     const document = getRegulatoryComplianceResponse(msg);
     const outro = "\n\n📌 **Ingin saya buatkan dokumen compliance untuk jenis proyek tertentu (Gedung Komersial, Pabrik Industri, atau PLTS)?**";
+    return intro + document + outro;
+  }
+
+  // === ENERGY EFFICIENCY ===
+  if (msg.includes("energy efficiency") || msg.includes("efisiensi energi") ||
+      msg.includes("analisis energi") || msg.includes("energy audit") ||
+      msg.includes("audit energi") || msg.includes("energy management") ||
+      msg.includes("manajemen energi") || msg.includes("penghematan energi") ||
+      msg.includes("saving energy") || msg.includes("lighting efficiency") ||
+      msg.includes("hvac efficiency") || msg.includes("led retrofit") ||
+      msg.includes("solar pv") || msg.includes("iso 50001") ||
+      msg.includes("audit") && msg.includes("listrik") ||
+      msg.includes("kalkulasi energi") || msg.includes("roi energi")) {
+    const intro = `👋 **ANALISIS EFISIENSI ENERGI - ELECTRICAL ENGINEERING**
+
+Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut dokumen komprehensif untuk Analisis Efisiensi Energi:
+`;
+    const document = getEnergyEfficiencyResponse(userMessage);
+    const outro = `
+---
+
+📌 **Ingin saya buatkan dokumen lengkap Analisis Efisiensi Energi dalam format Word/PDF?** Atau butuh kalkulasi spesifik untuk proyek Anda?`;
     return intro + document + outro;
   }
 
