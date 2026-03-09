@@ -693,6 +693,8 @@ Selalu berikan jawaban dalam bahasa Indonesia yang profesional, terstruktur, dan
     const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
     const geminiApiKey = process.env.GEMINI_API_KEY;
     const groqApiKey = process.env.GROQ_API_KEY;
+    const hfApiKey = process.env.HUGGING_FACE_API_KEY;
+    const hfModel = process.env.HUGGING_FACE_MODEL || "Qwen/Qwen2.5-7B-Instruct";
 
     // Try OpenAI
     if (openaiApiKey) {
@@ -830,6 +832,75 @@ Selalu berikan jawaban dalam bahasa Indonesia yang profesional, terstruktur, dan
         }
       } catch (error) {
         console.error("[Chat API] Groq API fetch error:", error);
+      }
+    }
+
+    // Try Hugging Face Qwen
+    console.log("[Chat API] Hugging Face API Key configured:", hfApiKey ? "Yes (" + hfApiKey.slice(0, 10) + "...)" : "No");
+    if (hfApiKey) {
+      try {
+        console.log("[Chat API] Attempting Hugging Face API call with model:", hfModel);
+        
+        // Format messages for Qwen chat template
+        const chatMessages = [
+          { role: "system", content: agentSystemPrompt },
+          ...messages.slice(-10).map(m => ({ role: m.role, content: m.content })),
+        ];
+        
+        const response = await fetch(
+          `https://api-inference.huggingface.co/models/${hfModel}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${hfApiKey}`,
+            },
+            body: JSON.stringify({
+              inputs: chatMessages,
+              parameters: {
+                max_new_tokens: 2000,
+                temperature: 0.7,
+                return_full_text: false,
+              },
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("[Chat API] Hugging Face API success!");
+          
+          // Handle different response formats
+          let responseText = "";
+          if (Array.isArray(data) && data[0]?.generated_text) {
+            responseText = data[0].generated_text;
+          } else if (data?.generated_text) {
+            responseText = data.generated_text;
+          }
+          
+          // Clean up the response - extract just the assistant message
+          if (responseText) {
+            // Try to extract the last assistant message if the model returns full conversation
+            const assistantMatch = responseText.lastIndexOf("assistant");
+            if (assistantMatch !== -1) {
+              responseText = responseText.slice(assistantMatch + 9).trim();
+            }
+            
+            return NextResponse.json({
+              message: responseText || "Maaf, tidak ada respons.",
+              agentName,
+            });
+          }
+          return NextResponse.json({
+            message: "Maaf, tidak ada respons.",
+            agentName,
+          });
+        } else {
+          const errorText = await response.text();
+          console.error("[Chat API] Hugging Face API error response:", response.status, errorText);
+        }
+      } catch (error) {
+        console.error("[Chat API] Hugging Face API fetch error:", error);
       }
     }
 
