@@ -5,6 +5,7 @@ import { getTestReportsResponse } from "@/lib/test-reports";
 import { getBillOfMaterialsResponse } from "@/lib/bill-of-materials";
 import { getEquipmentManualResponse } from "@/lib/equipment-manuals";
 import { getRegulatoryComplianceResponse } from "@/lib/regulatory-compliance";
+import { getTestPlansResponse } from "@/lib/test-plans-response";
 
 // ============================================================
 // Chat API Route — KonstruksiAI
@@ -113,6 +114,27 @@ Apa yang ingin Anda diskusikan?`;
     const intro = `👋 **LAPORAN PENGUJIAN INSTALASI LISTRIK - ELECTRICAL ENGINEERING**\n\nSebagai Electrical Engineer dengan 30 tahun pengalaman, berikut dokumen komprehensif untuk Laporan Pengujian Instalasi Listrik:\n`;
     const document = getTestReportsResponse();
     const outro = `\n---\n\n📌 **Ingin saya buatkan dokumen lengkap Test Reports dalam format Word/PDF?**`;
+    return intro + document + outro;
+  }
+
+  // === TEST PLANS ===
+  if (msg.includes("test plan") || msg.includes("rencana uji") || 
+      msg.includes("dokumen uji") || msg.includes("uji coba") ||
+      msg.includes("uji transformator") || msg.includes("uji switchgear") ||
+      msg.includes("uji distribusi") || msg.includes("uji plts") ||
+      msg.includes("checklist uji") || msg.includes("formulir uji") ||
+      msg.includes("test procedure") || msg.includes("prosedur uji") ||
+      msg.includes("standar ieee") || msg.includes("iec 60364") ||
+      msg.includes("puil 2011")) {
+    const intro = `👋 **DOKUMEN RENCANA UJI (TEST PLANS) - SISTEM KELISTRIKAN**
+
+Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut dokumen komprehensif untuk Rencana Uji Sistem Kelistrikan:
+`;
+    const document = getTestPlansResponse(userMessage);
+    const outro = `
+---
+
+📌 **Ingin saya buatkan dokumen lengkap Test Plans dalam format Word/PDF?**`;
     return intro + document + outro;
   }
 
