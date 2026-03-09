@@ -452,12 +452,12 @@ export default function Home() {
             </div>
             <nav className="hidden md:flex items-center gap-4">
               <Link href="/knowledge" className="text-purple-400 hover:text-purple-300 text-sm transition-colors font-medium">📚 Knowledge</Link>
+              <Link href="/bimtek" className="text-blue-400 hover:text-blue-300 text-sm transition-colors font-medium">🎓 Bimtek</Link>
+              <Link href="/simulasi" className="text-violet-400 hover:text-violet-300 text-sm transition-colors font-medium">🎯 Simulasi</Link>
               <Link href="/solver" className="text-orange-400 hover:text-orange-300 text-sm transition-colors font-medium">🔬 Solver</Link>
               <Link href="/tools" className="text-slate-300 hover:text-white text-sm transition-colors">🔧 Tools</Link>
               <Link href="/matrix" className="text-slate-300 hover:text-white text-sm transition-colors">📊 Matriks</Link>
-              <Link href="/konstruksi" className="text-slate-300 hover:text-white text-sm transition-colors">Konstruksi</Link>
-              <Link href="/energi" className="text-slate-300 hover:text-white text-sm transition-colors">Energi</Link>
-              <Link href="/migas" className="text-slate-300 hover:text-white text-sm transition-colors">Migas</Link>
+              <Link href="/certify" className="text-emerald-400 hover:text-emerald-300 text-sm transition-colors">🏅 Sertifikasi</Link>
               <Link href="/pricing" className="text-slate-300 hover:text-white text-sm transition-colors">Harga</Link>
               <Link href="/chat" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Mulai Chat
@@ -666,6 +666,75 @@ export default function Home() {
         </div>
       </section>
  
+      {/* Bimtek & Simulasi Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Bimtek Card */}
+          <div className="bg-gradient-to-br from-blue-900/30 via-slate-900 to-indigo-900/20 border border-blue-500/30 rounded-2xl p-8">
+            <div className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-500/40 rounded-full px-3 py-1 mb-4">
+              <span className="text-blue-400 text-xs font-medium">🎓 Bimbingan Teknis</span>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-3">Bimtek Keteknikan</h2>
+            <p className="text-slate-400 mb-5 leading-relaxed">
+              Modul bimbingan teknis komprehensif untuk meningkatkan kompetensi di bidang konstruksi, energi, K3, dan manajemen proyek.
+            </p>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {[
+                { icon: '🏗️', label: 'Struktur Beton' },
+                { icon: '⚡', label: 'Instalasi Listrik' },
+                { icon: '☀️', label: 'Sistem PLTS' },
+                { icon: '🦺', label: 'K3 Konstruksi' },
+                { icon: '📊', label: 'Manajemen Proyek' },
+                { icon: '📋', label: 'Pengadaan' },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-2 text-slate-300 text-sm">
+                  <span>{item.icon}</span>
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+            <Link
+              href="/bimtek"
+              className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-all hover:scale-105"
+            >
+              🎓 Mulai Belajar →
+            </Link>
+          </div>
+
+          {/* Simulasi Card */}
+          <div className="bg-gradient-to-br from-violet-900/30 via-slate-900 to-purple-900/20 border border-violet-500/30 rounded-2xl p-8">
+            <div className="inline-flex items-center gap-2 bg-violet-500/20 border border-violet-500/40 rounded-full px-3 py-1 mb-4">
+              <span className="text-violet-400 text-xs font-medium">🎯 Uji Kompetensi</span>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-3">Simulasi Ujian SKK</h2>
+            <p className="text-slate-400 mb-5 leading-relaxed">
+              Latihan soal ujian sertifikasi SKK/SKKNI dengan penjelasan lengkap. Persiapkan diri sebelum ujian resmi.
+            </p>
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {[
+                { icon: '🏗️', label: 'Ahli Struktur' },
+                { icon: '🦺', label: 'Ahli K3' },
+                { icon: '⚡', label: 'Teknisi Listrik' },
+                { icon: '📊', label: 'Manajemen Proyek' },
+                { icon: '☀️', label: 'Teknisi PLTS' },
+                { icon: '📋', label: 'Pengadaan LKPP' },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-2 text-slate-300 text-sm">
+                  <span>{item.icon}</span>
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
+            <Link
+              href="/simulasi"
+              className="inline-flex items-center gap-2 bg-violet-500 hover:bg-violet-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-all hover:scale-105"
+            >
+              🎯 Mulai Simulasi →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Quick Questions Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8">

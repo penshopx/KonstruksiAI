@@ -2,22 +2,21 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { 
+import {
   REGULATIONS,
   SBU_CLASSIFICATIONS,
   KBLI_LIST,
   SKKNI_LIST,
-  getRegulationsBySector,
   getRegulationTypeLabel,
   getSectorLabel,
   getSectorColor,
   type Regulation
 } from '@/lib/certify';
-import { 
-  Award, 
-  FileText, 
-  Building2, 
-  Scale, 
+import {
+  Award,
+  FileText,
+  Building2,
+  Scale,
   BookOpen,
   Search,
   ChevronRight,
@@ -28,8 +27,9 @@ import {
   Factory,
   Briefcase,
   CheckCircle,
-  AlertCircle,
-  GraduationCap
+  GraduationCap,
+  Play,
+  Target
 } from 'lucide-react';
 
 export default function CertifyPage() {
@@ -271,6 +271,61 @@ function OverviewTab() {
               <p className="text-emerald-400 text-sm">{sector.regs} regulasi</p>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Bimtek & Simulasi CTA */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+            <GraduationCap className="w-6 h-6 text-blue-600" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-900 mb-2">Bimtek Keteknikan</h3>
+          <p className="text-slate-600 mb-4 text-sm">
+            Pelajari materi teknis secara mendalam melalui modul bimbingan teknis yang terstruktur sesuai SKKNI.
+          </p>
+          <ul className="space-y-1 mb-5">
+            {['8 modul bimtek', 'Struktur, Listrik, PLTS, K3', 'Manajemen & Pengadaan', 'Referensi SNI & regulasi'].map((item, i) => (
+              <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                <CheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/bimtek"
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-blue-700 transition-colors"
+          >
+            <GraduationCap className="w-4 h-4" />
+            Mulai Bimtek
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl p-6 border border-violet-200">
+          <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-4">
+            <Target className="w-6 h-6 text-violet-600" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-900 mb-2">Simulasi Uji Kompetensi</h3>
+          <p className="text-slate-600 mb-4 text-sm">
+            Latihan soal ujian SKK/SKKNI dengan penjelasan lengkap. Persiapkan diri sebelum ujian resmi di LSP.
+          </p>
+          <ul className="space-y-1 mb-5">
+            {['6 paket ujian simulasi', '60+ soal latihan', 'Penjelasan setiap soal', 'Nilai lulus 70%'].map((item, i) => (
+              <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                <CheckCircle className="w-4 h-4 text-violet-500 flex-shrink-0" />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/simulasi"
+            className="inline-flex items-center gap-2 bg-violet-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-violet-700 transition-colors"
+          >
+            <Play className="w-4 h-4" />
+            Mulai Simulasi
+            <ChevronRight className="w-4 h-4" />
+          </Link>
         </div>
       </div>
     </div>

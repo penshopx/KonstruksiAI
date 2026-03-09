@@ -2,9 +2,20 @@
 
 ## Current State
 
-**Template Status**: ✅ KonstruksiAI Application Built — Session 6 Knowledge Base Development
+**Template Status**: ✅ KonstruksiAI Application Built — Session 7 Bimtek & Simulasi Uji Kompetensi
 
 The template has been expanded into a comprehensive construction AI assistant application (KonstruksiAI) with chat interface, landing page, solver, tools, and now a full Knowledge Base system.
+
+## Recently Completed (Session 7 — Bimtek & Simulasi Uji Kompetensi)
+
+- [x] Fix build error — replaced pdf-parse (incompatible with Cloudflare) with native PDF text extractor
+- [x] Bimtek library (`src/lib/bimtek.ts`) — 8 modul bimtek: Struktur Beton, Manajemen Proyek, Instalasi Listrik, PLTS, K3, Pengadaan, PBG, Mekanikal
+- [x] Simulasi library (`src/lib/simulasi.ts`) — 6 paket ujian: Ahli Struktur, Ahli K3, Teknisi Listrik, Manajemen Proyek, Teknisi PLTS, Pengadaan LKPP
+- [x] Bimtek page (`/bimtek`) — modul pembelajaran dengan topik expandable, referensi SNI, contoh penerapan
+- [x] Simulasi page (`/simulasi`) — ujian interaktif dengan timer, navigasi soal, penjelasan, review hasil
+- [x] Navbar updated — Bimtek (🎓) dan Simulasi (🎯) links ditambahkan
+- [x] Landing page updated — Bimtek & Simulasi section ditambahkan
+- [x] Certify page updated — CTA cards untuk Bimtek dan Simulasi di OverviewTab
 
 ## Recently Completed (Session 6 — Knowledge Base Development)
 
