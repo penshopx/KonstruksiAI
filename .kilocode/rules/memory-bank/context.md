@@ -6,6 +6,15 @@
 
 The template has been expanded into a comprehensive construction AI assistant application (KonstruksiAI) with chat interface, landing page, solver, tools, and now a full Knowledge Base system.
 
+## Recently Completed (Session 10 — User Profile Page)
+
+- [x] API route `GET /api/profile` — returns user info + stats (conversation count, message count, most active agent, member since)
+- [x] API route `PATCH /api/profile` — update name and/or password (with bcrypt verification)
+- [x] Profile page `/profile` — account info card, 3-stat grid, recent conversations list, edit form with password change
+- [x] NavbarAuth updated — ⚙️ profile icon link added next to user name
+- [x] Dashboard updated — "Profil & Pengaturan" card added linking to `/profile`
+- [x] Danger zone on profile settings — delete all conversations button
+
 ## Recently Completed (Session 9 — Conversation History Persistence)
 
 - [x] Add `conversations` and `messages` tables to SQLite DB schema
