@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAgent } from "@/lib/agents";
 import { getSafetyProceduresResponse } from "@/lib/safety-procedures";
+import { getTestReportsResponse } from "@/lib/test-reports";
+import { getBillOfMaterialsResponse } from "@/lib/bill-of-materials";
 
 // ============================================================
 // Chat API Route — KonstruksiAI
@@ -79,7 +81,10 @@ Apa yang ingin Anda diskusikan?`;
   // === ELEKTRICAL ENGINEERING DOCUMENTS ===
   if (msg.includes("bom") || msg.includes("bill of material") || msg.includes("daftar material") || 
       (msg.includes("instalasi listrik") && msg.includes("material")) || (msg.includes("listrik") && msg.includes("material"))) {
-    return `Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut Bill of Materials (BOM) untuk instalasi listrik:\n\n**BILL OF MATERIALS - INSTALASI LISTRIK GEDUNG**\n\n| No | Material | Spesifikasi | Satuan | Qty | Estimasi Harga |\n|----|----------|-------------|--------|-----|----------------|\n| 1 | Kabel NYM | 3x2.5 mm2 | m | 500 | Rp 275.000 |\n| 2 | Kabel NYM | 3x4 mm2 | m | 300 | Rp 198.000 |\n| 3 | Kabel NYY | 4x16 mm2 | m | 100 | Rp 330.000 |\n| 4 | Pipe Conduit | PVC 20mm | m | 400 | Rp 160.000 |\n| 5 | Box Panel | 40x60x20cm | unit | 4 | Rp 880.000 |\n| 6 | MCB | 20A 1P | pcs | 20 | Rp 280.000 |\n| 7 | MCB | 32A 1P | pcs | 10 | Rp 210.000 |\n| 8 | RCCB | 40A 30mA 2P | pcs | 4 | Rp 520.000 |\n| 9 | Stop Kontak | In bowa 5/6 | pcs | 40 | Rp 400.000 |\n| 10 | Lampu LED | 18W | pcs | 50 | Rp 350.000 |\n\n**RINGKASAN:**\n- Total Material: sekitar Rp 4.053.000\n- Upah Instalasi: sekitar Rp 2.500.000\n- Total Estimasi: sekitar Rp 6.553.000\n\nIngin saya buatkan detail yang lebih spesifik untuk proyek Anda?`;
+    const intro = `👋 **BILL OF MATERIALS (BOM) - ELECTRICAL ENGINEERING**\n\nSebagai Electrical Engineer dengan 30 tahun pengalaman, berikut dokumen Bill of Materials komprehensif untuk instalasi listrik:\n`;
+    const document = getBillOfMaterialsResponse();
+    const outro = `\n---\n\n📌 **Ingin saya buatkan dokumen lengkap BOM dalam format Excel/Word?**`;
+    return intro + document + outro;
   }
 
   if (msg.includes("risk assessment") || msg.includes("penilaian risiko") || msg.includes("analisa risiko") || msg.includes("hazard")) {
@@ -102,8 +107,11 @@ Apa yang ingin Anda diskusikan?`;
     return `Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut Preventive Maintenance Schedule untuk instalasi listrik:\n\n**JADWAL PEMELIHARAAN PREVENTIF - Sistem Kelistrikan Gedung**\n\n| Aktivitas | Frekuensi | Deskripsi |\n|-----------|-----------|-----------|\n| **Panel Listrik** | | |\n| Inspeksi visual | Mingguan | Cek kerusakan, kebocoran |\n| Pengencangan terminasi | Bulanan | Cek kekencangan kabel |\n| Termografi | Triwulanan | Deteksi hot spot |\n| Load test | Tahunan | Test under load |\n| **Kabel & Instalasi** | | |\n| Inspeksi visual | Bulanan | Cek kondisi kabel |\n| Earth resistance test | Semesteran | Test grounding |\n| Insulation resistance | Tahunan | Megger test |\n| **Proteksi** | | |\n| Test RCCB | Bulanan | Test tombol trip |\n| Test MCB | Semesteran | Test karakteristik |\n| Test proteksi petir | Tahunan | Inspection SPD |\n\nIngin saya buatkan template checklist lengkap?`;
   }
 
-  if (msg.includes("test report") || msg.includes("laporan pengujian") || msg.includes("commissioning")) {
-    return `Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut format Laporan Pengujian Instalasi Listrik:\n\n**LAPORAN PENGUJIAN INSTALASI LISTRIK**\n\n1. DATA PROYEK\n\n| Field | Isian |\n|-------|-------|\n| Nama Proyek | [isi] |\n| Alamat | [isi] |\n| Tanggal Pengujian | [isi] |\n| Penyedia Jasa | [isi] |\n\n2. HASIL PENGUJIAN\n\nA. Pengujian Tahanan Isolasi\n\n| Circuit | L-N (MOhm) | L-G (MOhm) | N-G (MOhm) | Status |\n|--------|------------|------------|------------|--------|\n| Lighting L1 | >100 | >100 | >100 | PASS |\n| Lighting L2 | >100 | >100 | >100 | PASS |\n\nStandar: Min 1 MOhm (PUIL 2011)\n\nB. Pengujian Kontinuitas Grounding\n\n| Titik | Resistansi (Ohm) | Status |\n|-------|---------------|--------|\n| Panel MDP | 0.8 | PASS |\n| Panel lantai 1 | 1.2 | PASS |\n\nStandar: Maks 5 Ohm (PUIL 2011)\n\n3. KESIMPULAN\n\nSemua pengujian LULUS - Instalasi aman beroperasi\n\nIngin saya buatkan template laporan lengkap?`;
+  if (msg.includes("test report") || msg.includes("laporan pengujian") || msg.includes("commissioning") || msg.includes("pengujian instalasi")) {
+    const intro = `👋 **LAPORAN PENGUJIAN INSTALASI LISTRIK - ELECTRICAL ENGINEERING**\n\nSebagai Electrical Engineer dengan 30 tahun pengalaman, berikut dokumen komprehensif untuk Laporan Pengujian Instalasi Listrik:\n`;
+    const document = getTestReportsResponse();
+    const outro = `\n---\n\n📌 **Ingin saya buatkan dokumen lengkap Test Reports dalam format Word/PDF?**`;
+    return intro + document + outro;
   }
 
   // === EXISTING HANDLERS ===
