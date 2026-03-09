@@ -2,9 +2,19 @@
 
 ## Current State
 
-**Template Status**: ✅ KonstruksiAI Application Built — Session 8 Enhanced Document Upload
+**Template Status**: ✅ KonstruksiAI Application Built — Session 9 Conversation History Persistence
 
 The template has been expanded into a comprehensive construction AI assistant application (KonstruksiAI) with chat interface, landing page, solver, tools, and now a full Knowledge Base system.
+
+## Recently Completed (Session 9 — Conversation History Persistence)
+
+- [x] Add `conversations` and `messages` tables to SQLite DB schema
+- [x] Create API routes: `GET/POST/DELETE /api/conversations`, `GET/PATCH/DELETE /api/conversations/[id]`, `POST /api/conversations/[id]/messages`
+- [x] Update chat page — detect login status via `/api/auth/me`, load conversations from DB when logged in
+- [x] Lazy-load messages per conversation from DB when user selects a conversation
+- [x] Save new conversations and messages to DB in real-time when logged in
+- [x] Sidebar shows "Tersinkron ke cloud" indicator when logged in
+- [x] Fallback to localStorage when not logged in (backward compatible)
 
 ## Recently Completed (Session 8 — Enhanced Document Upload)
 

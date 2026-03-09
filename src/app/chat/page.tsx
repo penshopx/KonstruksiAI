@@ -836,6 +836,7 @@ function Sidebar({
   onLabel,
   isOpen,
   onClose,
+  isLoggedIn,
 }: {
   conversations: Conversation[];
   activeId: string | null;
@@ -846,6 +847,7 @@ function Sidebar({
   onLabel: (id: string, label: ConversationLabel | undefined) => void;
   isOpen: boolean;
   onClose: () => void;
+  isLoggedIn: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [starredOnly, setStarredOnly] = useState(false);
@@ -1076,8 +1078,15 @@ function Sidebar({
 
         {/* Footer */}
         <div className="p-3 border-t border-slate-700/60 space-y-2">
-          <div className="text-xs text-slate-600 text-center">
-            {conversations.length} percakapan tersimpan
+          <div className="text-xs text-slate-600 text-center flex items-center justify-center gap-1.5">
+            {isLoggedIn ? (
+              <>
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                <span className="text-green-600">Tersinkron ke cloud</span>
+              </>
+            ) : (
+              <span>{conversations.length} percakapan tersimpan</span>
+            )}
           </div>
           <Link
             href="/"
@@ -1198,6 +1207,7 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent>(AGENTS[0]);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [charCount, setCharCount] = useState(0);
   const [fontSize, setFontSize] = useState<FontSize>("base");
   const [showChatSearch, setShowChatSearch] = useState(false);
@@ -1221,10 +1231,9 @@ export default function ChatPage() {
   // Draft auto-save key: per conversation
   const draftKey = activeConvId ? `konstruksi_draft_${activeConvId}` : "konstruksi_draft_new";
 
-  // Load from localStorage + setup global functions
+  // Load from localStorage + check login + setup global functions
   useEffect(() => {
-    const saved = loadConversations();
-    setConversations(saved);
+    // Setup font size
     const savedFontSize = localStorage.getItem("konstruksi_fontsize") as FontSize | null;
     if (savedFontSize && ["sm", "base", "lg"].includes(savedFontSize)) {
       setFontSize(savedFontSize);
@@ -1255,17 +1264,62 @@ export default function ChatPage() {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
+
+    // Check if user is logged in and load conversations from DB
+    const initConversations = async () => {
+      try {
+        const meRes = await fetch("/api/auth/me");
+        const meData = await meRes.json();
+        if (meRes.ok && meData.user) {
+          setIsLoggedIn(true);
+          // Load conversations from DB
+          const convRes = await fetch("/api/conversations");
+          if (convRes.ok) {
+            const { conversations: dbConvs } = await convRes.json();
+            if (dbConvs && dbConvs.length > 0) {
+              // Convert DB conversations to client format (messages loaded lazily)
+              const clientConvs: Conversation[] = dbConvs.map((c: {
+                id: string;
+                title: string;
+                agentId: string;
+                label?: string;
+                createdAt: number;
+                updatedAt: number;
+              }) => ({
+                id: c.id,
+                title: c.title,
+                agentId: c.agentId,
+                label: c.label as ConversationLabel | undefined,
+                messages: [], // Messages loaded on demand
+                createdAt: new Date(c.createdAt * 1000),
+                updatedAt: new Date(c.updatedAt * 1000),
+              }));
+              setConversations(clientConvs);
+              return;
+            }
+          }
+        }
+      } catch {
+        // Not logged in or network error — fall back to localStorage
+      }
+      // Fallback: load from localStorage
+      const saved = loadConversations();
+      setConversations(saved);
+    };
+
+    initConversations();
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
-  // Save to localStorage
+  // Save to localStorage (only when not logged in)
   useEffect(() => {
-    if (conversations.length > 0) {
+    if (!isLoggedIn && conversations.length > 0) {
       saveConversations(conversations);
     }
-  }, [conversations]);
+  }, [conversations, isLoggedIn]);
 
   // Persist font size
   useEffect(() => {
@@ -1355,7 +1409,15 @@ export default function ChatPage() {
     setConversations(prev => prev.map(c =>
       c.id === convId ? { ...c, label } : c
     ));
-  }, []);
+    // Also update in DB if logged in
+    if (isLoggedIn) {
+      fetch(`/api/conversations/${convId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: label || null }),
+      }).catch(() => {});
+    }
+  }, [isLoggedIn]);
 
   const activeConversation = conversations.find(c => c.id === activeConvId) || null;
 
@@ -1376,16 +1438,58 @@ export default function ChatPage() {
     inputRef.current?.focus();
   }, []);
 
-  const selectConversation = useCallback((id: string) => {
+  const selectConversation = useCallback(async (id: string) => {
     setActiveConvId(id);
     setChatSearchQuery("");
     setShowChatSearch(false);
-  }, []);
+
+    // If logged in, load messages from DB if not already loaded
+    if (isLoggedIn) {
+      const existing = conversations.find(c => c.id === id);
+      if (existing && existing.messages.length === 0) {
+        try {
+          const res = await fetch(`/api/conversations/${id}`);
+          if (res.ok) {
+            const { messages: dbMsgs } = await res.json();
+            const clientMsgs: Message[] = dbMsgs.map((m: {
+              id: string;
+              role: string;
+              content: string;
+              attachmentName?: string;
+              attachmentType?: string;
+              createdAt: number;
+            }) => ({
+              id: m.id,
+              role: m.role as "user" | "assistant",
+              content: m.content,
+              timestamp: new Date(m.createdAt * 1000),
+              wordCount: m.role === "assistant" ? countWords(m.content) : undefined,
+              attachment: m.attachmentName ? {
+                name: m.attachmentName,
+                type: m.attachmentType || "application/octet-stream",
+                size: 0,
+                content: "",
+              } : undefined,
+            }));
+            setConversations(prev => prev.map(c =>
+              c.id === id ? { ...c, messages: clientMsgs } : c
+            ));
+          }
+        } catch {
+          // Ignore errors
+        }
+      }
+    }
+  }, [isLoggedIn, conversations]);
 
   const deleteConversation = useCallback((id: string) => {
     setConversations(prev => prev.filter(c => c.id !== id));
     if (activeConvId === id) setActiveConvId(null);
-  }, [activeConvId]);
+    // Also delete from DB if logged in
+    if (isLoggedIn) {
+      fetch(`/api/conversations/${id}`, { method: "DELETE" }).catch(() => {});
+    }
+  }, [activeConvId, isLoggedIn]);
 
   const handleExport = useCallback((id: string, format: "markdown" | "pdf" | "word" = "markdown") => {
     const conv = conversations.find(c => c.id === id);
@@ -1468,9 +1572,10 @@ export default function ChatPage() {
     
     if (!convId) {
       convId = `conv_${Date.now()}`;
+      const convTitle = generateTitle(messageText);
       currentConv = {
         id: convId,
-        title: generateTitle(messageText),
+        title: convTitle,
         messages: [userMsg],
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -1478,6 +1583,29 @@ export default function ChatPage() {
       };
       setConversations(prev => [currentConv!, ...prev]);
       setActiveConvId(convId);
+      // Create in DB if logged in
+      if (isLoggedIn) {
+        const dbConvId = convId; // capture for closure
+        fetch("/api/conversations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: convTitle, agentId: selectedAgent.id }),
+        }).then(async (res) => {
+          if (res.ok) {
+            // Save user message to DB
+            await fetch(`/api/conversations/${dbConvId}/messages`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                role: userMsg.role,
+                content: userMsg.content,
+                attachmentName: userMsg.attachment?.name || null,
+                attachmentType: userMsg.attachment?.type || null,
+              }),
+            });
+          }
+        }).catch(() => {});
+      }
     } else {
       const existingConv = conversations.find(c => c.id === convId);
       currentConv = existingConv
@@ -1488,6 +1616,19 @@ export default function ChatPage() {
           ? { ...c, messages: [...c.messages, userMsg], updatedAt: new Date() }
           : c
       ));
+      // Save user message to DB if logged in
+      if (isLoggedIn) {
+        fetch(`/api/conversations/${convId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: userMsg.role,
+            content: userMsg.content,
+            attachmentName: userMsg.attachment?.name || null,
+            attachmentType: userMsg.attachment?.type || null,
+          }),
+        }).catch(() => {});
+      }
     }
 
     // Add streaming placeholder
@@ -1600,6 +1741,14 @@ export default function ChatPage() {
             }
           : c
       ));
+      // Save AI response to DB if logged in
+      if (isLoggedIn && convId) {
+        fetch(`/api/conversations/${convId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ role: "assistant", content: responseText }),
+        }).catch(() => {});
+      }
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
       setConversations(prev => prev.map(c =>
@@ -1618,7 +1767,7 @@ export default function ChatPage() {
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, isLoading, activeConvId, conversations, selectedAgent]);
+  }, [input, isLoading, activeConvId, conversations, selectedAgent, isLoggedIn]);
 
   const regenerateLastResponse = useCallback(() => {
     if (!activeConversation || isLoading) return;
@@ -1870,6 +2019,7 @@ export default function ChatPage() {
         onLabel={handleLabel}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        isLoggedIn={isLoggedIn}
       />
 
       {/* Main area */}

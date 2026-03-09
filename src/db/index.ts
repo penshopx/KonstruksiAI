@@ -22,3 +22,27 @@ sqlite.exec(`
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
   )
 `);
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS conversations (
+    id TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL DEFAULT 'Percakapan Baru',
+    agent_id TEXT NOT NULL DEFAULT 'general',
+    label TEXT,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+  )
+`);
+
+sqlite.exec(`
+  CREATE TABLE IF NOT EXISTS messages (
+    id TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    attachment_name TEXT,
+    attachment_type TEXT,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+  )
+`);
