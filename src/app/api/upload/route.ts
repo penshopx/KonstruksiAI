@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Maximum file size: 10MB
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// Maximum file size: 20MB
+const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 // Allowed file types
 const ALLOWED_TYPES = [
   "application/pdf",
   "text/plain",
   "text/markdown",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+  "application/msword", // .doc (legacy)
+  "text/csv",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
 ];
 
 interface UploadResult {
@@ -16,11 +21,27 @@ interface UploadResult {
   type: string;
   size: number;
   pageCount?: number;
+  needsClientProcessing?: boolean;
+  base64Data?: string;
+}
+
+/**
+ * Extract text from DOCX using mammoth
+ */
+async function extractTextFromDocx(buffer: Buffer): Promise<string> {
+  try {
+    const mammoth = await import("mammoth");
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value || "[Dokumen Word kosong atau tidak dapat dibaca]";
+  } catch (err) {
+    console.error("DOCX extraction error:", err);
+    return "[Gagal membaca dokumen Word. Pastikan file tidak terproteksi password.]";
+  }
 }
 
 /**
  * Simple PDF text extractor that works in edge/serverless environments.
- * Extracts readable text from PDF binary without native modules.
+ * For better results, PDF is returned as base64 for client-side processing with pdfjs-dist.
  */
 function extractTextFromPDF(buffer: Buffer): { text: string; pageCount: number } {
   try {
@@ -74,13 +95,11 @@ function extractTextFromPDF(buffer: Buffer): { text: string; pageCount: number }
     }
     
     // Method 2: Extract from decoded streams (for compressed PDFs)
-    // Look for readable ASCII text in the buffer
     if (textParts.length === 0) {
       const asciiRegex = /[\x20-\x7E]{4,}/g;
       let asciiMatch;
       while ((asciiMatch = asciiRegex.exec(pdfString)) !== null) {
         const text = asciiMatch[0];
-        // Filter out PDF syntax keywords and binary-looking strings
         if (!text.match(/^(obj|endobj|stream|endstream|xref|trailer|startxref|\/\w+|<<|>>|\d+ \d+ R)/) &&
             text.match(/[a-zA-Z]{2,}/)) {
           textParts.push(text);
@@ -93,15 +112,12 @@ function extractTextFromPDF(buffer: Buffer): { text: string; pageCount: number }
       .trim();
     
     if (!text || text.length < 50) {
-      text = "[Konten PDF tidak dapat diekstrak secara otomatis. File mungkin berisi gambar atau teks terenkripsi. Silakan salin teks secara manual atau gunakan file TXT.]";
+      text = "";
     }
     
     return { text, pageCount };
   } catch {
-    return { 
-      text: "[Gagal membaca konten PDF. Silakan gunakan file TXT atau salin teks secara manual.]",
-      pageCount: 0
-    };
+    return { text: "", pageCount: 0 };
   }
 }
 
@@ -117,10 +133,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    // Validate file type - also check by extension for files with wrong MIME
+    const fileExt = file.name.split(".").pop()?.toLowerCase();
+    const isDocx = fileExt === "docx" || file.type.includes("wordprocessingml");
+    const isDoc = fileExt === "doc" || file.type === "application/msword";
+    const isPdf = fileExt === "pdf" || file.type === "application/pdf";
+    const isText = fileExt === "txt" || fileExt === "md" || fileExt === "csv" || 
+                   file.type.startsWith("text/");
+    const isXlsx = fileExt === "xlsx" || file.type.includes("spreadsheetml");
+
+    if (!isDocx && !isDoc && !isPdf && !isText && !isXlsx && !ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: `Tipe file tidak didukung: ${file.type}. Hanya PDF, TXT, dan MD yang diperbolehkan.` },
+        { error: `Format file tidak didukung: .${fileExt}. Format yang didukung: PDF, DOCX, TXT, MD, CSV, XLSX` },
         { status: 400 }
       );
     }
@@ -137,37 +161,68 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    let content: string;
+    let content: string = "";
     let pageCount: number | undefined;
+    let needsClientProcessing = false;
+    let base64Data: string | undefined;
 
-    if (file.type === "application/pdf") {
+    if (isPdf) {
+      // Try server-side extraction first
       const result = extractTextFromPDF(buffer);
-      content = result.text;
-      pageCount = result.pageCount;
+      
+      if (result.text && result.text.length > 100) {
+        // Server-side extraction worked
+        content = result.text;
+        pageCount = result.pageCount;
+      } else {
+        // Return base64 for client-side pdfjs processing
+        needsClientProcessing = true;
+        base64Data = buffer.toString("base64");
+        pageCount = result.pageCount;
+        content = "";
+      }
+    } else if (isDocx) {
+      content = await extractTextFromDocx(buffer);
+    } else if (isDoc) {
+      // Legacy .doc format - limited support
+      content = "[Format .doc (Word lama) memiliki dukungan terbatas. Disarankan simpan ulang sebagai .docx untuk hasil terbaik.]\n\n";
+      // Try to extract some text
+      const textContent = buffer.toString("utf-8", 0, Math.min(buffer.length, 100000));
+      const readable = textContent.replace(/[^\x20-\x7E\n\r\t]/g, " ").replace(/\s+/g, " ").trim();
+      if (readable.length > 50) content += readable;
+    } else if (isXlsx) {
+      // Return base64 for client-side processing
+      needsClientProcessing = true;
+      base64Data = buffer.toString("base64");
+      content = "";
     } else {
-      // For text/markdown files
+      // For text/markdown/csv files
       content = buffer.toString("utf-8");
     }
 
-    // Clean up the text
-    content = content
-      .replace(/\s+/g, " ")  // Normalize whitespace
-      .replace(/\n{3,}/g, "\n\n")  // Limit consecutive newlines
-      .trim();
+    if (!needsClientProcessing) {
+      // Clean up the text
+      content = content
+        .replace(/\s+/g, " ")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
 
-    // Limit content length for API
-    const MAX_CONTENT_LENGTH = 50000; // 50k characters
-    const isTruncated = content.length > MAX_CONTENT_LENGTH;
-    if (isTruncated) {
-      content = content.substring(0, MAX_CONTENT_LENGTH) + "\n\n[... Konten dipotong karena terlalu panjang ...]";
+      // Limit content length for API
+      const MAX_CONTENT_LENGTH = 50000;
+      const isTruncated = content.length > MAX_CONTENT_LENGTH;
+      if (isTruncated) {
+        content = content.substring(0, MAX_CONTENT_LENGTH) + "\n\n[... Konten dipotong karena terlalu panjang ...]";
+      }
     }
 
     const result: UploadResult = {
       filename: file.name,
       content,
-      type: file.type,
+      type: file.type || `application/${fileExt}`,
       size: file.size,
       pageCount,
+      needsClientProcessing,
+      base64Data,
     };
 
     return NextResponse.json(result);

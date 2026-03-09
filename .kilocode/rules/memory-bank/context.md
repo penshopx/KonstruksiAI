@@ -2,9 +2,19 @@
 
 ## Current State
 
-**Template Status**: ✅ KonstruksiAI Application Built — Session 7 Bimtek & Simulasi Uji Kompetensi
+**Template Status**: ✅ KonstruksiAI Application Built — Session 8 Enhanced Document Upload
 
 The template has been expanded into a comprehensive construction AI assistant application (KonstruksiAI) with chat interface, landing page, solver, tools, and now a full Knowledge Base system.
+
+## Recently Completed (Session 8 — Enhanced Document Upload)
+
+- [x] Client-side PDF extraction using `pdfjs-dist` — handles compressed/modern PDFs properly
+- [x] Google Drive URL input — paste share link to load document directly
+- [x] Multiple file upload — up to 5 files simultaneously (PDF, DOCX, TXT, XLSX, CSV)
+- [x] DOCX/Word support — server-side extraction using `mammoth`
+- [x] New API route `/api/fetch-url` — proxy for Google Drive and public URLs
+- [x] Updated upload UI — file type icons, remove individual files, add more files button
+- [x] Updated `src/lib/pdf-client.ts` — browser-side PDF text extraction utility
 
 ## Recently Completed (Session 7 — Bimtek & Simulasi Uji Kompetensi)
 
