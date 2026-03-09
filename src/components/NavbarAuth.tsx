@@ -56,6 +56,13 @@ export default function NavbarAuth() {
           </div>
           <span className="text-sm hidden sm:block">{user.name}</span>
         </Link>
+        <Link
+          href="/profile"
+          className="text-slate-400 hover:text-orange-300 text-sm transition-colors hidden sm:block"
+          title="Profil Saya"
+        >
+          ⚙️
+        </Link>
         <button
           onClick={handleLogout}
           className="text-slate-400 hover:text-red-400 text-sm transition-colors"

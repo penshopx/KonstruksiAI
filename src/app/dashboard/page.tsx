@@ -139,6 +139,22 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </div>
+
+        {/* Profile Link */}
+        <div className="mt-4 bg-slate-800 border border-slate-700 rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-white font-bold text-lg">👤 Profil & Pengaturan</h2>
+              <p className="text-slate-400 text-sm mt-1">Lihat statistik percakapan, ubah nama, dan kelola akun</p>
+            </div>
+            <Link
+              href="/profile"
+              className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            >
+              Buka Profil →
+            </Link>
+          </div>
+        </div>
       </main>
     </div>
   );
