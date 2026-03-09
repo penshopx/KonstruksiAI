@@ -3,6 +3,7 @@ import { getAgent } from "@/lib/agents";
 import { getSafetyProceduresResponse } from "@/lib/safety-procedures";
 import { getTestReportsResponse } from "@/lib/test-reports";
 import { getBillOfMaterialsResponse } from "@/lib/bill-of-materials";
+import { getEquipmentManualResponse } from "@/lib/equipment-manuals";
 
 // ============================================================
 // Chat API Route — KonstruksiAI
@@ -112,6 +113,16 @@ Apa yang ingin Anda diskusikan?`;
     const document = getTestReportsResponse();
     const outro = `\n---\n\n📌 **Ingin saya buatkan dokumen lengkap Test Reports dalam format Word/PDF?**`;
     return intro + document + outro;
+  }
+
+  // === EQUIPMENT MANUALS ===
+  if (msg.includes("manual") || msg.includes("equipment") || msg.includes("petunjuk operasi") || 
+      msg.includes("transformator") || msg.includes("trafo") || msg.includes("generator") || 
+      msg.includes("genset") || msg.includes("motor") || msg.includes("ups") || 
+      msg.includes("ats") || msg.includes("panel listri")) {
+    const document = getEquipmentManualResponse(msg);
+    const outro = `\n---\n\n📌 **Ingin saya buatkan dokumen manual peralatan yang lebih detail untuk peralatan spesifik Anda?**`;
+    return document + outro;
   }
 
   // === EXISTING HANDLERS ===
