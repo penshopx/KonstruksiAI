@@ -604,30 +604,86 @@ Proyek Konstruksi
 Apakah Anda ingin template laporan progress mingguan atau bulanan?`;
   }
 
-  // Default response based on agent context
-  return `Sebagai **${agentName}**, saya siap membantu Anda.
+  // Default response - enhanced for better user experience
+  const generalResponses = [
+    `Terima kasih atas pertanyaan Anda! Saya adalah KonstruksiAI, asisten AI untuk industri konstruksi Indonesia.
 
-Berdasarkan pertanyaan Anda: *"${userMessage}"*
+Saya dapat membantu Anda dengan berbagai topik seperti:
 
-Saya dapat membantu Anda dengan:
+📐 **Teknik Konstruksi**
+- Struktur bangunan (beton, baja, pondasi)
+- RAB dan estimasi biaya
+- Arsitektur dan desain
 
-1. **Analisis & Konsultasi** — Memberikan analisis mendalam berdasarkan keahlian saya
-2. **Pembuatan Dokumen** — Menyusun dokumen teknis, laporan, atau template
-3. **Panduan Regulasi** — Menjelaskan regulasi Indonesia yang berlaku
-4. **Rekomendasi Praktis** — Solusi yang bisa langsung diterapkan
+⚡ **Energi Terbarukan**
+- PLTS (Pembangkit Listrik Tenaga Surya)
+- PLTB dan energi angin
+- Sistem ketenagalistrikan
 
-**Untuk hasil yang lebih optimal, coba berikan:**
-- Detail spesifik proyek (lokasi, skala, nilai)
+🏭 **Migas & Pertambangan**
+- Perizinan usaha pertambangan
+- Kontrak PSC dan bagi hasil
+- Regulasi ESDM
+
+📋 **Bisnis Konstruksi**
+- Tender dan pengadaan (LKPP)
+- Manajemen proyek
+- Kontrak dan hukum konstruksi
+
+🎯 **Perijinan**
+- PBG (Persetujuan Bangunan Gedung)
+- Sertifikasi (SBU, SKK, SKA)
+- K3 dan keselamatan kerja
+
+**Agar dapat membantu Anda dengan lebih baik, coba berikan:**
+- Detail proyek (lokasi, skala, nilai)
 - Konteks atau latar belakang masalah
-- Output yang Anda harapkan (laporan, checklist, template, dll.)
+- Output yang diharapkan (analisis, dokumen, checklist, dll)
 
 Contoh pertanyaan yang bisa Anda ajukan:
-- *"Buatkan RAB untuk proyek [deskripsi]"*
-- *"Buat jadwal proyek untuk [deskripsi]"*
-- *"Analisis risiko untuk [deskripsi]"*
-- *"Checklist perijinan untuk [deskripsi]"*
+• "Buatkan RAB untuk rumah tipe 45"
+• "Apa saja syarat PBG untuk rumah tinggal?"
+• "Cara daftar tender di LPSE"
+• "Jelaskan regulasi K3 konstruksi"
 
-Silakan berikan detail lebih lanjut dan saya akan segera mengerjakan tugas Anda! 🚀`;
+Silakan ajukan pertanyaan Anda!`,
+    
+    `Halo! Saya KonstruksiAI, asisten AI untuk sektor konstruksi dan engineering Indonesia.
+
+Saya siap membantu Anda dengan pertanyaan teknis maupun bisnis, termasuk:
+
+✅ **Analisis & Konsultasi**
+- Evaluasi teknis bangunan
+- Studi kelayakan proyek
+- Analisis risiko
+
+✅ **Pembuatan Dokumen**
+- RAB (Rencana Anggaran Biaya)
+- Jadwal proyek (Gantt chart)
+- Dokumen tender
+- Checklist perijinan
+
+✅ **Panduan Regulasi**
+- Pemahaman regulasi Indonesia
+- Proses perijinan
+- Standar teknis (SNI)
+
+✅ **Rekomendasi Praktis**
+- Solusi yang bisa langsung diterapkan
+- Rekomendasi material
+- Best practice industri
+
+**Contoh penggunaan:**
+"Buatkan estimasi biaya untuk proyek"
+"Apa saja tahap perizinan proyek bangunan?"
+"Jelaskan tentang tender konstruksi"
+
+Silakan tanyakan apapun tentang konstruksi!`
+  ];
+  
+  // Pick a response based on message length for variety
+  const responseIndex = userMessage.length % generalResponses.length;
+  return generalResponses[responseIndex];
 }
 
 // ============================================================
