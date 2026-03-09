@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAgent } from "@/lib/agents";
+import { getSafetyProceduresResponse } from "@/lib/safety-procedures";
 
 // ============================================================
 // Chat API Route — KonstruksiAI
