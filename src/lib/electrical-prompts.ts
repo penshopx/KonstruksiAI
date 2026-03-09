@@ -31,6 +31,14 @@ export const electricalPrompts: ElectricalPrompt[] = [
   },
   {
     id: "risk-assessment",
+    title: "Risk Assessment Document",
+    icon: "⚠️",
+    description: "Dokumen penilaian risiko pekerjaan elektrikal",
+    examplePrompt: "Buatkan Risk Assessment untuk pekerjaan instalasi panel distribusi di gedung komersial",
+    category: "documents"
+  },
+  {
+    id: "risk-assessment",
     title: "Create A Risk Assessments Document",
     icon: "📊",
     description: "Dokumen penilaian risiko pekerjaan elektrikal",
