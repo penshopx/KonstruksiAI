@@ -61,6 +61,7 @@ const AGENTS: Agent[] = [
   { id: "energi", name: "EBT Specialist", icon: "⚡", description: "Energi terbarukan & kelistrikan", color: "yellow" },
   { id: "migas", name: "Migas Expert", icon: "🛢️", description: "Minyak, gas, pertambangan", color: "slate" },
   { id: "kontrak", name: "Legal Konstruksi", icon: "⚖️", description: "Kontrak, klaim, sengketa", color: "indigo" },
+  { id: "electrical", name: "Electrical Engineer", icon: "🔌", description: "Dokumen teknis & desain elektrikal", color: "amber" },
 ];
 
 const SUGGESTED_PROMPTS = [
@@ -93,6 +94,11 @@ const SUGGESTED_PROMPTS = [
     "Syarat IUP pertambangan mineral",
     "Kontrak PSC migas: cara kerja dan pembagian",
     "K3 untuk pekerjaan pengeboran migas",
+  ]},
+  { category: "Elektrikal", icon: "🔌", prompts: [
+    "Buatkan BOM instalasi listrik gedung kantor 5 lantai",
+    "Buat risk assessment pekerjaan instalasi listrik",
+    "Spesifikasi teknis panel distribusi 400V",
   ]},
 ];
 

@@ -53,11 +53,59 @@ function generateSimulatedResponse(
       contextHint = "[Ini pertanyaan lanjutan tentang sertifikasi] ";
     } else if (topic.includes("plts") || topic.includes("panel surya") || topic.includes("ebt")) {
       contextHint = "[Ini pertanyaan lanjutan tentang energi terbarukan] ";
+    } else if (topic.includes("listrik") || topic.includes("panel") || topic.includes("electrical") || topic.includes("elektrikal")) {
+      contextHint = "[Ini pertanyaan lanjutan tentang instalasi listrik] ";
     }
   }
   const msg = (contextHint + userMessage).toLowerCase();
 
+  // Detect if user wants electrical engineer consultation
+  if (msg.includes("consult") || msg.includes("expert") || msg.includes("30 tahun") || 
+      msg.includes("deep dive") || msg.includes("konsultasi") || msg.includes("ahli listrik")) {
+    return `👋 Halo! Saya adalah Electrical Engineer AI dengan 30 tahun pengalaman di bidang engineering. Bagaimana saya bisa membantu Anda hari ini?
+
+Silakan ceritakan masalah atau tantangan engineering yang Anda hadapi. Saya akan:
+1. Mendengarkan secara aktif
+2. Mengajukan pertanyaan mendalam untuk memahami konteks
+3. Menganalisis dari berbagai perspektif
+4. Memberikan solusi yang actionable berdasarkan pengalaman 30 tahun saya
+
+Apa yang ingin Anda diskusikan?`;
+  }
+
   // Detect task type from message
+
+  // === ELEKTRICAL ENGINEERING DOCUMENTS ===
+  if (msg.includes("bom") || msg.includes("bill of material") || msg.includes("daftar material") || 
+      (msg.includes("instalasi listrik") && msg.includes("material")) || (msg.includes("listrik") && msg.includes("material"))) {
+    return `Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut Bill of Materials (BOM) untuk instalasi listrik:\n\n**BILL OF MATERIALS - INSTALASI LISTRIK GEDUNG**\n\n| No | Material | Spesifikasi | Satuan | Qty | Estimasi Harga |\n|----|----------|-------------|--------|-----|----------------|\n| 1 | Kabel NYM | 3x2.5 mm2 | m | 500 | Rp 275.000 |\n| 2 | Kabel NYM | 3x4 mm2 | m | 300 | Rp 198.000 |\n| 3 | Kabel NYY | 4x16 mm2 | m | 100 | Rp 330.000 |\n| 4 | Pipe Conduit | PVC 20mm | m | 400 | Rp 160.000 |\n| 5 | Box Panel | 40x60x20cm | unit | 4 | Rp 880.000 |\n| 6 | MCB | 20A 1P | pcs | 20 | Rp 280.000 |\n| 7 | MCB | 32A 1P | pcs | 10 | Rp 210.000 |\n| 8 | RCCB | 40A 30mA 2P | pcs | 4 | Rp 520.000 |\n| 9 | Stop Kontak | In bowa 5/6 | pcs | 40 | Rp 400.000 |\n| 10 | Lampu LED | 18W | pcs | 50 | Rp 350.000 |\n\n**RINGKASAN:**\n- Total Material: sekitar Rp 4.053.000\n- Upah Instalasi: sekitar Rp 2.500.000\n- Total Estimasi: sekitar Rp 6.553.000\n\nIngin saya buatkan detail yang lebih spesifik untuk proyek Anda?`;
+  }
+
+  if (msg.includes("risk assessment") || msg.includes("penilaian risiko") || msg.includes("analisa risiko")) {
+    return `Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut template Risk Assessment untuk pekerjaan instalasi listrik:\n\n**DOKUMEN PENILAIAN RISIKO - Pekerjaan Instalasi Listrik Gedung**\n\n| No | Aktivitas | Hazards | Risk Level | Mitigasi |\n|----|-----------|---------|-------------|----------|\n| 1 | Pemasangan cable tray | Tertimpa material | Tinggi | Use PPE, barrier |\n| 2 | Pekerjaan di ketinggian | Jatuh | Tinggi | Safety harness, Scaffolding |\n| 3 | Instalasi panel | Sengatan listrik | Kritis | LOTO, grounding |\n| 4 | Pengelasan | Api/ledakan | Sedang | Fire watch, extinguisher |\n\n**PROSEDUR MITIGASI:**\n\n1. SEBELUM PEKERJAAN:\n   - Briefing K3 wajib\n   - Periksa kelengkapan PPE\n   - Verifikasi izin kerja\n\n2. SELAMA PEKERJAAN:\n   - Supervisi ketat\n   - Monitoring kondisi kerja\n   - Emergency response standby\n\n3. SETELAH PEKERJAAN:\n   - Inspection & testing\n   - Dokumentasi\n\n**Referensi:**\n- Permenaker No. 5/2018 tentang K3 Listrik\n- PUIL 2011 Section 4\n\nIngin saya buatkan dokumen lengkap Risk Assessment?`;
+  }
+
+  if (msg.includes("safety procedure") || msg.includes("prosedur keselamatan") || msg.includes("prosedur k3")) {
+    return `Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut Prosedur Keselamatan Kerja untuk pekerjaan instalasi listrik:\n\n**PROSEDUR KESELAMATAN KERJA - Instalasi Sistem Kelistrikan**\n\n1. PERSYARATAN SEBELUM KERJA\n\nPersyaratan Personel:\n- Sertifikat Kompetensi Listrik (AK/AT)\n- Pelatihan K3 Listrik\n- Medical check-up lulus\n\nPersyaratan Peralatan:\n- Alat ukur teruji (multimeter, earth resistance)\n- PPE lengkap (helm, sarung tangan isolat, shoes)\n- Tools insulated\n\n2. PROSEDUR LOTO (Lock Out Tag Out)\n\n1. Notification - Beritahu semua pihak terkait\n2. Preparation - Siapkan tools & dokumentasi\n3. Shutdown - Matikan peralatan\n4. Isolation - Pisahkan sumber listrik\n5. Locking - Kunci switchgear\n6. Verification - Tes dengan voltage detector\n\n3. PROSEDUR EMERGENCY\n\n| Situasi | Tindakan |\n|---------|----------|\n| Sengatan listrik | Matikan sumber, CPR, RS |\n| Kebakaran listrik | Padamkan dengan CO2, MCB |\n\n**Kontak Darurat:**\n- Safety Officer: [isi nomor]\n- Rumah Sakit Terdekat: [isi nomor]\n- PLN Emergency: 123\n\nIngin saya buatkan dokumen lengkap Prosedur K3?`;
+  }
+
+  if (msg.includes("design spec") || msg.includes("spesifikasi teknis") || msg.includes("specification")) {
+    return `Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut Spesifikasi Teknis Desain Instalasi Listrik:\n\n**SPESIFIKASI TEKNIS INSTALASI LISTRIK - Gedung Komersial 5 Lantai**\n\n1. DAYA LISTRIK\n\n| Parameter | Spesifikasi |\n|-----------|-------------|\n| Sumber Utama | PLN 1977 kVA |\n| Backup | Genset 1000 kVA |\n| Beban Terpasang | 1500 kW |\n| Diversitas | 0.8 |\n| Beban Terhitung | 1200 kW |\n\n2. SISTEM DISTRIBUSI\n\nPLN 1977 kVA -> TR 20kV/400V 2500kVA -> Main CB 2500A -> MDP Lantai 1-5 -> Panel-Panel\n\n3. KABEL & PROTEKSI\n\n| Circuit | Kabel | MCB | RCCB |\n|--------|-------|-----|------|\n| Lighting | NYM 3x2.5mm2 | 16A | 40A/30mA |\n| Socket | NYM 3x4mm2 | 20A | 40A/30mA |\n| AC | NYM 3x6mm2 | 32A | 40A/30mA |\n\n4. STANDAR RUJUKAN\n\n- PUIL 2011\n- SPLN S3.001-1:2019\n- SNI IEC 60364\n- NFPA 70\n\nIngin saya buatkan dokumen lengkap Electrical Design?`;
+  }
+
+  if (msg.includes("circuit diagram") || msg.includes("single line") || msg.includes("sld") || msg.includes("diagram")) {
+    return `Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut contoh Single Line Diagram:\n\n**SINGLE LINE DIAGRAM**\nSistem Distribusi Listrik Gedung\n\n[DIAGRAM]\nPLN 20kV (1977kVA) -> TR 20kV/400V 2500kVA -> Main CB 2500A -> MDP Lantai 1-5 -> Panel-Panel\n\nKOMPONEN UTAMA:\n| Simbol | Komponen | Spesifikasi |\n|--------|----------|-------------|\n| TR | Transformator | 2500kVA, 20kV/400V |\n| MV | Main Circuit Breaker | 2500A, 36kA |\n| MDP | Panel Distribusi | 630A, IP54 |\n\nIngin saya buatkan diagram detail untuk proyek spesifik Anda?`;
+  }
+
+  if (msg.includes("maintenance schedule") || msg.includes("jadwal pemeliharaan") || msg.includes("preventive maintenance")) {
+    return `Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut Preventive Maintenance Schedule untuk instalasi listrik:\n\n**JADWAL PEMELIHARAAN PREVENTIF - Sistem Kelistrikan Gedung**\n\n| Aktivitas | Frekuensi | Deskripsi |\n|-----------|-----------|-----------|\n| **Panel Listrik** | | |\n| Inspeksi visual | Mingguan | Cek kerusakan, kebocoran |\n| Pengencangan terminasi | Bulanan | Cek kekencangan kabel |\n| Termografi | Triwulanan | Deteksi hot spot |\n| Load test | Tahunan | Test under load |\n| **Kabel & Instalasi** | | |\n| Inspeksi visual | Bulanan | Cek kondisi kabel |\n| Earth resistance test | Semesteran | Test grounding |\n| Insulation resistance | Tahunan | Megger test |\n| **Proteksi** | | |\n| Test RCCB | Bulanan | Test tombol trip |\n| Test MCB | Semesteran | Test karakteristik |\n| Test proteksi petir | Tahunan | Inspection SPD |\n\nIngin saya buatkan template checklist lengkap?`;
+  }
+
+  if (msg.includes("test report") || msg.includes("laporan pengujian") || msg.includes("commissioning")) {
+    return `Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut format Laporan Pengujian Instalasi Listrik:\n\n**LAPORAN PENGUJIAN INSTALASI LISTRIK**\n\n1. DATA PROYEK\n\n| Field | Isian |\n|-------|-------|\n| Nama Proyek | [isi] |\n| Alamat | [isi] |\n| Tanggal Pengujian | [isi] |\n| Penyedia Jasa | [isi] |\n\n2. HASIL PENGUJIAN\n\nA. Pengujian Tahanan Isolasi\n\n| Circuit | L-N (MOhm) | L-G (MOhm) | N-G (MOhm) | Status |\n|--------|------------|------------|------------|--------|\n| Lighting L1 | >100 | >100 | >100 | PASS |\n| Lighting L2 | >100 | >100 | >100 | PASS |\n\nStandar: Min 1 MOhm (PUIL 2011)\n\nB. Pengujian Kontinuitas Grounding\n\n| Titik | Resistansi (Ohm) | Status |\n|-------|---------------|--------|\n| Panel MDP | 0.8 | PASS |\n| Panel lantai 1 | 1.2 | PASS |\n\nStandar: Maks 5 Ohm (PUIL 2011)\n\n3. KESIMPULAN\n\nSemua pengujian LULUS - Instalasi aman beroperasi\n\nIngin saya buatkan template laporan lengkap?`;
+  }
+
+  // === EXISTING HANDLERS ===
   if (msg.includes("rab") || msg.includes("rencana anggaran") || msg.includes("estimasi biaya")) {
     // Extract area size from message if provided (e.g., "36 m2", "100 meter")
     const areaMatch = msg.match(/(\d+)\s*meter\s*persegi|(\d+)\s*m2|(\d+)\s*m²|luas\s*(\d+)/i);
