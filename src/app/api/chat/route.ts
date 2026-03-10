@@ -7,6 +7,7 @@ import { getEquipmentManualResponse } from "@/lib/equipment-manuals";
 import { getRegulatoryComplianceResponse } from "@/lib/regulatory-compliance";
 import { getTestPlansResponse } from "@/lib/test-plans-response";
 import { getEnergyEfficiencyResponse } from "@/lib/energy-efficiency-response";
+import { getMechanicalEngineerResponse } from "@/lib/mechanical-engineer-response";
 
 // ============================================================
 // Chat API Route — KonstruksiAI
@@ -182,6 +183,12 @@ Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut dokumen komprehe
 
 📌 **Ingin saya buatkan dokumen lengkap Analisis Efisiensi Energi dalam format Word/PDF?** Atau butuh kalkulasi spesifik untuk proyek Anda?`;
     return intro + document + outro;
+  }
+
+  // === MECHANICAL ENGINEERING ===
+  const mechanicalResponse = getMechanicalEngineerResponse(userMessage);
+  if (mechanicalResponse) {
+    return mechanicalResponse;
   }
 
   // === EXISTING HANDLERS ===
