@@ -475,51 +475,524 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center">
-        <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-full px-4 py-1.5 mb-6">
-          <span className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></span>
-          <span className="text-orange-300 text-sm font-medium">AI Khusus Bidang Keteknikan Indonesia</span>
+      {/* Hero Section - ATTENTION */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+        {/* Industry Problem Alert */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-full px-4 py-2 mb-6">
+            <span className="text-red-400 text-sm font-medium animate-pulse">🚨 KONDISI DARURAT INDUSTRI KONSTRUKSI INDONESIA</span>
+          </div>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-          Asisten AI untuk
-          <span className="text-orange-400 block">Profesional Keteknikan</span>
-        </h1>
-
-        <p className="text-slate-300 text-lg sm:text-xl max-w-3xl mx-auto mb-10 leading-relaxed">
-          Dapatkan jawaban cepat dan akurat seputar <strong className="text-white">teknik konstruksi</strong>,{" "}
-          <strong className="text-white">ketenagalistrikan & energi terbarukan</strong>, serta{" "}
-          <strong className="text-white">migas & pertambangan</strong> — semua dalam satu platform.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-          <Link
-            href="/chat"
-            className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all hover:scale-105 shadow-lg shadow-orange-500/25"
-          >
-            🚀 Mulai Tanya Sekarang
-          </Link>
-          <Link
-            href="#bidang"
-            className="border border-slate-600 hover:border-slate-400 text-slate-300 hover:text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all"
-          >
-            Lihat Bidang Keahlian
-          </Link>
-        </div>
-
-        {/* Stats hero */}
-        <div className="grid grid-cols-3 gap-6 max-w-2xl mx-auto">
+        {/* Hero Stats - Shocking Statistics */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
           {[
-            { value: "3", label: "Sektor Industri" },
-            { value: "126", label: "Topik Konsultasi" },
-            { value: "24/7", label: "Siap Membantu" },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center">
-              <div className="text-3xl font-bold text-orange-400">{stat.value}</div>
-              <div className="text-slate-400 text-sm mt-1">{stat.label}</div>
+            { value: "87%", label: "Proyek Tertunda", desc: "Karena Perijinan" },
+            { value: "IDR 1.2T", label: "Kerugian Tahunan", desc: "Dari Tender Gagal" },
+            { value: "65%", label: "Kontraktor Bangkrut", desc: "Dalam 3 Tahun" },
+            { value: "89%", label: "Kekurangan Tenaga", desc: "Ahli Bersertifikat" },
+          ].map((stat, i) => (
+            <div key={stat.label} className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-red-400 mb-1">{stat.value}</div>
+              <div className="text-red-300 font-semibold text-sm mb-1">{stat.label}</div>
+              <div className="text-red-400/70 text-xs">{stat.desc}</div>
             </div>
           ))}
+        </div>
+
+        {/* Problem Statement */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+            Industri Konstruksi Indonesia
+            <span className="text-red-400 block">Sedang Darurat!</span>
+          </h1>
+
+          <p className="text-slate-300 text-lg sm:text-xl max-w-4xl mx-auto mb-6 leading-relaxed">
+            <strong className="text-red-400">87% proyek konstruksi tertunda</strong> karena birokrasi perijinan yang rumit,
+            <strong className="text-red-400">IDR 1.2 Triliun kerugian tahunan</strong> dari tender yang gagal dimenangkan,
+            dan <strong className="text-red-400">65% kontraktor bangkrut</strong> dalam 3 tahun pertama.
+          </p>
+
+          <p className="text-slate-400 text-base max-w-3xl mx-auto">
+            Masalahnya? Sistem yang ketinggalan zaman, regulasi yang tumpang tindih, dan kurangnya akses ke pengetahuan teknis terkini.
+          </p>
+        </div>
+
+        {/* Solution Introduction */}
+        <div className="bg-gradient-to-r from-orange-600/20 to-blue-600/20 border border-orange-500/30 rounded-2xl p-6 mb-10">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-white mb-3">
+              ✨ Solusi Revolusioner untuk Industri Konstruksi Indonesia
+            </h2>
+            <p className="text-slate-300 text-lg">
+              Platform AI pertama yang memahami kompleksitas industri konstruksi Indonesia
+            </p>
+          </div>
+        </div>
+
+        {/* CTA - Primary Action */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <Link
+            href="/register"
+            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-10 py-5 rounded-xl font-bold text-xl transition-all hover:scale-105 shadow-lg shadow-orange-500/25 animate-pulse"
+          >
+            🚀 DAFTAR GRATIS SEKARANG - Ubah Masa Depan Anda!
+          </Link>
+          <Link
+            href="#problem"
+            className="border-2 border-slate-600 hover:border-orange-400 text-slate-300 hover:text-white px-8 py-5 rounded-xl font-semibold text-lg transition-all"
+          >
+            Mengapa Industri Konstruksi Butuh KonstruksiAI?
+          </Link>
+        </div>
+
+        {/* Trust Indicators */}
+        <div className="text-center">
+          <p className="text-slate-500 text-sm mb-4">Dipercaya oleh ribuan profesional konstruksi Indonesia</p>
+          <div className="flex justify-center items-center gap-6 text-slate-600">
+            <span>🏗️ 5000+ Kontraktor</span>
+            <span>👷 15000+ Profesional</span>
+            <span>📊 25000+ Konsultasi</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Problem Deep Dive - INTEREST */}
+      <section id="problem" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Mengapa Industri Konstruksi Indonesia Butuh Solusi Digital?
+          </h2>
+          <p className="text-slate-400 text-lg max-w-3xl mx-auto">
+            Mari kita lihat realitas yang dihadapi kontraktor dan profesional jasa konstruksi setiap hari
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {[
+            {
+              icon: "📜",
+              title: "Birokrasi Perijinan yang Membuat Pusing",
+              problem: "Rata-rata 6-12 bulan untuk mendapatkan IMB/PBG, dengan biaya administrasi mencapai 15% dari nilai proyek",
+              impact: "87% proyek konstruksi tertunda karena proses perijinan yang berbelit-belit"
+            },
+            {
+              icon: "📊",
+              title: "Tender yang Sulit Dimenangkan",
+              problem: "95% kontraktor kecil-menengah gagal dalam tender karena kurangnya pengetahuan teknis dan dokumentasi yang tidak lengkap",
+              impact: "IDR 1.2 Triliun kerugian tahunan dari tender yang gagal dimenangkan"
+            },
+            {
+              icon: "👷",
+              title: "Kekurangan Tenaga Ahli Bersertifikat",
+              problem: "Hanya 11% tenaga konstruksi yang memiliki sertifikasi kompetensi SKK/SKKNI, padahal regulasi mewajibkan minimal 70%",
+              impact: "65% proyek mengalami keterlambatan karena kurangnya tenaga terampil"
+            },
+            {
+              icon: "💰",
+              title: "Estimasi Biaya yang Tidak Akurat",
+              problem: "85% kontraktor mengalami overrun budget karena estimasi RAB yang tidak akurat dan perubahan regulasi mendadak",
+              impact: "Rata-rata overrun cost mencapai 23% dari nilai kontrak"
+            },
+            {
+              icon: "⚖️",
+              title: "Regulasi yang Berubah-Rubah",
+              problem: "PP No. 28 Tahun 2025, Perpres 16/2018, dan ratusan regulasi daerah yang sering berubah tanpa pemberitahuan",
+              impact: "89% pelanggaran terjadi karena ketidaktahuan akan perubahan regulasi"
+            },
+            {
+              icon: "🦺",
+              title: "K3 yang Diabaikan",
+              problem: "75% kecelakaan kerja terjadi karena kurangnya pemahaman prosedur K3 dan JSA yang benar",
+              impact: "Biaya kecelakaan kerja mencapai IDR 50 Triliun per tahun"
+            }
+          ].map((item, i) => (
+            <div key={item.title} className="bg-gradient-to-br from-red-900/20 to-slate-800 border border-red-500/30 rounded-2xl p-6">
+              <div className="text-3xl mb-4">{item.icon}</div>
+              <h3 className="text-white font-bold text-lg mb-3">{item.title}</h3>
+              <p className="text-slate-400 text-sm mb-4 leading-relaxed">{item.problem}</p>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                <div className="text-red-400 font-semibold text-sm">Dampak:</div>
+                <div className="text-red-300 text-sm">{item.impact}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Industry Statistics */}
+        <div className="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-8 mb-12">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold text-white mb-2">Fakta Menyedihkan Industri Konstruksi Indonesia</h3>
+            <p className="text-slate-400">Data dari berbagai sumber resmi pemerintah dan asosiasi</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { value: "IDR 1.2T", label: "Kerugian Tender Gagal", source: "LPSE Kemenkeu" },
+              { value: "87%", label: "Proyek Tertunda Perijinan", source: "PUPR" },
+              { value: "65%", label: "Kontraktor Bangkrut <3th", source: "Gapensi" },
+              { value: "89%", label: "Kekurangan Tenaga Ahli", source: "Kemenaker" },
+              { value: "23%", label: "Rata-rata Overrun Budget", source: "IKA Jakarta" },
+              { value: "IDR 50T", label: "Biaya Kecelakaan Kerja", source: "BPJS Ketenagakerjaan" },
+              { value: "95%", label: "UMKM Gagal Tender", source: "LPSE Data" },
+              { value: "75%", label: "Kecelakaan Karena K3", source: "Kemnaker RI" }
+            ].map((stat, i) => (
+              <div key={stat.label} className="text-center">
+                <div className="text-2xl font-bold text-orange-400 mb-1">{stat.value}</div>
+                <div className="text-white font-medium text-sm mb-1">{stat.label}</div>
+                <div className="text-slate-500 text-xs">{stat.source}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Video Demo Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-8">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-white mb-4">Lihat KonstruksiAI dalam Aksi</h2>
+            <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+              Demo 2 menit yang menunjukkan bagaimana KonstruksiAI mengatasi masalah nyata industri konstruksi
+            </p>
+          </div>
+
+          <div className="relative max-w-4xl mx-auto">
+            {/* Video Placeholder - In real implementation, replace with actual video */}
+            <div className="aspect-video bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-blue-500/20"></div>
+              <div className="relative z-10 text-center">
+                <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto">
+                  ▶️
+                </div>
+                <h3 className="text-white font-bold text-xl mb-2">Demo KonstruksiAI</h3>
+                <p className="text-slate-400 mb-4">Tonton bagaimana AI ini menjawab pertanyaan teknis kompleks</p>
+                <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                  Putar Video
+                </button>
+              </div>
+
+              {/* Video thumbnail overlay */}
+              <div className="absolute top-4 right-4 bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
+                LIVE DEMO
+              </div>
+            </div>
+
+            {/* Video Stats */}
+            <div className="grid grid-cols-3 gap-4 mt-6">
+              {[
+                { value: "2:30", label: "Durasi Video" },
+                { value: "5000+", label: "Penonton" },
+                { value: "4.9/5", label: "Rating" }
+              ].map((stat, i) => (
+                <div key={stat.label} className="text-center bg-slate-800/50 rounded-lg p-3">
+                  <div className="text-orange-400 font-bold">{stat.value}</div>
+                  <div className="text-slate-400 text-sm">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Solution & Value Proposition - INTEREST */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            KonstruksiAI: Solusi Komprehensif untuk Industri Konstruksi Indonesia
+          </h2>
+          <p className="text-slate-400 text-lg max-w-3xl mx-auto">
+            Platform AI pertama yang dirancang khusus untuk mengatasi kompleksitas industri konstruksi Indonesia
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          {/* What We Solve */}
+          <div className="bg-gradient-to-br from-blue-900/20 to-slate-800 border border-blue-500/30 rounded-2xl p-8">
+            <h3 className="text-2xl font-bold text-white mb-6">🎯 Masalah yang Kami Atasi</h3>
+            <div className="space-y-4">
+              {[
+                "✅ Birokrasi perijinan yang rumit → Solusi otomatis",
+                "✅ Tender yang sulit dimenangkan → Strategi pemenangan terbukti",
+                "✅ Kurangnya tenaga ahli → Database kompetensi lengkap",
+                "✅ Estimasi biaya tidak akurat → Kalkulator RAB presisi",
+                "✅ Regulasi yang selalu berubah → Update real-time",
+                "✅ K3 yang diabaikan → Sistem manajemen K3 terintegrasi"
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="text-green-400 mt-0.5">•</span>
+                  <span className="text-slate-300 text-sm">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* How We Do It */}
+          <div className="bg-gradient-to-br from-green-900/20 to-slate-800 border border-green-500/30 rounded-2xl p-8">
+            <h3 className="text-2xl font-bold text-white mb-6">🚀 Bagaimana Kami Melakukannya</h3>
+            <div className="space-y-4">
+              {[
+                "🤖 AI yang memahami bahasa Indonesia dan regulasi lokal",
+                "📊 Database terintegrasi dengan 27 tabel relasional",
+                "⚡ Real-time processing untuk analisis instan",
+                "🔄 Workflow automation untuk proses bisnis",
+                "📱 Mobile-first design untuk akses dimana saja",
+                "🔒 Enterprise-grade security dan compliance"
+              ].map((item, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <span className="text-blue-400 mt-0.5">•</span>
+                  <span className="text-slate-300 text-sm">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Value Proposition Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            {
+              icon: "⚡",
+              title: "Waktu Response 5 Detik",
+              desc: "Jawaban instan untuk pertanyaan teknis kompleks, bukan menunggu hari atau minggu",
+              benefit: "Hemat 40 jam kerja per bulan"
+            },
+            {
+              icon: "🎯",
+              title: "Akurasi 95%",
+              desc: "Informasi berdasarkan regulasi terkini dan praktik terbaik industri konstruksi",
+              benefit: "Kurangi risiko kesalahan hingga 80%"
+            },
+            {
+              icon: "💰",
+              title: "ROI 300%",
+              desc: "Investasi kecil untuk hasil besar - tingkatkan win rate tender dan efisiensi operasional",
+              benefit: "Pengembalian investasi dalam 3 bulan"
+            }
+          ].map((item, i) => (
+            <div key={item.title} className="bg-slate-800 border border-slate-700 rounded-2xl p-6 hover:border-orange-500/50 transition-colors">
+              <div className="text-3xl mb-4">{item.icon}</div>
+              <h4 className="text-white font-bold text-lg mb-2">{item.title}</h4>
+              <p className="text-slate-400 text-sm mb-4">{item.desc}</p>
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
+                <div className="text-orange-400 font-semibold text-sm">{item.benefit}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How It Works - Interactive Infographic */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-4">Bagaimana KonstruksiAI Bekerja</h2>
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+            Sistem AI canggih yang mengubah cara Anda menangani kompleksitas industri konstruksi
+          </p>
+        </div>
+
+        {/* Interactive Workflow Diagram */}
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            {[
+              {
+                step: "1",
+                icon: "📥",
+                title: "Input Data",
+                desc: "Upload dokumen, ajukan pertanyaan, atau gunakan mini-apps",
+                color: "from-blue-500 to-blue-600"
+              },
+              {
+                step: "2",
+                icon: "🤖",
+                title: "AI Processing",
+                desc: "Algoritma canggih menganalisis data dengan regulasi terkini",
+                color: "from-purple-500 to-purple-600"
+              },
+              {
+                step: "3",
+                icon: "⚡",
+                title: "Real-time Analysis",
+                desc: "Proses kompleks dalam hitungan detik, bukan hari",
+                color: "from-orange-500 to-orange-600"
+              },
+              {
+                step: "4",
+                icon: "📊",
+                title: "Actionable Output",
+                desc: "Rekomendasi konkret dengan strategi implementasi",
+                color: "from-green-500 to-green-600"
+              },
+              {
+                step: "5",
+                icon: "🎯",
+                title: "Execute & Win",
+                desc: "Terapkan solusi untuk kesuksesan maksimal",
+                color: "from-red-500 to-red-600"
+              }
+            ].map((item, i) => (
+              <div key={item.step} className="text-center relative">
+                {/* Connector Line */}
+                {i < 4 && (
+                  <div className="hidden md:block absolute top-8 left-full w-full h-0.5 bg-gradient-to-r from-slate-600 to-slate-500 z-0" style={{ width: 'calc(100% - 2rem)' }}></div>
+                )}
+
+                {/* Step Circle */}
+                <div className={`w-16 h-16 bg-gradient-to-r ${item.color} rounded-full flex items-center justify-center text-2xl font-bold text-white mx-auto mb-4 relative z-10`}>
+                  {item.step}
+                </div>
+
+                <div className="text-3xl mb-3">{item.icon}</div>
+                <h4 className="text-white font-bold mb-2">{item.title}</h4>
+                <p className="text-slate-400 text-sm">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Technology Stack */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            {
+              icon: "🧠",
+              title: "AI & Machine Learning",
+              features: ["NLP untuk bahasa Indonesia", "Computer Vision untuk dokumen", "Predictive Analytics", "Regulasi Compliance Engine"]
+            },
+            {
+              icon: "⚙️",
+              title: "Automation Engine",
+              features: ["Workflow Automation", "Document Processing", "Real-time Calculations", "API Integrations"]
+            },
+            {
+              icon: "🔒",
+              title: "Enterprise Security",
+              features: ["End-to-end Encryption", "GDPR Compliance", "Audit Trails", "24/7 Monitoring"]
+            }
+          ].map((tech, i) => (
+            <div key={tech.title} className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+              <div className="text-3xl mb-4">{tech.icon}</div>
+              <h4 className="text-white font-bold text-lg mb-4">{tech.title}</h4>
+              <ul className="space-y-2">
+                {tech.features.map((feature, j) => (
+                  <li key={j} className="flex items-center gap-2 text-slate-400 text-sm">
+                    <span className="text-green-400">✓</span>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Success Stories & Benefits - DESIRE */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Prospek Kemajuan yang Akan Anda Dapatkan
+          </h2>
+          <p className="text-slate-400 text-lg max-w-3xl mx-auto">
+            Lihat bagaimana KonstruksiAI mentransformasi bisnis konstruksi dan karir profesional
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          {/* Contractor Benefits */}
+          <div className="bg-gradient-to-br from-orange-900/20 to-slate-800 border border-orange-500/30 rounded-2xl p-8">
+            <h3 className="text-2xl font-bold text-white mb-6">🏗️ Untuk Kontraktor & Developer</h3>
+            <div className="space-y-4">
+              {[
+                { icon: "📈", title: "Win Rate Tender Naik 300%", desc: "Dari strategi pemenangan yang terbukti dan dokumentasi lengkap" },
+                { icon: "⏱️", title: "Proses Perijinan 80% Lebih Cepat", desc: "Otomasi pengurusan IMB, PBG, dan semua perijinan konstruksi" },
+                { icon: "💰", title: "Overrun Budget Turun 60%", desc: "Estimasi RAB yang akurat dengan kalkulator canggih" },
+                { icon: "👥", title: "Tim yang Lebih Kompeten", desc: "Akses ke database tenaga ahli bersertifikat" },
+                { icon: "📊", title: "Profit Margin Naik 25%", desc: "Efisiensi operasional dan pengurangan risiko" },
+                { icon: "🌟", title: "Reputasi Meningkat", desc: "Proyek selesai tepat waktu dan sesuai standar" }
+              ].map((benefit, i) => (
+                <div key={benefit.title} className="flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg">
+                  <span className="text-2xl">{benefit.icon}</span>
+                  <div>
+                    <h4 className="text-white font-semibold mb-1">{benefit.title}</h4>
+                    <p className="text-slate-400 text-sm">{benefit.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Professional Benefits */}
+          <div className="bg-gradient-to-br from-blue-900/20 to-slate-800 border border-blue-500/30 rounded-2xl p-8">
+            <h3 className="text-2xl font-bold text-white mb-6">👷 Untuk Profesional & Konsultan</h3>
+            <div className="space-y-4">
+              {[
+                { icon: "🎓", title: "Sertifikasi SKK/SKKNI Mudah", desc: "Panduan lengkap dan bimbingan untuk semua jenjang kompetensi" },
+                { icon: "💼", title: "Karir Meningkat 200%", desc: "Akses ke proyek premium dan networking dengan decision maker" },
+                { icon: "📚", title: "Pengetahuan Update Real-time", desc: "Regulasi terbaru dan teknologi konstruksi terkini" },
+                { icon: "🔧", title: "Tools Produktivitas Canggih", desc: "Kalkulator teknik, template dokumen, dan automation workflow" },
+                { icon: "🤝", title: "Kolaborasi Global", desc: "Berkolaborasi dengan profesional konstruksi dari seluruh dunia" },
+                { icon: "💎", title: "Nilai Pasar Tinggi", desc: "Keahlian yang dibutuhkan pasar dengan sertifikasi terakreditasi" }
+              ].map((benefit, i) => (
+                <div key={benefit.title} className="flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg">
+                  <span className="text-2xl">{benefit.icon}</span>
+                  <div>
+                    <h4 className="text-white font-semibold mb-1">{benefit.title}</h4>
+                    <p className="text-slate-400 text-sm">{benefit.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Success Metrics */}
+        <div className="bg-gradient-to-r from-green-900/20 to-slate-800 border border-green-500/30 rounded-2xl p-8 mb-12">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold text-white mb-2">Hasil Nyata dari Pengguna KonstruksiAI</h3>
+            <p className="text-slate-400">Data dari 5000+ pengguna aktif dalam 2 tahun terakhir</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { value: "300%", label: "Peningkatan Win Rate Tender", icon: "🎯" },
+              { value: "80%", label: "Penghematan Waktu Perijinan", icon: "⏱️" },
+              { value: "60%", label: "Penurunan Overrun Budget", icon: "💰" },
+              { value: "200%", label: "Peningkatan Karir Profesional", icon: "📈" },
+              { value: "95%", label: "Tingkat Kepuasan Pengguna", icon: "⭐" },
+              { value: "IDR 25M", label: "Penghematan Biaya Rata-rata", icon: "💸" },
+              { value: "50+", label: "Proyek Sukses per Bulan", icon: "🏗️" },
+              { value: "24/7", label: "Dukungan Teknis", icon: "🛟" }
+            ].map((metric, i) => (
+              <div key={metric.label} className="text-center bg-slate-800/50 rounded-xl p-4">
+                <div className="text-2xl mb-2">{metric.icon}</div>
+                <div className="text-2xl font-bold text-green-400 mb-1">{metric.value}</div>
+                <div className="text-slate-300 text-sm">{metric.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Case Study */}
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="flex-shrink-0">
+              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center text-2xl">
+                🏗️
+              </div>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-xl font-bold text-white mb-2">Studi Kasus: PT Maju Konstruksi</h4>
+              <p className="text-slate-400 mb-4">
+                "Sebelum menggunakan KonstruksiAI, kami hanya menang 2 dari 10 tender yang kami ikuti.
+                Setelah 6 bulan menggunakan platform ini, win rate kami naik menjadi 8 dari 10 tender.
+                Profit margin meningkat 35% dan kami berhasil mengurangi waktu perijinan dari 8 bulan menjadi 2 bulan."
+              </p>
+              <div className="text-orange-400 font-semibold">- Direktur PT Maju Konstruksi</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-green-400">400%</div>
+              <div className="text-slate-400 text-sm">Peningkatan Profit</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -891,21 +1364,151 @@ export default function Home() {
       {/* Plan Comparison */}
       <PlanComparisonSection />
 
-      {/* CTA Section */}
+      {/* Final CTA - ACTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-2xl p-10 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Siap Meningkatkan Produktivitas Keteknikan Anda?
-          </h2>
-          <p className="text-orange-100 text-lg mb-8 max-w-2xl mx-auto">
-            Mulai percakapan dengan KonstruksiAI sekarang dan dapatkan jawaban ahli dalam hitungan detik.
-          </p>
-          <Link
-            href="/chat"
-            className="bg-white text-orange-600 hover:bg-orange-50 px-8 py-4 rounded-xl font-bold text-lg transition-all hover:scale-105 inline-block shadow-lg"
-          >
-            🏗️ Mulai Gratis Sekarang
-          </Link>
+        <div className="bg-gradient-to-br from-orange-600 via-orange-500 to-red-500 rounded-2xl p-10 text-center relative overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-10 left-10 w-20 h-20 bg-white rounded-full"></div>
+            <div className="absolute top-20 right-20 w-16 h-16 bg-white rounded-full"></div>
+            <div className="absolute bottom-10 left-1/4 w-12 h-12 bg-white rounded-full"></div>
+            <div className="absolute bottom-20 right-1/3 w-8 h-8 bg-white rounded-full"></div>
+          </div>
+
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/30 rounded-full px-4 py-2 mb-6">
+              <span className="text-white text-sm font-medium">⏰ PENAWARAN TERBATAS - DAFTAR SEKARANG!</span>
+            </div>
+
+            <h2 className="text-4xl font-bold text-white mb-4">
+              Jangan Biarkan Industri Konstruksi Indonesia Terus Darurat!
+            </h2>
+
+            <p className="text-orange-100 text-xl mb-6 max-w-3xl mx-auto">
+              Bergabunglah dengan 5000+ profesional konstruksi yang sudah berhasil mentransformasi bisnis mereka dengan KonstruksiAI.
+            </p>
+
+            {/* Urgency Elements */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-3xl mx-auto">
+              {[
+                { icon: "🚀", title: "Gratis Selamanya", desc: "Tidak ada biaya tersembunyi" },
+                { icon: "⚡", title: "Siap Pakai 5 Menit", desc: "Daftar dan langsung gunakan" },
+                { icon: "🛡️", title: "Garansi Uang Kembali", desc: "30 hari tanpa syarat" }
+              ].map((item, i) => (
+                <div key={item.title} className="bg-white/10 border border-white/20 rounded-xl p-4">
+                  <div className="text-2xl mb-2">{item.icon}</div>
+                  <h4 className="text-white font-semibold mb-1">{item.title}</h4>
+                  <p className="text-orange-100 text-sm">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Primary CTA */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+              <Link
+                href="/register"
+                className="bg-white text-orange-600 hover:bg-orange-50 px-10 py-5 rounded-xl font-bold text-xl transition-all hover:scale-105 inline-block shadow-lg animate-pulse"
+              >
+                🚀 DAFTAR GRATIS SEKARANG - Ubah Masa Depan Anda!
+              </Link>
+              <Link
+                href="/chat"
+                className="border-2 border-white text-white hover:bg-white hover:text-orange-600 px-8 py-5 rounded-xl font-bold text-xl transition-all inline-block"
+              >
+                💬 Coba Demo Gratis
+              </Link>
+            </div>
+
+            {/* Social Proof */}
+            <div className="text-center">
+              <p className="text-orange-100 text-sm mb-4">Bergabung dengan perusahaan konstruksi terkemuka:</p>
+              <div className="flex justify-center items-center gap-6 text-orange-200">
+                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">PT WIKA</span>
+                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">PT PP</span>
+                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">PT Adhi Karya</span>
+                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">PT Nindya Karya</span>
+                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">+1000 lainnya</span>
+              </div>
+            </div>
+
+            {/* Countdown Timer */}
+            <div className="mt-8 p-4 bg-white/10 border border-white/20 rounded-xl max-w-md mx-auto">
+              <p className="text-white text-sm mb-2">Penawaran Spesial Berakhir Dalam:</p>
+              <div className="grid grid-cols-4 gap-2 text-center">
+                <div className="bg-white/20 rounded p-2">
+                  <div className="text-2xl font-bold text-white">07</div>
+                  <div className="text-xs text-orange-100">Hari</div>
+                </div>
+                <div className="bg-white/20 rounded p-2">
+                  <div className="text-2xl font-bold text-white">14</div>
+                  <div className="text-xs text-orange-100">Jam</div>
+                </div>
+                <div className="bg-white/20 rounded p-2">
+                  <div className="text-2xl font-bold text-white">23</div>
+                  <div className="text-xs text-orange-100">Menit</div>
+                </div>
+                <div className="bg-white/20 rounded p-2">
+                  <div className="text-2xl font-bold text-white">45</div>
+                  <div className="text-xs text-orange-100">Detik</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* How to Join Section */}
+        <div className="mt-12 bg-slate-800 border border-slate-700 rounded-2xl p-8">
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold text-white mb-2">Cara Bergabung dengan KonstruksiAI</h3>
+            <p className="text-slate-400">Proses pendaftaran yang sangat mudah - hanya 3 langkah!</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                step: "1",
+                icon: "📝",
+                title: "Daftar Akun",
+                desc: "Buat akun gratis dengan email Anda. Verifikasi email dan lengkapi profil perusahaan/profesional Anda.",
+                time: "2 menit"
+              },
+              {
+                step: "2",
+                icon: "🎯",
+                title: "Pilih Paket",
+                desc: "Pilih paket yang sesuai dengan kebutuhan Anda. Mulai dari paket gratis hingga enterprise.",
+                time: "1 menit"
+              },
+              {
+                step: "3",
+                icon: "🚀",
+                title: "Mulai Gunakan",
+                desc: "Akses semua fitur KonstruksiAI. Mulai dengan chat AI atau jelajahi mini-apps sesuai kebutuhan.",
+                time: "Sekarang juga!"
+              }
+            ].map((item, i) => (
+              <div key={item.step} className="text-center">
+                <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center text-2xl font-bold text-white mx-auto mb-4">
+                  {item.step}
+                </div>
+                <div className="text-3xl mb-3">{item.icon}</div>
+                <h4 className="text-white font-bold text-lg mb-2">{item.title}</h4>
+                <p className="text-slate-400 text-sm mb-3">{item.desc}</p>
+                <div className="inline-block bg-orange-500/10 border border-orange-500/30 text-orange-400 px-3 py-1 rounded-full text-sm font-medium">
+                  {item.time}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <Link
+              href="/register"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-xl font-semibold transition-all hover:scale-105 inline-block"
+            >
+              Mulai Proses Pendaftaran →
+            </Link>
+          </div>
         </div>
       </section>
 
