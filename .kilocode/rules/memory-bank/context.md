@@ -40,6 +40,11 @@ The template has been expanded into a comprehensive construction AI assistant ap
 - [x] Built Evidence Mapping mini-app with 4-tab interface: Upload Documents, Document Library, Evidence Mappings, Compliance Analysis
 - [x] Added Evidence Mapping to navbar navigation as foundation for document management across all mini-apps
 - [x] Implemented audit trails, validation workflows, and gap identification for evidence-based compliance assessment
+- [x] Implemented Workforce Assignment Eligibility as advanced personnel matching system for project assignments
+- [x] Created workforce-assignment.ts library with comprehensive matching algorithms for skills, certifications, experience, and availability
+- [x] Built Workforce Assignment mini-app with 5-step wizard: Project Setup, Position Requirements, Personnel Database, Analysis, Recommendations
+- [x] Added Workforce Assignment to navbar navigation as strategic feature for optimal project team composition
+- [x] Implemented intelligent personnel matching with compatibility scoring, risk assessment, and utilization optimization
 - [x] Designed complete agent contracts with standardized input/output schemas for 11 core agents: Orchestrator, Document Intake, Tender, Legal, Licensing, Business Certification, Competency, Training/CPD, Evidence Mapping, Verifier, Final Aggregator
 - [x] Created detailed JSON contract specifications with examples for each agent including task orchestration, evidence processing, compliance analysis, and final aggregation
 - [x] Developed database mapping specification linking all agent input/output fields to database tables: agent_runs, agent_task_outputs, evidence_mappings, compliance_findings, documents, audit_events
