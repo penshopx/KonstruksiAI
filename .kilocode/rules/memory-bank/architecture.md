@@ -309,6 +309,74 @@ All agents follow standardized input/output contracts for orchestrator integrati
 }
 ```
 
+### Agent Contract Details
+
+#### 1. **Orchestrator Agent**
+- **Function**: Request routing, task decomposition, result aggregation, workflow planning
+- **Input Schema**: `orchestrator_input_v1`
+- **Output Schema**: `orchestrator_plan_v1`
+- **Key Features**: Multi-domain orchestration, dependency resolution, approval workflow
+
+#### 2. **Document Intake Agent**
+- **Function**: Document processing, text extraction, content structuring, metadata generation
+- **Input Schema**: `document_intake_input_v1`
+- **Output Schema**: `document_intake_result_v1`
+- **Key Features**: Multi-format processing, OCR integration, content structuring
+
+#### 3. **Tender Agent**
+- **Function**: Tender document analysis, requirement extraction, bid preparation support
+- **Input Schema**: `tender_analysis_input_v1`
+- **Output Schema**: `tender_requirements_v1`
+- **Key Features**: Document analysis, requirement extraction, compliance mapping
+
+#### 4. **Legal Agent**
+- **Function**: Legal compliance assessment, license validation, regulatory compliance mapping
+- **Input Schema**: `legal_compliance_input_v1`
+- **Output Schema**: `legal_status_result_v1`
+- **Key Features**: Regulatory interpretation, legal requirement extraction, compliance mapping
+
+#### 5. **Licensing Agent**
+- **Function**: License requirements analysis, license status tracking, renewal management
+- **Input Schema**: `licensing_analysis_input_v1`
+- **Output Schema**: `licensing_gap_result_v1`
+- **Key Features**: License lifecycle management, expiry tracking, renewal planning
+
+#### 6. **Business Certification Agent**
+- **Function**: Entity certification assessment, readiness validation, evidence evaluation
+- **Input Schema**: `business_certification_input_v1`
+- **Output Schema**: `business_certification_match_v1`
+- **Key Features**: Certification path analysis, evidence validation, readiness scoring
+
+#### 7. **Competency Agent**
+- **Function**: Workforce skill mapping, competency gap analysis, development planning
+- **Input Schema**: `personnel_competency_input_v1`
+- **Output Schema**: `personnel_match_result_v1`
+- **Key Features**: Skill mapping, gap analysis, learning path recommendations
+
+#### 8. **Training and CPD Agent**
+- **Function**: Learning needs identification, training program recommendation, development path creation
+- **Input Schema**: `training_cpd_input_v1`
+- **Output Schema**: `training_cpd_gap_result_v1`
+- **Key Features**: Needs assessment, program matching, path optimization
+
+#### 9. **Evidence Mapping Agent**
+- **Function**: Evidence-to-requirement mapping, compliance validation, audit trail management
+- **Input Schema**: `evidence_mapping_input_v1`
+- **Output Schema**: `evidence_matrix_v1`
+- **Key Features**: Automated mapping, validation workflows, gap identification
+
+#### 10. **Verifier Agent**
+- **Function**: Output validation, schema checking, consistency verification, quality assurance
+- **Input Schema**: `verification_input_v1`
+- **Output Schema**: `verification_result_v1`
+- **Key Features**: Schema validation, cross-agent consistency, quality assurance
+
+#### 11. **Final Aggregator Agent**
+- **Function**: Result synthesis, executive summary generation, final decision formulation
+- **Input Schema**: `aggregation_input_v1`
+- **Output Schema**: `final_assessment_v1`
+- **Key Features**: Multi-agent result integration, executive reporting, decision support
+
 ### Layer 1: Orchestration Agents (4 Agents)
 
 #### 1. **Orchestrator Agent**
