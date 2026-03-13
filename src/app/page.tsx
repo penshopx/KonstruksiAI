@@ -460,6 +460,7 @@ export default function Home() {
               <Link href="/certify" className="text-emerald-400 hover:text-emerald-300 text-sm transition-colors">🏅 Sertifikasi</Link>
               <Link href="/tender-intelligence" className="text-emerald-400 hover:text-emerald-300 text-sm transition-colors">🎯 Tender Intelligence</Link>
               <Link href="/tender-eligibility" className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors">📋 Tender Eligibility</Link>
+              <Link href="/evidence-mapping" className="text-purple-400 hover:text-purple-300 text-sm transition-colors">🔗 Evidence Mapping</Link>
               <Link href="/legal-licensing" className="text-blue-400 hover:text-blue-300 text-sm transition-colors">⚖️ Legal & Licensing</Link>
               <Link href="/sbu-readiness" className="text-orange-400 hover:text-orange-300 text-sm transition-colors">🏗️ SBU Readiness</Link>
               <Link href="/skk-readiness" className="text-green-400 hover:text-green-300 text-sm transition-colors">🎓 SKK Readiness</Link>
