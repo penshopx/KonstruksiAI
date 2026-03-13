@@ -51,6 +51,11 @@ The template has been expanded into a comprehensive construction AI assistant ap
 - [x] Created agent-database-mapping.md with complete field-to-table mappings, performance optimization strategies, and migration script structure
 - [x] Established data flow patterns for agent orchestration, evidence mapping, compliance tracking, and audit trails
 - [x] Defined indexing strategy, caching patterns, and query optimization for agent-driven database operations
+- [x] Created comprehensive JSON Schema formal specifications for all 11 agent contracts with strict validation rules, reusable definitions, and enterprise-grade schema design
+- [x] Developed agent-json-schemas.md with complete input/output schemas, validation examples, schema registry structure, TypeScript interface generation, and validation implementation
+- [x] Established schema versioning strategy with major/minor/patch version format and backward compatibility rules
+- [x] Implemented reusable schema components ($defs) for common field types, enums, and object patterns
+- [x] Created schema validation examples for Node.js and Python with error handling and comprehensive test cases
 - [x] Designed complete agent contracts with standardized input/output schemas for 11 core agents: Orchestrator, Document Intake, Tender, Legal, Licensing, Business Certification, Competency, Training/CPD, Evidence Mapping, Verifier, Final Aggregator
 - [x] Created detailed JSON contract specifications with examples for each agent including task orchestration, evidence processing, compliance analysis, and final aggregation
 - [x] Developed database mapping specification linking all agent input/output fields to database tables: agent_runs, agent_task_outputs, evidence_mappings, compliance_findings, documents, audit_events
