@@ -462,6 +462,7 @@ export default function Home() {
               <Link href="/tender-eligibility" className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors">📋 Tender Eligibility</Link>
               <Link href="/legal-licensing" className="text-blue-400 hover:text-blue-300 text-sm transition-colors">⚖️ Legal & Licensing</Link>
               <Link href="/sbu-readiness" className="text-orange-400 hover:text-orange-300 text-sm transition-colors">🏗️ SBU Readiness</Link>
+              <Link href="/skk-readiness" className="text-green-400 hover:text-green-300 text-sm transition-colors">🎓 SKK Readiness</Link>
               <Link href="/pricing" className="text-slate-300 hover:text-white text-sm transition-colors">Harga</Link>
               <Link href="/chat" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Mulai Chat

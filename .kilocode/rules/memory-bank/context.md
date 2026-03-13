@@ -30,6 +30,11 @@ The template has been expanded into a comprehensive construction AI assistant ap
 - [x] Built Tender Eligibility Checker mini-app with 4-tab interface: Input Data, Analysis, Gap Analysis, Recommended Actions
 - [x] Added Tender Eligibility Checker to navbar navigation as strategic MVP feature for construction tender readiness
 - [x] Implemented evidence-based eligibility assessment with structured JSON output for executive decision-making
+- [x] Implemented SKK Readiness Wizard mini-app with 5-step assessment process for workforce competency certification
+- [x] Created skk-readiness.ts library with comprehensive SKK job position matrix based on SK Dirjen Bina Konstruksi No. 114 Tahun 2024
+- [x] Built SKK assessment engine with education, experience, training, certification, assessment, and portfolio validation
+- [x] Added SKK Readiness to navbar navigation with interactive step-by-step wizard interface for personnel certification readiness
+- [x] Completed trilogy of core mini-apps: SBU Readiness (business), SKK Readiness (personnel), Tender Eligibility (integration)
 
 ## Recently Completed (Session 13 — Mechanical Engineering Documents)
 
