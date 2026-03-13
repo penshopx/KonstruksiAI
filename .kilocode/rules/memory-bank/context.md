@@ -6,6 +6,24 @@
 
 The template has been expanded into a comprehensive construction AI assistant application (KonstruksiAI) with chat interface, landing page, solver, tools, Knowledge Base, Energy Efficiency Analysis, Test Plans, and now a full Mechanical Engineering Document system.
 
+## Recently Completed (Session 14 — Agentic Architecture Planning)
+
+- [x] Documented 6-layer agentic architecture: Interaction, Orchestration, Knowledge, Domain Model, Execution/Verification, Governance
+- [x] Defined orchestrator components: intent classifier, planner, agent router, workflow engine, result aggregator, critic/verifier
+- [x] Specified 12 specialist agents: Tender, Estimation/BOQ, Contract/Legal, HSE, Environment, Schedule/Progress, Construction Tech, Electrical, Oil/Gas, Mining, Procurement/Vendor Eval, Reviewer/Auditor
+- [x] Outlined toolbox/action layer: PDF parser, OCR, spec extractor, BOQ calculator, HPS/RAB analyzer, K3 risk matrix, method planner, document generator, compliance evaluator, vendor comparator, meeting summarizer
+- [x] Structured knowledge layer: Regulasi, Dokumen Proyek, Knowledge Bisnis, Knowledge Teknis Terstruktur with hybrid retrieval and metadata
+- [x] Designed domain model layer with ontology: 18+ entities (proyek, tender, kontraktor, vendor, dll) and relations
+- [x] Planned execution/verification layer: rule engine, calculation engine, document validator, policy checker, consistency checker with reasoning vs deterministic modes
+- [x] Specified governance layer: RBAC, audit logs, versioning, traceability, confidence scoring, approval flows, red flags
+- [x] Prioritized 5 mini-apps: Tender Intelligence, Construction Document Copilot, HSE Copilot, Commercial Analyzer, Project Knowledge Engine
+- [x] Outlined multi-model strategy: small/medium/large models for different complexity levels
+- [x] Created implementation roadmap with 10 major tasks
+- [x] Built Tender Intelligence mini-app: Interactive dashboard with completeness check, requirements analysis, risk assessment, and checklist features
+- [x] Created tender-intelligence library with comprehensive requirements database and risk analysis
+- [x] Added Tender Intelligence response generator for chat integration
+- [x] Integrated Tender Intelligence into navbar and chat API with keywords: kelengkapan tender, persyaratan tender, risiko tender, checklist tender, analisis tender
+
 ## Recently Completed (Session 13 — Mechanical Engineering Documents)
 
 - [x] Mechanical Engineering library (`src/lib/mechanical-engineer.ts`) — comprehensive document framework

@@ -8,6 +8,7 @@ import { getRegulatoryComplianceResponse } from "@/lib/regulatory-compliance";
 import { getTestPlansResponse } from "@/lib/test-plans-response";
 import { getEnergyEfficiencyResponse } from "@/lib/energy-efficiency-response";
 import { getMechanicalEngineerResponse } from "@/lib/mechanical-engineer-response";
+import { generateTenderIntelligenceResponse } from "@/lib/tender-intelligence-response";
 
 // ============================================================
 // Chat API Route — KonstruksiAI
@@ -189,6 +190,13 @@ Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut dokumen komprehe
   const mechanicalResponse = getMechanicalEngineerResponse(userMessage);
   if (mechanicalResponse) {
     return mechanicalResponse;
+  }
+
+  // Tender Intelligence keywords
+  if (msg.includes("tender intelligence") || msg.includes("kelengkapan tender") ||
+      msg.includes("persyaratan tender") || msg.includes("checklist tender") ||
+      msg.includes("risiko tender") || msg.includes("analisis tender")) {
+    return generateTenderIntelligenceResponse(userMessage);
   }
 
   // === EXISTING HANDLERS ===
