@@ -9,6 +9,7 @@ import { getTestPlansResponse } from "@/lib/test-plans-response";
 import { getEnergyEfficiencyResponse } from "@/lib/energy-efficiency-response";
 import { getMechanicalEngineerResponse } from "@/lib/mechanical-engineer-response";
 import { generateTenderIntelligenceResponse } from "@/lib/tender-intelligence-response";
+import { generateLegalLicensingResponse } from "@/lib/legal-licensing-response";
 
 // ============================================================
 // Chat API Route — KonstruksiAI
@@ -197,6 +198,15 @@ Sebagai Electrical Engineer dengan 30 tahun pengalaman, berikut dokumen komprehe
       msg.includes("persyaratan tender") || msg.includes("checklist tender") ||
       msg.includes("risiko tender") || msg.includes("analisis tender")) {
     return generateTenderIntelligenceResponse(userMessage);
+  }
+
+  // Legal & Licensing keywords
+  if (msg.includes("legal") || msg.includes("licensing") || msg.includes("perizinan") ||
+      msg.includes("izin") || msg.includes("nib") || msg.includes("siup") ||
+      msg.includes("sbu") || msg.includes("smk3") || msg.includes("kepatuhan") ||
+      msg.includes("compliance") || msg.includes("perpanjangan") || msg.includes("renewal") ||
+      msg.includes("masa berlaku") || msg.includes("expiry")) {
+    return generateLegalLicensingResponse(userMessage);
   }
 
   // === EXISTING HANDLERS ===

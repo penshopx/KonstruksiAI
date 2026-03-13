@@ -71,21 +71,47 @@ KonstruksiAI is evolving into a powerful agentic AI platform for construction an
   - Red flags for high-risk recommendations
 - **Human-in-the-loop**: Required for critical decisions (methods, safety assessments, legal compliance, high-value tenders)
 
-## Specialist Agents
+## Specialist Agents by Domain
 
-### Core Agents
+### Klaster 1: Core Orchestration
+- **Orchestrator Agent**: Workflow coordination, task routing, state management
+- **Planner Agent**: Task decomposition, dependency mapping, timeline planning
+- **Critic Agent**: Output validation, risk assessment, quality review
+- **Verifier Agent**: Schema validation, consistency checking, citation verification
+
+### Klaster 2: Project Execution
 - **Tender Agent**: Document analysis, requirement extraction, compliance checking
 - **Estimation/BOQ Agent**: Cost calculation, quantity take-off, pricing analysis
-- **Contract/Legal Agent**: Clause analysis, risk identification, compliance review
+- **Contract Agent**: Clause analysis, risk identification, commercial terms review
+- **Construction Agent**: Technical specifications, method statements, quality control
+- **Commercial Agent**: Payment terms, claim analysis, vendor evaluation
+- **Procurement Agent**: Supplier selection, contract management, vendor performance
+
+### Klaster 3: Safety and Environment
 - **HSE Agent**: Risk assessment, safety planning, permit management
-- **Environment Agent**: Environmental impact, compliance monitoring
-- **Schedule/Progress Agent**: Timeline planning, progress tracking, delay analysis
-- **Construction Tech Agent**: Technical specifications, method statements, quality control
-- **Electrical Agent**: Power systems, electrical design, testing protocols
-- **Oil/Gas Agent**: Upstream/downstream operations, safety standards
-- **Mining Agent**: Mining operations, environmental controls, regulatory compliance
-- **Procurement/Vendor Agent**: Supplier evaluation, vendor selection, contract management
-- **Reviewer/Auditor Agent**: Document review, compliance auditing, quality assurance
+- **Environmental Agent**: Environmental impact, compliance monitoring, permit tracking
+
+### Klaster 4: Legal and Regulatory
+- **Legal Agent**: Regulatory compliance, legal requirement analysis
+- **Licensing Agent**: Permit management, renewal tracking, jurisdiction mapping
+- **Regulatory Intelligence Agent**: Standard updates, compliance gap analysis
+
+### Klaster 5: Certification and Competency
+- **Business Certification Agent**: Entity qualification, certification readiness
+- **Workforce Competency Agent**: Skills assessment, certification tracking
+- **Certification Readiness Agent**: Gap analysis, evidence mapping, renewal planning
+
+### Klaster 6: Learning and Development
+- **Training Agent**: Learning needs assessment, training recommendation
+- **CPD Agent**: Continuing professional development tracking
+- **Professional Development Agent**: Career path planning, skill development
+
+### Klaster 7: Cross-Domain Support
+- **Document Intake Agent**: File processing, metadata extraction
+- **Classification Agent**: Content categorization, sector mapping
+- **Metadata Enrichment Agent**: Entity linking, relationship mapping
+- **Summarizer Agent**: Content synthesis, key point extraction
+- **Citation Agent**: Source verification, evidence linking
 
 ### Agent Workflow Pattern
 **Planner → Specialist → Critic → Consolidator**
@@ -115,13 +141,73 @@ KonstruksiAI is evolving into a powerful agentic AI platform for construction an
 - **Medium Models**: Summarization, standard drafting, document Q&A
 - **Large Models**: Complex cross-document reasoning, tender analysis, contract review, sensitive technical tasks
 
-## Priority Mini-Apps
+## Domain Coverage
 
-1. **Tender Intelligence**: Document completeness check, requirement summary, risk identification, compliance checklist
-2. **Construction Document Copilot**: Method statements, ITPs, inspection checklists, progress reports
-3. **HSE and Compliance Copilot**: HIRADC/JSA creation, risk matrices, permit checklists, audit recommendations
-4. **Commercial and Contract Analyzer**: Deviation analysis, clause extraction, payment risks, contractual obligations
-5. **Project Knowledge Engine**: Cross-document Q&A, historical decisions, lessons learned, quick project searches
+### 1. Legal and Licensing Domain
+- Business entity legality
+- NIB and operational permits
+- Sectoral licenses
+- Renewal requirements
+- Cross-sector compliance
+- Regional jurisdiction rules
+
+### 2. Business Entity Certification Domain
+- Business certification status
+- Classification and sub-classification
+- Administrative requirements
+- Personnel requirements
+- Experience requirements
+- Equipment/facility requirements
+- Audit/assessment history
+- Renewal and recertification needs
+
+### 3. Workforce Competency and Individual Certification Domain
+- Workforce profiles
+- Competency units
+- Certification schemes
+- Certificate management
+- Expiry tracking
+- Competency gaps
+- Training needs
+- Project experience
+- Evidence portfolios
+
+### 4. Continuing Professional Development and Training Domain
+- Training needs mapping
+- Learning paths
+- Training history recording
+- Certification-training linkage
+- Project risk-training linkage
+- CPD monitoring
+
+### 5. Cross-Domain Compliance Intelligence
+- Legal-technical-HSE-environment synchronization
+- Entity-project-personnel compliance graphs
+- Evidence-to-requirement mapping
+- Compliance gap detection
+- Renewal and validity tracking
+
+## Priority Mini-Apps by Domain
+
+### Legal & Licensing
+1. **Legalitas and Perizinan Checker**: Permit requirements analysis, completeness status, expiry tracking, action priorities
+
+### Certification & Competency
+2. **Sertifikasi Badan Usaha Readiness App**: Certification requirements mapping, gap analysis, document preparation lists
+3. **Sertifikasi Kompetensi Readiness App**: Competency assessment, evidence mapping, certification preparation plans
+
+### Learning & Development
+4. **Training and CPD Planner**: Training needs assessment, learning paths, renewal planning, professional development tracking
+
+### Project Execution
+5. **Eligibility for Tender and Project Assignment**: Entity and personnel qualification checking, gap identification, corrective action plans
+
+### Legacy Mini-Apps (Enhanced)
+6. **Tender Intelligence**: Document completeness check, requirement summary, risk identification, compliance checklist
+7. **Construction Document Copilot**: Method statements, ITPs, inspection checklists, progress reports
+8. **HSE and Compliance Copilot**: HIRADC/JSA creation, risk matrices, permit checklists, audit recommendations
+9. **Commercial and Contract Analyzer**: Deviation analysis, clause extraction, payment risks, contractual obligations
+10. **Project Knowledge Engine**: Cross-document Q&A, historical decisions, lessons learned, quick project searches
 
 ## Original Next.js Structure
 

@@ -6,23 +6,20 @@
 
 The template has been expanded into a comprehensive construction AI assistant application (KonstruksiAI) with chat interface, landing page, solver, tools, Knowledge Base, Energy Efficiency Analysis, Test Plans, and now a full Mechanical Engineering Document system.
 
-## Recently Completed (Session 14 — Agentic Architecture Planning)
+## Recently Completed (Session 15 — Expanded Domain Architecture)
 
-- [x] Documented 6-layer agentic architecture: Interaction, Orchestration, Knowledge, Domain Model, Execution/Verification, Governance
-- [x] Defined orchestrator components: intent classifier, planner, agent router, workflow engine, result aggregator, critic/verifier
-- [x] Specified 12 specialist agents: Tender, Estimation/BOQ, Contract/Legal, HSE, Environment, Schedule/Progress, Construction Tech, Electrical, Oil/Gas, Mining, Procurement/Vendor Eval, Reviewer/Auditor
-- [x] Outlined toolbox/action layer: PDF parser, OCR, spec extractor, BOQ calculator, HPS/RAB analyzer, K3 risk matrix, method planner, document generator, compliance evaluator, vendor comparator, meeting summarizer
-- [x] Structured knowledge layer: Regulasi, Dokumen Proyek, Knowledge Bisnis, Knowledge Teknis Terstruktur with hybrid retrieval and metadata
-- [x] Designed domain model layer with ontology: 18+ entities (proyek, tender, kontraktor, vendor, dll) and relations
-- [x] Planned execution/verification layer: rule engine, calculation engine, document validator, policy checker, consistency checker with reasoning vs deterministic modes
-- [x] Specified governance layer: RBAC, audit logs, versioning, traceability, confidence scoring, approval flows, red flags
-- [x] Prioritized 5 mini-apps: Tender Intelligence, Construction Document Copilot, HSE Copilot, Commercial Analyzer, Project Knowledge Engine
-- [x] Outlined multi-model strategy: small/medium/large models for different complexity levels
-- [x] Created implementation roadmap with 10 major tasks
-- [x] Built Tender Intelligence mini-app: Interactive dashboard with completeness check, requirements analysis, risk assessment, and checklist features
-- [x] Created tender-intelligence library with comprehensive requirements database and risk analysis
-- [x] Added Tender Intelligence response generator for chat integration
-- [x] Integrated Tender Intelligence into navbar and chat API with keywords: kelengkapan tender, persyaratan tender, risiko tender, checklist tender, analisis tender
+- [x] Expanded architecture to 7 domain clusters: Orchestration, Project Execution, Safety/Environment, Legal/Regulatory, Certification/Competency, Learning/Development, Support
+- [x] Added 5 new compliance domains: Legal & Licensing, Business Entity Certification, Workforce Competency, CPD & Training, Cross-Domain Compliance Intelligence
+- [x] Restructured specialist agents into 7 functional clusters with 25+ agents total
+- [x] Enhanced mini-apps roadmap to 10 prioritized apps covering all domains
+- [x] Positioned platform as "AI Operating System for Compliance, Capability, Certification, and Execution"
+- [x] Added obligation engine, validity/renewal engine, eligibility engine, evidence/audit engine requirements
+- [x] Structured knowledge repositories by compliance function: Regulatory/Standards, Entity Compliance, Workforce Capability, Operational Projects
+- [x] Implemented version-aware and time-aware knowledge system for legal/licensing/certification domains
+- [x] Built Legal & Licensing mini-app: Interactive dashboard for permit compliance, expiry tracking, renewal management, and legal requirements analysis
+- [x] Created legal-licensing library with comprehensive Indonesian license requirements database and compliance calculation engine
+- [x] Added Legal & Licensing response generator for chat integration with keywords: perizinan, izin, NIB, SIUP, SBU, SMK3, kepatuhan, perpanjangan
+- [x] Integrated Legal & Licensing into navbar and chat API with comprehensive legal/licensing keyword detection
 
 ## Recently Completed (Session 13 — Mechanical Engineering Documents)
 
