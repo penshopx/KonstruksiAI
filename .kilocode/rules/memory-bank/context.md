@@ -6,45 +6,8 @@
 
 The template has been expanded into a comprehensive construction AI assistant application (KonstruksiAI) with chat interface, landing page, solver, tools, Knowledge Base, Energy Efficiency Analysis, Test Plans, and now a full Mechanical Engineering Document system.
 
-## Recently Completed (Session 16 — Product Blueprint Definition)
+## Recently Completed (Session 17 — Database Implementation)
 
-- [x] Defined 8 main application modules: Dashboard, Legalitas/Perizinan, Sertifikasi Badan Usaha, Kompetensi/Sertifikasi Personel, Training/CPD, Tender/Kualifikasi, Pelaksanaan Proyek, Knowledge/AI Workspace
-- [x] Structured agent architecture in 4 layers: Orchestration (4 agents), Regulatory/Compliance (4 agents), Workforce/Capability (4 agents), Operational (7 agents)
-- [x] Created 90-day MVP roadmap in 3 phases: Foundation (data/auth), High-Value Use Cases (eligibility/readiness), Verification/Expansion (dashboards/analytics)
-- [x] Prioritized 15 mini-apps in 3 implementation waves based on business value and technical feasibility
-- [x] Positioned product as "AI Platform for Compliance, Qualification, Competency, and Execution Readiness" for construction/energy/mining sectors
-- [x] Designed core database schema with 15 tables: business_entities, licenses_permits, business_certifications, personnel, person_competencies, person_certifications, training_programs, training_records, cpd_records, regulations, regulatory_obligations, tenders, projects, compliance_findings, documents
-- [x] Established key relationships for cross-domain intelligence: entity-licensing-certification, personnel-competency-training, regulation-obligation-compliance
-- [x] Defined product differentiators: evidence-based eligibility, time-aware compliance, cross-domain intelligence, actionable outputs, full auditability
-- [x] Created realistic MVP scope focusing on 4 core domains: legal/licensing, business certification, personnel certification, tender eligibility
-- [x] Developed comprehensive UI/UX specification with 25+ detailed page designs across all 8 modules
-- [x] Established common UI patterns: navigation, data display, forms, status indicators, responsive design
-- [x] Created UI_UX_SPECIFICATION.md as implementation blueprint for frontend development
-- [x] Implemented SBU Readiness Wizard mini-app with 5-step assessment process for construction business certification
-- [x] Created sbu-readiness.ts library with comprehensive SBU classification matrix based on PP No. 28 Tahun 2025 and SK Dirjen Bina Konstruksi No. 37 Tahun 2025
-- [x] Built SBU assessment engine with personnel, equipment, experience, and financial requirement validation
-- [x] Added SBU Readiness to navbar navigation with interactive step-by-step wizard interface
-- [x] Implemented regulatory baseline updates: PP No. 28 Tahun 2025 (replaces PP No. 5 Tahun 2021), Permen PUPR No. 6 Tahun 2025, SK Dirjen 37/2025 for SBU, SK Dirjen 114/2024 for SKK
-- [x] Implemented Tender Eligibility Checker end-to-end with comprehensive cross-domain analysis: legal/licensing, certification, personnel, experience, financial compliance
-- [x] Created tender-eligibility.ts library with full eligibility assessment engine including gap analysis, risk identification, and action planning
-- [x] Built Tender Eligibility Checker mini-app with 4-tab interface: Input Data, Analysis, Gap Analysis, Recommended Actions
-- [x] Added Tender Eligibility Checker to navbar navigation as strategic MVP feature for construction tender readiness
-- [x] Implemented evidence-based eligibility assessment with structured JSON output for executive decision-making
-- [x] Implemented SKK Readiness Wizard mini-app with 5-step assessment process for workforce competency certification
-- [x] Created skk-readiness.ts library with comprehensive SKK job position matrix based on SK Dirjen Bina Konstruksi No. 114 Tahun 2024
-- [x] Built SKK assessment engine with education, experience, training, certification, assessment, and portfolio validation
-- [x] Added SKK Readiness to navbar navigation with interactive step-by-step wizard interface for personnel certification readiness
-- [x] Completed trilogy of core mini-apps: SBU Readiness (business), SKK Readiness (personnel), Tender Eligibility (integration)
-- [x] Implemented Evidence Mapping App as centralized document management system with automated evidence-to-requirement mapping
-- [x] Created evidence-mapping.ts library with comprehensive document processing, text extraction, mapping confidence calculation, and compliance analysis
-- [x] Built Evidence Mapping mini-app with 4-tab interface: Upload Documents, Document Library, Evidence Mappings, Compliance Analysis
-- [x] Added Evidence Mapping to navbar navigation as foundation for document management across all mini-apps
-- [x] Implemented audit trails, validation workflows, and gap identification for evidence-based compliance assessment
-- [x] Implemented Workforce Assignment Eligibility as advanced personnel matching system for project assignments
-- [x] Created workforce-assignment.ts library with comprehensive matching algorithms for skills, certifications, experience, and availability
-- [x] Built Workforce Assignment mini-app with 5-step wizard: Project Setup, Position Requirements, Personnel Database, Analysis, Recommendations
-- [x] Added Workforce Assignment to navbar navigation as strategic feature for optimal project team composition
-- [x] Implemented intelligent personnel matching with compatibility scoring, risk assessment, and utilization optimization
 - [x] Designed complete agent contracts with standardized input/output schemas for 11 core agents: Orchestrator, Document Intake, Tender, Legal, Licensing, Business Certification, Competency, Training/CPD, Evidence Mapping, Verifier, Final Aggregator
 - [x] Created detailed JSON contract specifications with examples for each agent including task orchestration, evidence processing, compliance analysis, and final aggregation
 - [x] Developed database mapping specification linking all agent input/output fields to database tables: agent_runs, agent_task_outputs, evidence_mappings, compliance_findings, documents, audit_events
@@ -56,12 +19,13 @@ The template has been expanded into a comprehensive construction AI assistant ap
 - [x] Established schema versioning strategy with major/minor/patch version format and backward compatibility rules
 - [x] Implemented reusable schema components ($defs) for common field types, enums, and object patterns
 - [x] Created schema validation examples for Node.js and Python with error handling and comprehensive test cases
-- [x] Designed complete agent contracts with standardized input/output schemas for 11 core agents: Orchestrator, Document Intake, Tender, Legal, Licensing, Business Certification, Competency, Training/CPD, Evidence Mapping, Verifier, Final Aggregator
-- [x] Created detailed JSON contract specifications with examples for each agent including task orchestration, evidence processing, compliance analysis, and final aggregation
-- [x] Developed database mapping specification linking all agent input/output fields to database tables: agent_runs, agent_task_outputs, evidence_mappings, compliance_findings, documents, audit_events
-- [x] Created database_mapping.md with complete field-to-table mappings, performance optimization strategies, and migration script structure
-- [x] Established data flow patterns for agent orchestration, evidence mapping, compliance tracking, and audit trails
-- [x] Defined indexing strategy, caching patterns, and query optimization for agent-driven database operations
+- [x] Expanded database mapping to include 12 additional runtime tables for agentic workflows: workflow_runs, agent_requests, agent_tasks, tool_calls, requirement_items, requirement_evaluations, evidence_links, readiness_scores, verification_results, final_assessments
+- [x] Created agent-database-mapping-expanded.md with comprehensive mapping including input sources, output destinations, example queries, and end-to-end data flows
+- [x] Implemented performance optimization with indexing, caching, and archiving strategies for agent-driven database operations
+- [x] Added monitoring and alerting queries for system health and business intelligence across all agent workflows
+- [x] Created 3-phase migration roadmap for safe database rollout with backward compatibility
+- [x] Designed complete ERD diagram with 27 tables showing all relationships between master data, runtime, and evaluation tables
+- [x] Created database-erd.md with comprehensive entity relationship diagram, table definitions, and database design principles
 
 ## Recently Completed (Session 13 — Mechanical Engineering Documents)
 
@@ -225,11 +189,29 @@ Minyak & Gas Bumi, Pertambangan Mineral, Geologi & Eksplorasi, Konstruksi Migas,
 
 ## Current Focus
 
-Application is complete. Potential future enhancements:
-1. Connect to real LLM API (OpenAI/Anthropic)
-2. Add user authentication
-3. Add conversation history persistence
-4. Add document templates for each sector
+Database architecture and agent contracts are complete. Next implementation phases:
+
+**Phase 1: Backend API Design (Completed)**
+- [x] Designed REST API endpoints with request/response schemas for all mini-apps
+- [x] Created agent orchestration API routes with workflow management
+- [x] Specified database service layer requirements with error handling
+- [x] Added authentication and authorization middleware specifications
+- [x] Created backend-api-specification.md with complete API documentation
+
+**Phase 2: UI Flow Refinement (Completed)**
+- [x] Designed detailed UI flows for mini-apps based on database structure
+- [x] Specified form validation and error handling patterns
+- [x] Created reusable component specifications for data display and input
+- [x] Optimized responsive design and user experience guidelines
+- [x] Created ui-flows-refinement.md with comprehensive UI specifications
+
+**Phase 3: Integration & Testing (Ready)**
+- Connect frontend to backend APIs
+- Implement end-to-end agent workflows
+- Add comprehensive testing (unit, integration, e2e)
+- Performance optimization and security hardening
+
+**Implementation Ready**: All specifications complete. Ready to begin backend API implementation and frontend integration.
 
 ## Quick Start Guide
 
