@@ -460,6 +460,7 @@ export default function Home() {
               <Link href="/certify" className="text-emerald-400 hover:text-emerald-300 text-sm transition-colors">🏅 Sertifikasi</Link>
               <Link href="/tender-intelligence" className="text-emerald-400 hover:text-emerald-300 text-sm transition-colors">🎯 Tender Intelligence</Link>
               <Link href="/legal-licensing" className="text-blue-400 hover:text-blue-300 text-sm transition-colors">⚖️ Legal & Licensing</Link>
+              <Link href="/sbu-readiness" className="text-orange-400 hover:text-orange-300 text-sm transition-colors">🏗️ SBU Readiness</Link>
               <Link href="/pricing" className="text-slate-300 hover:text-white text-sm transition-colors">Harga</Link>
               <Link href="/chat" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                 Mulai Chat

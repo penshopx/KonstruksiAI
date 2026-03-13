@@ -281,12 +281,15 @@ KonstruksiAI is evolving into a powerful agentic AI platform for construction an
 - **Licensing Agent**: Permit requirements, status tracking, renewal management
 - **Business Certification Agent**: Entity certification, readiness assessment, evidence validation
 - **Compliance Gap Agent**: Cross-domain gap analysis, priority ranking, action planning
+- **Consult Expert: Perizinan & Sertifikasi Konstruksi**: General consultation for construction licensing/certification
 
 ### Layer 3: Workforce & Capability Agents
 - **Competency Agent**: Skill mapping, competency gap analysis, development planning
 - **Certification Readiness Agent**: Individual certification assessment, evidence collection
 - **Training Agent**: Learning needs identification, program recommendation, path creation
 - **CPD Agent**: Professional development tracking, requirement monitoring, compliance verification
+- **Review SKK Readiness**: Workforce SKK certification readiness assessment
+- **Mapping Klasifikasi, Kualifikasi, dan Jalur Sertifikasi**: Certification path mapping for entities and workers
 
 ### Layer 4: Operational Agents
 - **Tender Agent**: Document analysis, requirement extraction, bid preparation support
@@ -295,6 +298,11 @@ KonstruksiAI is evolving into a powerful agentic AI platform for construction an
 - **HSE Agent**: Risk assessment, safety planning, permit management
 - **Environmental Agent**: Environmental compliance, impact assessment, monitoring
 - **Commercial Agent**: Cost analysis, financial risk assessment, commercial evaluation
+- **Review SBU Readiness**: Business entity SBU certification readiness assessment
+- **Compliance Checker Sertifikat Standar Jasa Konstruksi**: Certification compliance validation
+- **Document Checklist & Gap Analyzer**: Document completeness and gap analysis
+- **Renewal, Perubahan, dan Remediasi**: Renewal and remediation scenario handling
+- **Executive Brief Legalitas & Sertifikasi**: Executive summary generation for leadership
 
 ## MVP Roadmap (90 Days)
 

@@ -20,6 +20,11 @@ The template has been expanded into a comprehensive construction AI assistant ap
 - [x] Developed comprehensive UI/UX specification with 25+ detailed page designs across all 8 modules
 - [x] Established common UI patterns: navigation, data display, forms, status indicators, responsive design
 - [x] Created UI_UX_SPECIFICATION.md as implementation blueprint for frontend development
+- [x] Implemented SBU Readiness Wizard mini-app with 5-step assessment process for construction business certification
+- [x] Created sbu-readiness.ts library with comprehensive SBU classification matrix based on PP No. 28 Tahun 2025 and SK Dirjen Bina Konstruksi No. 37 Tahun 2025
+- [x] Built SBU assessment engine with personnel, equipment, experience, and financial requirement validation
+- [x] Added SBU Readiness to navbar navigation with interactive step-by-step wizard interface
+- [x] Implemented regulatory baseline updates: PP No. 28 Tahun 2025 (replaces PP No. 5 Tahun 2021), Permen PUPR No. 6 Tahun 2025, SK Dirjen 37/2025 for SBU, SK Dirjen 114/2024 for SKK
 
 ## Recently Completed (Session 13 — Mechanical Engineering Documents)
 
