@@ -25,6 +25,11 @@ The template has been expanded into a comprehensive construction AI assistant ap
 - [x] Built SBU assessment engine with personnel, equipment, experience, and financial requirement validation
 - [x] Added SBU Readiness to navbar navigation with interactive step-by-step wizard interface
 - [x] Implemented regulatory baseline updates: PP No. 28 Tahun 2025 (replaces PP No. 5 Tahun 2021), Permen PUPR No. 6 Tahun 2025, SK Dirjen 37/2025 for SBU, SK Dirjen 114/2024 for SKK
+- [x] Implemented Tender Eligibility Checker end-to-end with comprehensive cross-domain analysis: legal/licensing, certification, personnel, experience, financial compliance
+- [x] Created tender-eligibility.ts library with full eligibility assessment engine including gap analysis, risk identification, and action planning
+- [x] Built Tender Eligibility Checker mini-app with 4-tab interface: Input Data, Analysis, Gap Analysis, Recommended Actions
+- [x] Added Tender Eligibility Checker to navbar navigation as strategic MVP feature for construction tender readiness
+- [x] Implemented evidence-based eligibility assessment with structured JSON output for executive decision-making
 
 ## Recently Completed (Session 13 — Mechanical Engineering Documents)
 
