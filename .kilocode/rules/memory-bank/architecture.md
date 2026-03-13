@@ -187,27 +187,183 @@ KonstruksiAI is evolving into a powerful agentic AI platform for construction an
 - Compliance gap detection
 - Renewal and validity tracking
 
-## Priority Mini-Apps by Domain
+## 8 Main Application Modules
 
-### Legal & Licensing
-1. **Legalitas and Perizinan Checker**: Permit requirements analysis, completeness status, expiry tracking, action priorities
+### A. Dashboard Utama
+**Purpose**: Executive overview of compliance, certification, and project status
+**Submodules**:
+- Executive Dashboard (compliance radar, expiry alerts, project status)
+- Compliance Dashboard (legal/licensing/certification gaps)
+- Project Dashboard (tender readiness, project compliance)
+- Workforce Dashboard (competency gaps, training needs)
+- Renewal Radar (expiry tracking across all domains)
 
-### Certification & Competency
-2. **Sertifikasi Badan Usaha Readiness App**: Certification requirements mapping, gap analysis, document preparation lists
-3. **Sertifikasi Kompetensi Readiness App**: Competency assessment, evidence mapping, certification preparation plans
+### B. Legalitas dan Perizinan
+**Purpose**: Business entity legality and permit management
+**Submodules**:
+- Profil Badan Usaha (entity profile, sector classification)
+- Daftar Izin (permit inventory with status tracking)
+- Persyaratan Izin (requirements browser by license type)
+- Status Kelengkapan (completeness analysis, gap identification)
+- Renewal Tracker (expiry monitoring, renewal planning)
+- Legal Document Vault (secure document storage)
 
-### Learning & Development
-4. **Training and CPD Planner**: Training needs assessment, learning paths, renewal planning, professional development tracking
+### C. Sertifikasi Badan Usaha
+**Purpose**: Business entity certification management
+**Submodules**:
+- Sertifikasi Aktif (active certifications, expiry tracking)
+- Klasifikasi Usaha (SBU classification mapping)
+- Persyaratan (requirements by certification type)
+- Evidence Mapping (document-to-requirement linking)
+- Gap Analysis (readiness assessment, missing documents)
+- Audit Readiness (pre-audit checklist, evidence preparation)
 
-### Project Execution
-5. **Eligibility for Tender and Project Assignment**: Entity and personnel qualification checking, gap identification, corrective action plans
+### D. Kompetensi dan Sertifikasi Personel
+**Purpose**: Workforce competency and certification management
+**Submodules**:
+- Master Personel (workforce database, profiles)
+- Kompetensi (competency units, skill mapping)
+- Sertifikasi Aktif (certifications, expiry tracking)
+- Riwayat Pengalaman (project experience tracking)
+- Eligibility Checker (qualification for assignments)
+- Renewal Tracker (certification renewal planning)
 
-### Legacy Mini-Apps (Enhanced)
-6. **Tender Intelligence**: Document completeness check, requirement summary, risk identification, compliance checklist
-7. **Construction Document Copilot**: Method statements, ITPs, inspection checklists, progress reports
-8. **HSE and Compliance Copilot**: HIRADC/JSA creation, risk matrices, permit checklists, audit recommendations
-9. **Commercial and Contract Analyzer**: Deviation analysis, clause extraction, payment risks, contractual obligations
-10. **Project Knowledge Engine**: Cross-document Q&A, historical decisions, lessons learned, quick project searches
+### E. Training dan CPD
+**Purpose**: Learning and professional development management
+**Submodules**:
+- Program Training (training catalog, requirements)
+- Jadwal Training (upcoming sessions, enrollment)
+- Learning Path (career development planning)
+- CPD Record (continuing professional development tracking)
+- Training Gap (needs assessment, recommendations)
+- Training Recommendation (AI-powered suggestions)
+
+### F. Tender dan Kualifikasi
+**Purpose**: Tender document analysis and qualification readiness
+**Submodules**:
+- Tender Intake (document upload, initial analysis)
+- Tender Review (requirement extraction, risk assessment)
+- Checklist Kelengkapan (administrative/technical compliance)
+- Eligibility Badan Usaha (entity qualification check)
+- Eligibility Personel (workforce qualification check)
+- Risk Register Tender (bid risk identification)
+
+### G. Pelaksanaan Proyek
+**Purpose**: Project execution support and compliance
+**Submodules**:
+- Project Setup (initial compliance setup)
+- Method Statement (work method development)
+- HIRADC/JSA (risk assessment tools)
+- ITP/Checklist (inspection and test plans)
+- Progress Reporting (compliance monitoring)
+- Project Compliance (ongoing regulatory compliance)
+
+### H. Knowledge and AI Workspace
+**Purpose**: AI-powered knowledge management and document assistance
+**Submodules**:
+- AI Chat (conversational interface for all domains)
+- Document Q&A (cross-document intelligent search)
+- Regulation Library (regulatory knowledge base)
+- Template Center (document templates and generators)
+- Agent Console (agent orchestration and monitoring)
+- Audit Trail (decision traceability and logging)
+
+## Agent Architecture (4 Layers)
+
+### Layer 1: Orchestration Agents
+- **Orchestrator Agent**: Request routing, task decomposition, result aggregation
+- **Planner Agent**: Task graph creation, dependency mapping, workflow planning
+- **Verifier Agent**: Output validation, schema checking, consistency verification
+- **Critic Agent**: Gap identification, risk assessment, quality improvement
+
+### Layer 2: Regulatory & Compliance Agents
+- **Legal Intelligence Agent**: Regulation analysis, obligation extraction, compliance mapping
+- **Licensing Agent**: Permit requirements, status tracking, renewal management
+- **Business Certification Agent**: Entity certification, readiness assessment, evidence validation
+- **Compliance Gap Agent**: Cross-domain gap analysis, priority ranking, action planning
+
+### Layer 3: Workforce & Capability Agents
+- **Competency Agent**: Skill mapping, competency gap analysis, development planning
+- **Certification Readiness Agent**: Individual certification assessment, evidence collection
+- **Training Agent**: Learning needs identification, program recommendation, path creation
+- **CPD Agent**: Professional development tracking, requirement monitoring, compliance verification
+
+### Layer 4: Operational Agents
+- **Tender Agent**: Document analysis, requirement extraction, bid preparation support
+- **Contract Agent**: Clause analysis, deviation identification, risk assessment
+- **Construction Agent**: Method development, quality control, compliance monitoring
+- **HSE Agent**: Risk assessment, safety planning, permit management
+- **Environmental Agent**: Environmental compliance, impact assessment, monitoring
+- **Commercial Agent**: Cost analysis, financial risk assessment, commercial evaluation
+
+## MVP Roadmap (90 Days)
+
+### Phase 1 (Days 1-30): Foundation
+**Focus**: Core data model, document ingestion, basic compliance tracking
+**Deliverables**:
+- Master data for business entities, personnel, licenses, certifications
+- Document upload and basic OCR/text extraction
+- Regulation library with search capabilities
+- Basic expiry alerts and renewal tracking
+- Authentication and role-based access
+- Simple dashboard with compliance overview
+
+**Active Mini-Apps**:
+- Legalitas & Perizinan Checker
+- Sertifikasi Badan Usaha Readiness
+
+### Phase 2 (Days 31-60): High-Value Use Cases
+**Focus**: Qualification logic, evidence mapping, readiness assessment
+**Deliverables**:
+- Competency database and gap analysis engine
+- Training record management
+- Certification readiness assessment
+- Compliance gap identification and prioritization
+- Tender eligibility engine with evidence validation
+- Workforce assignment qualification checking
+
+**Active Mini-Apps**:
+- Sertifikasi Kompetensi Readiness
+- Tender Eligibility Checker
+- Evidence Mapping App
+
+### Phase 3 (Days 61-90): Verification & Expansion
+**Focus**: Quality assurance, advanced features, executive insights
+**Deliverables**:
+- Approval workflows for critical recommendations
+- Comprehensive audit logging and source traceability
+- Advanced reminder and renewal radar system
+- Executive compliance dashboard with predictive analytics
+- Cross-domain eligibility and readiness scoring
+- Training recommendation engine with AI insights
+
+**Active Mini-Apps**:
+- Renewal Radar
+- Training & CPD Planner
+- Executive Compliance Dashboard
+
+## Priority Mini-Apps by Implementation Wave
+
+### Wave 1: Core Compliance (Most Valuable)
+1. **Legalitas & Perizinan Checker**: Permit requirements, completeness status, expiry tracking
+2. **Sertifikasi Badan Usaha Readiness**: Certification mapping, gap analysis, document preparation
+3. **Sertifikasi Kompetensi Readiness**: Competency assessment, evidence mapping, certification prep
+4. **Tender Eligibility Checker**: Entity/personnel qualification, gap identification
+5. **HIRADC/JSA Builder**: Risk assessment tools, safety planning support
+
+### Wave 2: Operational Expansion
+1. **Training & CPD Planner**: Learning needs, paths, renewal planning
+2. **Contract Review App**: Clause analysis, deviation detection
+3. **Method Statement Builder**: Work method development, compliance templates
+4. **Project Compliance Checker**: Ongoing regulatory monitoring
+5. **Document Requirement Mapper**: Cross-reference requirements to evidence
+
+### Wave 3: Intelligence & Analytics
+1. **Renewal Radar**: Predictive expiry management across all domains
+2. **Workforce Assignment Eligibility**: Advanced qualification matching
+3. **Evidence Mapping App**: Automated document-to-requirement linking
+4. **Cross-Regulation Impact Checker**: Regulatory change impact analysis
+5. **Executive Compliance Dashboard**: Strategic compliance insights and KPIs
 
 ## Original Next.js Structure
 
