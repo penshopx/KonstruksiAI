@@ -268,41 +268,168 @@ KonstruksiAI is evolving into a powerful agentic AI platform for construction an
 - Agent Console (agent orchestration and monitoring)
 - Audit Trail (decision traceability and logging)
 
-## Agent Architecture (4 Layers)
+## Agent Contracts & Specifications (11 Core Agents)
 
-### Layer 1: Orchestration Agents
-- **Orchestrator Agent**: Request routing, task decomposition, result aggregation
-- **Planner Agent**: Task graph creation, dependency mapping, workflow planning
-- **Verifier Agent**: Output validation, schema checking, consistency verification
-- **Critic Agent**: Gap identification, risk assessment, quality improvement
+### Standard Contract Patterns
 
-### Layer 2: Regulatory & Compliance Agents
-- **Legal Intelligence Agent**: Regulation analysis, obligation extraction, compliance mapping
-- **Licensing Agent**: Permit requirements, status tracking, renewal management
-- **Business Certification Agent**: Entity certification, readiness assessment, evidence validation
-- **Compliance Gap Agent**: Cross-domain gap analysis, priority ranking, action planning
-- **Consult Expert: Perizinan & Sertifikasi Konstruksi**: General consultation for construction licensing/certification
+All agents follow standardized input/output contracts for orchestrator integration:
 
-### Layer 3: Workforce & Capability Agents
-- **Competency Agent**: Skill mapping, competency gap analysis, development planning
-- **Certification Readiness Agent**: Individual certification assessment, evidence collection
-- **Training Agent**: Learning needs identification, program recommendation, path creation
-- **CPD Agent**: Professional development tracking, requirement monitoring, compliance verification
-- **Review SKK Readiness**: Workforce SKK certification readiness assessment
-- **Mapping Klasifikasi, Kualifikasi, dan Jalur Sertifikasi**: Certification path mapping for entities and workers
+#### Input Contract Pattern
+```json
+{
+  "task_id": "string",
+  "request_id": "string",
+  "agent_name": "string",
+  "objective": "string",
+  "context": {},
+  "inputs": [],
+  "constraints": [],
+  "expected_output_schema": "string",
+  "metadata": {
+    "priority": "low|medium|high",
+    "risk_level": "low|medium|high",
+    "requires_citation": true,
+    "requires_human_review": false
+  }
+}
+```
 
-### Layer 4: Operational Agents
-- **Tender Agent**: Document analysis, requirement extraction, bid preparation support
-- **Contract Agent**: Clause analysis, deviation identification, risk assessment
-- **Construction Agent**: Method development, quality control, compliance monitoring
-- **HSE Agent**: Risk assessment, safety planning, permit management
-- **Environmental Agent**: Environmental compliance, impact assessment, monitoring
-- **Commercial Agent**: Cost analysis, financial risk assessment, commercial evaluation
-- **Review SBU Readiness**: Business entity SBU certification readiness assessment
-- **Compliance Checker Sertifikat Standar Jasa Konstruksi**: Certification compliance validation
-- **Document Checklist & Gap Analyzer**: Document completeness and gap analysis
-- **Renewal, Perubahan, dan Remediasi**: Renewal and remediation scenario handling
-- **Executive Brief Legalitas & Sertifikasi**: Executive summary generation for leadership
+#### Output Contract Pattern
+```json
+{
+  "task_id": "string",
+  "agent_name": "string",
+  "status": "completed|partial|failed",
+  "summary": "string",
+  "result": {},
+  "sources": [],
+  "issues": [],
+  "confidence": 0.0,
+  "recommended_next_actions": []
+}
+```
+
+### Layer 1: Orchestration Agents (4 Agents)
+
+#### 1. **Orchestrator Agent**
+- **Function**: Request routing, task decomposition, result aggregation, workflow planning
+- **Input**: User requests, intent classification, domain context
+- **Output**: Execution plan with task graph, agent assignments, dependencies
+- **Key Features**: Multi-domain orchestration, dependency resolution, approval workflow
+
+#### 2. **Planner Agent**
+- **Function**: Task graph creation, dependency mapping, timeline planning
+- **Input**: Orchestrator plan, resource constraints, priority requirements
+- **Output**: Detailed execution timeline, resource allocation, critical path
+- **Key Features**: Workflow optimization, bottleneck identification, parallel processing
+
+#### 3. **Verifier Agent**
+- **Function**: Output validation, schema checking, consistency verification
+- **Input**: Agent outputs, validation rules, cross-reference data
+- **Output**: Validation results, consistency flags, quality metrics
+- **Key Features**: Schema validation, cross-agent consistency, quality assurance
+
+#### 4. **Critic Agent**
+- **Function**: Gap identification, risk assessment, quality improvement suggestions
+- **Input**: Verified outputs, domain knowledge, historical performance
+- **Output**: Risk assessments, improvement recommendations, confidence adjustments
+- **Key Features**: Risk analysis, alternative approaches, continuous learning
+
+### Layer 2: Regulatory & Compliance Agents (4 Agents)
+
+#### 5. **Legal Intelligence Agent**
+- **Function**: Regulation analysis, obligation extraction, legal compliance mapping
+- **Input**: Legal documents, regulatory references, compliance requirements
+- **Output**: Legal obligations, compliance status, regulatory gaps
+- **Key Features**: Regulatory interpretation, legal requirement extraction, compliance mapping
+
+#### 6. **Licensing Agent**
+- **Function**: Permit requirements analysis, license status tracking, renewal management
+- **Input**: Business profiles, license inventories, regulatory requirements
+- **Output**: License compliance status, renewal alerts, requirement gaps
+- **Key Features**: License lifecycle management, expiry tracking, renewal planning
+
+#### 7. **Business Certification Agent**
+- **Function**: Entity certification assessment, readiness validation, evidence evaluation
+- **Input**: Business entities, certification requirements, evidence documents
+- **Output**: Certification readiness, gap analysis, compliance recommendations
+- **Key Features**: Certification path analysis, evidence validation, readiness scoring
+
+#### 8. **Compliance Gap Agent**
+- **Function**: Cross-domain compliance gap identification, priority ranking, action planning
+- **Input**: Multi-domain compliance data, regulatory requirements, evidence status
+- **Output**: Compliance gap matrix, prioritized actions, remediation plans
+- **Key Features**: Cross-domain analysis, gap prioritization, action sequencing
+
+### Layer 3: Workforce & Capability Agents (4 Agents)
+
+#### 9. **Competency Agent**
+- **Function**: Workforce skill mapping, competency gap analysis, development planning
+- **Input**: Personnel profiles, job requirements, competency frameworks
+- **Output**: Competency assessments, skill gaps, development recommendations
+- **Key Features**: Skill mapping, gap analysis, learning path recommendations
+
+#### 10. **Certification Readiness Agent**
+- **Function**: Individual certification assessment, evidence collection, preparation planning
+- **Input**: Personnel data, certification requirements, evidence portfolios
+- **Output**: Certification readiness, evidence gaps, preparation timelines
+- **Key Features**: Readiness assessment, evidence validation, preparation planning
+
+#### 11. **Training Agent**
+- **Function**: Learning needs identification, training program recommendation, development path creation
+- **Input**: Competency gaps, training catalogs, learning objectives
+- **Output**: Training recommendations, learning paths, development plans
+- **Key Features**: Needs assessment, program matching, path optimization
+
+#### 12. **CPD Agent**
+- **Function**: Continuing professional development tracking, requirement monitoring, compliance verification
+- **Input**: Training records, certification requirements, CPD policies
+- **Output**: CPD status, requirement gaps, compliance recommendations
+- **Key Features**: CPD tracking, requirement monitoring, compliance alerting
+
+### Layer 4: Operational Agents (7 Agents)
+
+#### 13. **Tender Agent**
+- **Function**: Tender document analysis, requirement extraction, bid preparation support
+- **Input**: Tender documents, project specifications, requirement templates
+- **Output**: Extracted requirements, compliance matrices, preparation guidance
+- **Key Features**: Document analysis, requirement extraction, compliance mapping
+
+#### 14. **Contract Agent**
+- **Function**: Contract clause analysis, deviation identification, risk assessment
+- **Input**: Contract documents, standard clauses, risk frameworks
+- **Output**: Clause analysis, deviation reports, risk assessments
+- **Key Features**: Clause comparison, deviation detection, risk evaluation
+
+#### 15. **Construction Agent**
+- **Function**: Construction method development, quality control planning, compliance monitoring
+- **Input**: Project specifications, construction standards, quality requirements
+- **Output**: Method statements, QC plans, compliance frameworks
+- **Key Features**: Method development, QC planning, compliance integration
+
+#### 16. **HSE Agent**
+- **Function**: Health, safety, and environment risk assessment, safety planning, permit management
+- **Input**: Project data, HSE regulations, risk frameworks
+- **Output**: Risk assessments, safety plans, HSE compliance status
+- **Key Features**: Risk analysis, safety planning, HSE compliance
+
+#### 17. **Environmental Agent**
+- **Function**: Environmental compliance assessment, impact analysis, permit tracking
+- **Input**: Project data, environmental regulations, impact assessments
+- **Output**: Environmental compliance, impact reports, permit status
+- **Key Features**: Impact assessment, compliance verification, permit management
+
+#### 18. **Commercial Agent**
+- **Function**: Commercial analysis, cost assessment, financial risk evaluation
+- **Input**: Project costs, financial data, commercial requirements
+- **Output**: Cost analysis, financial assessments, commercial recommendations
+- **Key Features**: Cost analysis, financial evaluation, commercial optimization
+
+#### 19. **Document Intake Agent**
+- **Function**: Document processing, text extraction, content structuring, metadata generation
+- **Input**: Raw documents (PDF, DOCX, images), processing requirements
+- **Output**: Processed documents, extracted content, structured metadata
+- **Key Features**: Multi-format processing, OCR integration, content structuring
 
 ## MVP Roadmap (90 Days)
 

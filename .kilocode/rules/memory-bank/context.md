@@ -9,7 +9,7 @@ The template has been expanded into a comprehensive construction AI assistant ap
 ## Recently Completed (Session 16 — Product Blueprint Definition)
 
 - [x] Defined 8 main application modules: Dashboard, Legalitas/Perizinan, Sertifikasi Badan Usaha, Kompetensi/Sertifikasi Personel, Training/CPD, Tender/Kualifikasi, Pelaksanaan Proyek, Knowledge/AI Workspace
-- [x] Structured agent architecture in 4 layers: Orchestration (4 agents), Regulatory/Compliance (4 agents), Workforce/Capability (4 agents), Operational (6 agents)
+- [x] Structured agent architecture in 4 layers: Orchestration (4 agents), Regulatory/Compliance (4 agents), Workforce/Capability (4 agents), Operational (7 agents)
 - [x] Created 90-day MVP roadmap in 3 phases: Foundation (data/auth), High-Value Use Cases (eligibility/readiness), Verification/Expansion (dashboards/analytics)
 - [x] Prioritized 15 mini-apps in 3 implementation waves based on business value and technical feasibility
 - [x] Positioned product as "AI Platform for Compliance, Qualification, Competency, and Execution Readiness" for construction/energy/mining sectors
@@ -40,6 +40,12 @@ The template has been expanded into a comprehensive construction AI assistant ap
 - [x] Built Evidence Mapping mini-app with 4-tab interface: Upload Documents, Document Library, Evidence Mappings, Compliance Analysis
 - [x] Added Evidence Mapping to navbar navigation as foundation for document management across all mini-apps
 - [x] Implemented audit trails, validation workflows, and gap identification for evidence-based compliance assessment
+- [x] Designed complete agent contracts with standardized input/output schemas for 11 core agents: Orchestrator, Document Intake, Tender, Legal, Licensing, Business Certification, Competency, Training/CPD, Evidence Mapping, Verifier, Final Aggregator
+- [x] Created detailed JSON contract specifications with examples for each agent including task orchestration, evidence processing, compliance analysis, and final aggregation
+- [x] Developed database mapping specification linking all agent input/output fields to database tables: agent_runs, agent_task_outputs, evidence_mappings, compliance_findings, documents, audit_events
+- [x] Created database_mapping.md with complete field-to-table mappings, performance optimization strategies, and migration script structure
+- [x] Established data flow patterns for agent orchestration, evidence mapping, compliance tracking, and audit trails
+- [x] Defined indexing strategy, caching patterns, and query optimization for agent-driven database operations
 
 ## Recently Completed (Session 13 — Mechanical Engineering Documents)
 
