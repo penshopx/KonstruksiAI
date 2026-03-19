@@ -1,0 +1,159 @@
+civil_routing_matrix:
+  id: "civil_routing_matrix"
+  version: "2.0.0"
+  description: "Routing rules untuk mengarahkan user request ke Civil Engineering agent yang tepat"
+  
+  routing_rules:
+    # General civil consultation
+    - if: "konsultasi sipil umum / pertanyaan teknis sipil"
+      use:
+        - civil_engineer_expert_agent
+      description: "Rute ke civil expert untuk konsultasi umum"
+    
+    # Project Initiation
+    - if: "permintaan proposal proyek sipil"
+      use:
+        - civil_project_proposal_agent
+      description: "Rute ke project proposal agent"
+    
+    - if: "permintaan studi kelayakan teknis (feasibility study)"
+      use:
+        - civil_project_plan_agent
+        - civil_cost_estimate_agent
+        - civil_structural_analysis_agent
+      description: "Feasibility study memerlukan multiple agents"
+    
+    # Planning & Scheduling
+    - if: "permintaan jadwal konstruksi"
+      use:
+        - civil_construction_schedule_agent
+      description: "Rute ke construction schedule agent"
+    
+    - if: "permintaan project plan / renja proyek"
+      use:
+        - civil_project_plan_agent
+      description: "Rute ke project plan agent"
+    
+    # Design & Analysis
+    - if: "permintaan analisis struktural"
+      use:
+        - civil_structural_analysis_agent
+      description: "Rute ke structural analysis agent"
+    
+    - if: "permintaan review desain struktur"
+      use:
+        - civil_structural_analysis_agent
+        - civil_cost_estimate_agent
+      description: "Design review memerlukan analysis dan cost impact"
+    
+    # Cost Estimation
+    - if: "permintaan estimasi biaya proyek sipil"
+      use:
+        - civil_cost_estimate_agent
+      description: "Rute ke cost estimate agent"
+    
+    - if: "permintaan Bill of Quantities (BoQ)"
+      use:
+        - civil_quantity_takeoff_agent
+        - civil_cost_estimate_agent
+      description: "BoQ memerlukan takeoff dan pricing"
+    
+    # Environment
+    - if: "permintaan AMDAL / studi dampak lingkungan"
+      use:
+        - civil_eia_agent
+      description: "Rute ke EIA agent"
+    
+    - if: "permintaan environmental impact assessment"
+      use:
+        - civil_eia_agent
+      description: "Rute ke EIA agent"
+    
+    # Execution
+    - if: "permintaan method statement / rencana metode"
+      use:
+        - civil_method_statement_agent
+      description: "Rute ke method statement agent"
+    
+    - if: "permintaan site logistics plan"
+      use:
+        - civil_site_logistics_agent
+      description: "Rute ke site logistics agent"
+    
+    # Quality
+    - if: "permintaan quality inspection plan / ITP"
+      use:
+        - civil_quality_inspection_agent
+      description: "Rute ke quality inspection agent"
+    
+    # Reporting
+    - if: "permintaan progress report / laporan kemajuan"
+      use:
+        - civil_progress_reporting_agent
+      description: "Rute ke progress reporting agent"
+    
+    - if: "permintaan weekly report / monthly report"
+      use:
+        - civil_progress_reporting_agent
+      description: "Rute ke progress reporting agent"
+    
+    # комплексные запросы
+    - if: "permintaan feasibility study lengkap"
+      use:
+        - civil_project_proposal_agent
+        - civil_cost_estimate_agent
+        - civil_structural_analysis_agent
+        - civil_construction_schedule_agent
+        - civil_eia_agent
+      description: "Full feasibility memerlukan semua agents"
+    
+    - if: "permintaan detail design package"
+      use:
+        - civil_structural_analysis_agent
+        - civil_quantity_takeoff_agent
+        - civil_cost_estimate_agent
+        - civil_method_statement_agent
+      description: "Design package memerlukan analysis, takeoff, dan method"
+    
+    - if: "permintaan construction package lengkap"
+      use:
+        - civil_construction_schedule_agent
+        - civil_method_statement_agent
+        - civil_site_logistics_agent
+        - civil_quality_inspection_agent
+        - civil_progress_reporting_agent
+      description: "Construction package memerlukan scheduling, method, logistics, QC, dan reporting"
+
+  # Keyword mapping for automatic routing
+  keyword_triggers:
+    proposal: civil_project_proposal_agent
+    jadwal: civil_construction_schedule_agent
+    jadwal konstruksi: civil_construction_schedule_agent
+    estimasi biaya: civil_cost_estimate_agent
+    biaya: civil_cost_estimate_agent
+    RAB: civil_cost_estimate_agent
+    AMDAL: civil_eia_agent
+    lingkungan: civil_eia_agent
+    dampak lingkungan: civil_eia_agent
+    struktural: civil_structural_analysis_agent
+    struktur: civil_structural_analysis_agent
+    analisis: civil_structural_analysis_agent
+    method statement: civil_method_statement_agent
+    metode pelaksanaan: civil_method_statement_agent
+    logistics: civil_site_logistics_agent
+    site plan: civil_site_logistics_agent
+    quality: civil_quality_inspection_agent
+    inspection: civil_quality_inspection_agent
+    ITP: civil_quality_inspection_agent
+    progress: civil_progress_reporting_agent
+    laporan: civil_progress_reporting_agent
+    quantity: civil_quantity_takeoff_agent
+    BoQ: civil_quantity_takeoff_agent
+    takeoff: civil_quantity_takeoff_agent
+    project plan: civil_project_plan_agent
+    rencana proyek: civil_project_plan_agent
+
+  # Fallback
+  fallback:
+    default_agent: civil_engineer_expert_agent
+    description: "Jika tidak ada rule yang match, gunakan civil expert agent"

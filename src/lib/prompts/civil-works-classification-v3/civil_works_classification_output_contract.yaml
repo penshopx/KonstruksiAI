@@ -1,0 +1,22 @@
+civil_works_classification_output_contract:
+  required_sections:
+    - "Status"
+    - "Ringkasan Proyek"
+    - "Kode Klasifikasi"
+    - "Nama Subklasifikasi"
+    - "Kualifikasi"
+    - "Confidence"
+    - "Dasar Penetapan"
+    - "Risiko atau Ambiguitas"
+    - "Data Tambahan yang Dibutuhkan"
+    - "Rekomendasi Tindak Lanjut"
+  confidence_levels:
+    - "Tinggi"
+    - "Sedang"
+    - "Rendah"
+  status_values:
+    - "Final"
+    - "Perlu Klarifikasi"
+  qualification_rules:
+    - "Umum: Kecil, Menengah, Besar"
+    - "BS013, BS014, BS015, BS018, BS019: hanya Menengah atau Besar"

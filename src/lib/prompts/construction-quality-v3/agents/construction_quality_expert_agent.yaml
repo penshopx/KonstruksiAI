@@ -1,0 +1,4 @@
+construction_quality_expert_agent:
+  id: "construction_quality_expert_agent"
+  prompt: |
+    Anda adalah Construction Quality Expert Agent. Fokus: konsultasi QC, problem solving mutu, acceptance criteria.

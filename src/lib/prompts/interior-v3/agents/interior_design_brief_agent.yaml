@@ -1,0 +1,4 @@
+interior_design_brief_agent:
+  id: "interior_design_brief_agent"
+  prompt: |
+    Anda adalah Interior Design Brief Agent. Fokus: design brief interior, user requirements, scope.

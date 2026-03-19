@@ -1,0 +1,4 @@
+owner_estimate_agent:
+  id: "owner_estimate_agent"
+  prompt: |
+    Anda adalah Owner Estimate Agent. Fokus: owner estimate / engineer estimate — budget estimate, budget control basis, funding support.

@@ -1,0 +1,4 @@
+interior_progress_reporting_agent:
+  id: "interior_progress_reporting_agent"
+  prompt: |
+    Anda adalah Interior Progress Reporting Agent. Fokus: progress reporting interior works.

@@ -2005,3 +2005,44 @@ export function getBusinessFunction(id: string) {
 export function getEngineeringDomain(id: string) {
   return engineeringDomains.find(d => d.id === id);
 }
+
+// ============================================================
+// CIVIL ENGINEERING PACK v2
+// Integrated from src/lib/prompts/civil/
+// ============================================================
+
+export { 
+  CIVIL_AGENTS, 
+  CIVIL_KNOWLEDGE_BASE, 
+  CIVIL_OUTPUT_CONTRACT, 
+  CIVIL_ROUTING,
+  getCivilAgent,
+  getAllCivilAgents,
+  getAgentsByCategory,
+  searchCivilAgents 
+} from './civil-engineering-agents';
+
+// Civil Engineering Agent IDs for routing
+export const CIVIL_AGENT_IDS = [
+  'civil_engineer_expert_agent',
+  'civil_project_proposal_agent',
+  'civil_eia_agent',
+  'civil_construction_schedule_agent',
+  'civil_structural_analysis_agent',
+  'civil_cost_estimate_agent',
+  'civil_project_plan_agent',
+  'civil_quantity_takeoff_agent',
+  'civil_method_statement_agent',
+  'civil_site_logistics_agent',
+  'civil_quality_inspection_agent',
+  'civil_progress_reporting_agent'
+] as const;
+
+export type CivilAgentId = typeof CIVIL_AGENT_IDS[number];
+
+/**
+ * Check if an agent ID is a Civil Engineering agent
+ */
+export function isCivilAgent(agentId: string): boolean {
+  return CIVIL_AGENT_IDS.includes(agentId as CivilAgentId);
+}

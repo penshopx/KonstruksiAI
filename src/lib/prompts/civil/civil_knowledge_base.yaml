@@ -1,0 +1,110 @@
+civil_knowledge_base:
+  id: "civil_knowledge_base"
+  version: "2.0.0"
+  description: |
+    Knowledge base untuk Civil Engineering Agent di KonstruksiAI.
+    Mencakup domain perencanaan, metode pelaksanaan, analisis struktur, biaya, dan lingkungan.
+  
+  domains:
+    - name: "Perencanaan Proyek Konstruksi"
+      topics:
+        - project lifecycle management
+        - work breakdown structure (WBS)
+        - sequencing aktivitas konstruksi
+        - critical path method (CPM)
+        - float, milestone, dependency
+        - resource planning dan allocation
+        - project scheduling basics
+        
+    - name: "Metode Pelaksanaan Pekerjaan Sipil"
+      topics:
+        - metode pelaksanaan struktur beton
+        - metode pelaksanaan struktur baja
+        - metode pelaksanaan pondasi
+        - metode pekerjaan tanah dan drainase
+        - metode pekerjaan jalan dan jembatan
+        - temporary works design
+        - construction methods comparison
+        
+    - name: "Analisis Struktur Dasar"
+      topics:
+        - sistem struktur gedung dan jembatan
+        - beban gravitasi (dead load, live load)
+        - beban lateral (gempa, angin)
+        - beban temperatur dan lainnya
+        - load path dan transfer beban
+        - analisis deformasi
+        - stabilitas global dan lokal
+        - serviceability (deflection, vibration)
+        - safety factor dan limit state design
+        
+    - name: "Estimasi Biaya Proyek Sipil"
+      topics:
+        - quantity takeoff dasar
+        - material costs (beton, baja, agregat, dll)
+        - tenaga kerja costs
+        - equipment costs
+        - subcontractor costs
+        - temporary works costs
+        - overhead dan profit
+        - contingency dan allowance
+        - escalation provisions
+        - unit price analysis
+        
+    - name: "Manajemen Proyek"
+      topics:
+        - project control (time, cost, quality)
+        - risk management
+        - stakeholder management
+        - change management
+        - communication dan reporting
+        - procurement strategy
+        - contract administration basics
+        
+    - name: "Dampak Lingkungan"
+      topics:
+        - environmental impact assessment (AMDAL)
+        - baseline lingkungan
+        - dampak konstruksi dan operasi
+        - kualitas udara dan air
+        - drainase dan sedimentasi
+        - kebisingan dan getaran
+        - limbah konstruksi
+        - dampak lalu lintas
+        - flora dan fauna
+        - aspek sosial-ekonomi
+        - mitigasi dan monitoring
+        
+    - name: "Integrasi Multidisplin"
+      topics:
+        - koordinasi sipil-arsitektur
+        - koordinasi sipil-MEP
+        - interface management
+        - coordination meetings
+        - clash detection
+        
+  rules:
+    - "Prioritaskan keselamatan (safety first) dalam setiap rekomendasi"
+    - "Utamakan kelayakan teknis (technical feasibility)"
+    - "Pertimbangkan efisiensi biaya tanpa mengorbankan mutu"
+    - "Pastikan kepatuhan terhadap regulasi Indonesia (SNI, PP, Permen, dll)"
+    - "Jangan mengarang data perhitungan atau angka biaya tanpa basis yang jelas"
+    - "Jika data belum cukup, berikan kerangka analisis dan jelaskan data yang dibutuhkan"
+    - "Sebutkan asumsi yang digunakan secara eksplisit"
+    - "Tandai area yang memerlukan verifikasi profesional lebih lanjut"
+    
+  regulations:
+    - "SNI 2847:2019 - Persyaratan Beton Struktural untuk Bangunan Gedung"
+    - "SNI 1726:2019 - Tata Cara Perencanaan Ketahanan Gempa"
+    - "SNI 1727:2020 - Beban Minimum untuk Perancangan Bangunan Gedung"
+    - "PP No. 34 Tahun 2021 - Pengelolaan Sumber Daya Air"
+    - "PermenPUPR No. 10 Tahun 2021 - Tata Cara Penyusunan Kurva S-Curva"
+    - "PermenLH No. 5 Tahun 2012 - Jenis Rencana Usaha dan/atau Kegiatan"
+    - "UU No. 11 Tahun 2020 - Cipta Kerja (KLHS)"
+    
+  references:
+    - "Soedrajat, S. (1994). Analisa Harga Satuan Pekerjaan."
+    - "Ibrahim, H. (2017). Rencana dan Estimate Real COST Proyek Gedung."
+    - "Diphosphor, N. (2012). Manajemen Proyek Konstruksi."
+    - "AASHTO LRFD Bridge Design Specifications"
+    - "ACI 318 - Building Code Requirements for Structural Concrete"

@@ -1,0 +1,4 @@
+project_execution_plan_agent:
+  id: "project_execution_plan_agent"
+  prompt: |
+    Anda adalah Project Execution Plan Agent. Fokus: PEP, execution strategy, organization, controls framework.

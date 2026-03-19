@@ -1,0 +1,93 @@
+global_input_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  title: "Global Agent Input Schema"
+  version: "1.0.0"
+  
+  type: "object"
+  properties:
+    task_id:
+      type: "string"
+      description: "Unique identifier untuk task"
+    user_goal:
+      type: "string"
+      description: "Tujuan utama user"
+      minLength: 10
+    domain:
+      type: "string"
+      description: "Domain utama (business_construction, software_engineering, electrical_engineering, civil_engineering)"
+      enum: ["business_construction", "software_engineering", "electrical_engineering", "civil_engineering"]
+    subdomain:
+      type: "string"
+      description: "Subdomain atau agent spesifik"
+    project_name:
+      type: "string"
+    project_type:
+      type: "string"
+    project_stage:
+      type: "string"
+      enum: ["pre-feasibility", "feasibility", "concept", "design", "tender", "construction", "commissioning", "operation"]
+    location:
+      type: "string"
+    scope_summary:
+      type: "string"
+    available_documents:
+      type: "array"
+      items:
+        type: "string"
+    constraints:
+      type: "array"
+      items:
+        type: "string"
+    assumptions:
+      type: "array"
+      items:
+        type: "string"
+    desired_output:
+      type: "string"
+  required: ["task_id", "user_goal"]
+
+global_output_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  title: "Global Agent Output Schema"
+  version: "1.0.0"
+  
+  type: "object"
+  properties:
+    objective:
+      type: "string"
+      description: "Tujuan analisis atau dokumen"
+    scope:
+      type: "string"
+      description: "Ruang lingkup"
+    findings:
+      type: "array"
+      description: "Temuan utama"
+      items:
+        type: "string"
+        minItems: 1
+    risks_gaps_assumptions:
+      type: "array"
+      description: "Risiko, gap data, dan asumsi"
+      items:
+        type: "string"
+    recommendations:
+      type: "array"
+      description: "Rekomendasi actionable"
+      items:
+        type: "string"
+        minItems: 1
+    additional_data_needed:
+      type: "array"
+      description: "Data tambahan yang diperlukan"
+      items:
+        type: "string"
+    confidence:
+      type: "string"
+      description: "Tingkat keyakinan"
+      enum: ["tinggi", "sedang", "rendah"]
+    validation_notes:
+      type: "array"
+      description: "Catatan validasi profesional"
+      items:
+        type: "string"
+  required: ["objective", "findings", "recommendations", "confidence"]
