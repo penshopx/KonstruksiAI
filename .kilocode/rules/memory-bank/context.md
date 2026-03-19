@@ -6,6 +6,36 @@
 
 The template has been expanded into a comprehensive construction AI assistant application (KonstruksiAI) with chat interface, landing page, solver, tools, Knowledge Base, and full Engineering + Design + Project Management system (Business, Construction Classification - Gedung, Bangunan Sipil, Instalasi, Konstruksi Khusus, Penyewaan Peralatan, Penyelesaian Bangunan, Persiapan, Consultancy Architecture - AR, Consultancy Civil Engineering - RK, Consultancy Landscape Architecture - AL, Consultancy Integrated Engineering - RT, Specialist Testing & Analysis - AT, Specialist Technical Consultancy - IT, Construction PM, Construction Safety, Construction Quality, Legal & Contract Administration, Cost Estimation, Dispute Resolution, Civil, Electrical, Mechanical, Environment, Architecture, Landscape, Interior, Illumination).
 
+## Recently Completed (Session 42 — Architect Profession Classification)
+
+### New Domain Added
+- [x] Created architect-profession-v3 folder with 4 agents
+- [x] Created Agent Orchestrator for Profesi dan Kompetensi Arsitektural
+- [x] Created Agen Spesialis Jalur Arsitek (ARP001–ARP005)
+- [x] Created Agen Spesialis Jalur Juru Gambar Arsitektur (ARP006–ARP008)
+- [x] Created Agen Spesialis Validasi Ambiguitas
+- [x] Created Agen Spesialis Penyusun Output
+- [x] Updated Master Orchestrator with routing rules
+
+### Architect Profession Codes
+Jalur Arsitek:
+- ARP001: Asisten Pemula Arsitek | level 6
+- ARP002: Asisten Arsitek | level 7
+- ARP003: Asisten Arsitek (Freshgraduate) | level 7
+- ARP004: Arsitek Madya | level 8
+- ARP005: Arsitek Utama | level 9
+
+Jalur Juru Gambar:
+- ARP006: Juru Gambar Arsitektur Level 2 | level 2
+- ARP007: Juru Gambar Arsitektur Level 3 | level 3
+- ARP008: Juru Gambar Arsitektur Muda | level 4
+
+### Reference Standards
+- SKKNI 196 Tahun 2021 untuk Jalur Arsitek
+- SKK Khusus Reg SKKK 36-2022 untuk Jalur Juru Gambar Arsitektur
+
+---
+
 ## Recently Completed (Session 41 — AL Domain Update with Official Codes)
 
 ### Domain Updated

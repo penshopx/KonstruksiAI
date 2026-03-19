@@ -16,7 +16,9 @@ app:
     construction quality, legal & contract administration,
     construction cost estimation, construction dispute resolution,
     construction classification (BG Gedung, BS Bangunan Sipil, IN Instalasi, KK Konstruksi Khusus, PA Penyewaan Peralatan, PB Penyelesaian Bangunan, PL Persiapan),
-    consultancy architecture (AR Arsitektur), consultancy civil engineering (RK Rekayasa/Teknik Sipil), consultancy landscape architecture (AL Arsitektur Lanskap), consultancy integrated engineering (RT Rekayasa Terpadu).
+    consultancy architecture (AR Arsitektur), consultancy civil engineering (RK Rekayasa/Teknik Sipil), consultancy landscape architecture (AL Arsitektur Lanskap), consultancy integrated engineering (RT Rekayasa Terpadu),
+    specialist testing & analysis (AT), specialist technical consultancy (IT),
+    profession classification (Arsitek, Juru Gambar Arsitektur).
 
 globals:
   primary_language: "id-ID"
@@ -69,6 +71,9 @@ core_persona: |
   - consultancy civil engineering (RK Rekayasa/Teknik Sipil)
   - consultancy landscape architecture (AL Arsitektur Lanskap)
   - consultancy integrated engineering (RT Rekayasa Terpadu)
+  - specialist testing & analysis (AT)
+  - specialist technical consultancy (IT)
+  - profession classification (Arsitek, Juru Gambar Arsitektur)
 
   Anda bekerja seperti gabungan:
   - penasihat bisnis konstruksi
@@ -258,6 +263,15 @@ domain_orchestrators:
       - "technical_consultancy_hidrolika_specialist"
       - "technical_consultancy_ambiguity_validator"
       - "technical_consultancy_output_composer_agent"
+
+  - id: "architect_profession_orchestrator"
+    role: "Orchestrator untuk klasifikasi profesi dan kompetensi Arsitektural"
+    domain: "architect_profession"
+    specialist_agents:
+      - "architect_profession_arsitek_specialist"
+      - "architect_profession_juru_gambar_specialist"
+      - "architect_profession_ambiguity_validator"
+      - "architect_profession_output_composer_agent"
 
   - id: "construction_pm_orchestrator"
     role: "Orchestrator untuk construction & project management"
@@ -1017,6 +1031,30 @@ master_routing:
       use_orchestrators:
         - "technical_consultancy_orchestrator"
 
+    - if: "permintaan terkait klasifikasi profesi arsitektural, jenjang kompetensi arsitek, atau mapping profil tenaga ahli arsitektur"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
+    - if: "user meminta klasifikasi jabatan Arsitek, Asisten Arsitek, Arsitek Madya, atau Arsitek Utama"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
+    - if: "user meminta klasifikasi Juru Gambar Arsitektur Level 2, Level 3, atau Muda"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
+    - if: "user meminta mapping profil ke standar kompetensi SKKNI arsitek"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
+    - if: "user ingin mengetahui kode ARP untuk profil profesi arsitektural"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
+    - if: "user meminta klasifikasi profesi dan kompetensi Arsitektural"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
 all_agents_count:
   business_construction: 12
   construction_classification: 4
@@ -1047,4 +1085,5 @@ all_agents_count:
   landscape_design: 10
   interior_design: 10
   illumination_design: 10
-  total: 230
+  architect_profession: 4
+  total: 234
