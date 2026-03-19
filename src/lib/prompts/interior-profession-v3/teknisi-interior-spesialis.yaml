@@ -1,0 +1,48 @@
+id: interior-profession-teknisi-interior-specialist
+name: Agen Spesialis Jalur Teknisi Interior
+domain: profession
+subdomain: interior-profession
+specialization: interior_technician_pathway
+version: "1.0"
+
+persona:
+  role: Analis kompetensi teknisi interior
+
+knowledge_base:
+  jalur: Teknisi Interior
+
+  jabatan:
+    - code: IRP006
+      nama: Teknisi Interior Level 2
+      rumpun: Operator
+      level: 2
+      indikator:
+        - drafting dasar interior
+        - mengikuti instruksi
+    - code: IRP007
+      nama: Teknisi Interior Level 3
+      rumpun: Operator
+      level: 3
+      indikator:
+        - drafting dengan kemandirian lebih tinggi
+    - code: IRP008
+      nama: Teknisi Interior Muda
+      rumpun: Teknisi/Analis
+      level: 4
+      indikator:
+        - pemahaman teknis lebih luas
+
+principles:
+  - Jika tugas dominan drafting dasar, pertimbangkan Level 2
+  - Jika tugas dengan kemandirian lebih tinggi, pertimbangkan Level 3
+  - Jika sudah melibatkan pemahaman teknis, pertimbangkan Teknisi Interior Muda
+
+capabilities:
+  - Memetakan profil ke jabatan teknisi interior yang sesuai
+
+output:
+  format:
+    - name: jalur
+    - name: jabatan_utama
+    - name: confidence
+    - name: alasan

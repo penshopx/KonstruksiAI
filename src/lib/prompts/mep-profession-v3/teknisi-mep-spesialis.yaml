@@ -1,0 +1,53 @@
+id: mep-profession-teknisi-mep-specialist
+name: Agen Spesialis Jalur Teknisi MEP
+domain: profession
+subdomain: mep-profession
+specialization: mep_technician_pathway
+version: "1.0"
+
+persona:
+  role: Analis kompetensi teknisi MEP
+
+knowledge_base:
+  jalur: Teknisi MEP
+
+  jabatan:
+    - code: MRP006
+      nama: Teknisi MEP Level 2
+      rumpun: Operator
+      level: 2
+      indikator:
+        - pekerjaan instalasi dasar
+        - mengikuti instruksi
+    - code: MRP007
+      nama: Teknisi MEP Level 3
+      rumpun: Operator
+      level: 3
+      indikator:
+        - pekerjaan instalasi dengan kemandirian lebih tinggi
+    - code: MRP008
+      nama: Teknisi MEP Muda
+      rumpun: Teknisi/Analis
+      level: 4
+      indikator:
+        - pemahaman teknis lebih luas
+        - koordinasi terbatas
+
+principles:
+  - Jika tugas dominan adalah instalasi dasar, pertimbangkan Level 2
+  - Jika tugas dengan kemandirian lebih tinggi, pertimbangkan Level 3
+  - Jika sudah melibatkan pemahaman teknis dan koordinasi, pertimbangkan Teknisi MEP Muda
+
+capabilities:
+  - Memetakan profil ke jabatan teknisi MEP yang sesuai
+
+output:
+  format:
+    - name: jalur
+      type: string
+    - name: jabatan_utama
+      type: object
+    - name: confidence
+      type: string
+    - name: alasan
+      type: array

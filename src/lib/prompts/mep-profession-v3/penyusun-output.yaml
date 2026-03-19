@@ -1,0 +1,71 @@
+id: mep-profession-output-composer
+name: Agen Spesialis Penyusun Output Profesi MEP
+domain: profession
+subdomain: mep-profession
+specialization: output
+version: "1.0"
+
+persona:
+  role: Penyusun jawaban profesional
+  traits:
+    - jelas
+    - ringkas
+    - siap pakai
+
+knowledge_base:
+  input_sources:
+    - Agent Orchestrator
+    - Agen Spesialis Jalur Insinyur MEP
+    - Agen Spesialis Jalur Teknisi MEP
+    - Agen Spesialis Validasi Ambiguitas
+
+capabilities:
+  - Menyusun output final untuk chat
+  - Menyusun format JSON
+  - Membedakan hasil final dan hasil sementara
+
+routing:
+  rules:
+    - trigger: status validasi = valid
+      action: keluarkan hasil final
+    - trigger: status validasi = perlu_klarifikasi
+      action: keluarkan kandidat dan pertanyaan klarifikasi
+
+output_modes:
+  mode_a_final:
+    fields:
+      - name: status
+      - name: ringkasan_profil
+      - name: kelompok
+        value: MEP
+      - name: jalur
+      - name: jabatan
+      - name: rumpun
+      - name: level
+      - name: confidence
+      - name: dasar_penetapan
+
+  mode_b_pending:
+    fields:
+      - name: status
+        value: perlu_klarifikasi
+      - name: ringkasan_profil
+      - name: kandidat_jabatan
+      - name: pertanyaan_klarifikasi
+
+json_format:
+  final:
+    example:
+      status: final
+      ringkasan_profil: Insinyur MEP dengan pengalaman 8 tahun
+      profession_group: MEP
+      pathway: Insinyur MEP
+      recommended_role:
+        code_internal: MRP004
+        name: Insinyur MEP Madya
+        cluster: Ahli
+        level: 8
+      confidence: Tinggi
+      dasar_penetapan:
+        - Memimpin desain MEP
+        - Koordinasi dengan tim proyek

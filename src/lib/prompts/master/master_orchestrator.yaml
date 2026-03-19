@@ -273,6 +273,33 @@ domain_orchestrators:
       - "architect_profession_ambiguity_validator"
       - "architect_profession_output_composer_agent"
 
+  - id: "civil_profession_orchestrator"
+    role: "Orchestrator untuk klasifikasi profesi dan kompetensi Teknik Sipil"
+    domain: "civil_profession"
+    specialist_agents:
+      - "civil_profession_insinyur_sipil_specialist"
+      - "civil_profession_teknisi_sipil_specialist"
+      - "civil_profession_ambiguity_validator"
+      - "civil_profession_output_composer_agent"
+
+  - id: "mep_profession_orchestrator"
+    role: "Orchestrator untuk klasifikasi profesi dan kompetensi MEP"
+    domain: "mep_profession"
+    specialist_agents:
+      - "mep_profession_insinyur_mep_specialist"
+      - "mep_profession_teknisi_mep_specialist"
+      - "mep_profession_ambiguity_validator"
+      - "mep_profession_output_composer_agent"
+
+  - id: "interior_profession_orchestrator"
+    role: "Orchestrator untuk klasifikasi profesi dan kompetensi Desain Interior"
+    domain: "interior_profession"
+    specialist_agents:
+      - "interior_profession_desainer_interior_specialist"
+      - "interior_profession_teknisi_interior_specialist"
+      - "interior_profession_ambiguity_validator"
+      - "interior_profession_output_composer_agent"
+
   - id: "construction_pm_orchestrator"
     role: "Orchestrator untuk construction & project management"
     domain: "construction_pm"
@@ -1055,6 +1082,42 @@ master_routing:
       use_orchestrators:
         - "architect_profession_orchestrator"
 
+    - if: "permintaan terkait klasifikasi profesi teknik sipil, jenjang kompetensi sipil, atau mapping profil tenaga ahli teknik sipil"
+      use_orchestrators:
+        - "civil_profession_orchestrator"
+
+    - if: "user meminta klasifikasi jabatan Insinyur Sipil, Asisten Insinyur, atau Teknisi Sipil"
+      use_orchestrators:
+        - "civil_profession_orchestrator"
+
+    - if: "user meminta klasifikasi profesi dan kompetensi Teknik Sipil"
+      use_orchestrators:
+        - "civil_profession_orchestrator"
+
+    - if: "permintaan terkait klasifikasi profesi MEP, jenjang kompetensi mechanical electrical plumbing"
+      use_orchestrators:
+        - "mep_profession_orchestrator"
+
+    - if: "user meminta klasifikasi jabatan Insinyur MEP, Asisten Insinyur MEP, atau Teknisi MEP"
+      use_orchestrators:
+        - "mep_profession_orchestrator"
+
+    - if: "user meminta klasifikasi profesi dan kompetensi MEP"
+      use_orchestrators:
+        - "mep_profession_orchestrator"
+
+    - if: "permintaan terkait klasifikasi profesi desain interior, jenjang kompetensi interior design"
+      use_orchestrators:
+        - "interior_profession_orchestrator"
+
+    - if: "user meminta klasifikasi jabatan Desainer Interior, Asisten Desainer Interior, atau Teknisi Interior"
+      use_orchestrators:
+        - "interior_profession_orchestrator"
+
+    - if: "user meminta klasifikasi profesi dan kompetensi Desain Interior"
+      use_orchestrators:
+        - "interior_profession_orchestrator"
+
 all_agents_count:
   business_construction: 12
   construction_classification: 4
@@ -1086,4 +1149,7 @@ all_agents_count:
   interior_design: 10
   illumination_design: 10
   architect_profession: 4
-  total: 234
+  civil_profession: 4
+  mep_profession: 4
+  interior_profession: 4
+  total: 246

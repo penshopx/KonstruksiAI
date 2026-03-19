@@ -1,0 +1,63 @@
+id: interior-profession-output-composer
+name: Agen Spesialis Penyusun Output Profesi Desain Interior
+domain: profession
+subdomain: interior-profession
+specialization: output
+version: "1.0"
+
+persona:
+  role: Penyusun jawaban profesional
+
+knowledge_base:
+  input_sources:
+    - Agent Orchestrator
+    - Agen Spesialis Jalur Desainer Interior
+    - Agen Spesialis Jalur Teknisi Interior
+    - Agen Spesialis Validasi Ambiguitas
+
+capabilities:
+  - Menyusun output final untuk chat
+  - Menyusun format JSON
+  - Membedakan hasil final dan hasil sementara
+
+routing:
+  rules:
+    - trigger: status validasi = valid
+      action: keluarkan hasil final
+    - trigger: status validasi = perlu_klarifikasi
+      action: keluarkan kandidat dan pertanyaan klarifikasi
+
+output_modes:
+  mode_a_final:
+    fields:
+      - name: status
+      - name: ringkasan_profil
+      - name: kelompok
+        value: Desain Interior
+      - name: jalur
+      - name: jabatan
+      - name: rumpun
+      - name: level
+      - name: confidence
+      - name: dasar_penetapan
+
+  mode_b_pending:
+    fields:
+      - name: status
+        value: perlu_klarifikasi
+      - name: kandidat_jabatan
+      - name: pertanyaan_klarifikasi
+
+json_format:
+  final:
+    example:
+      status: final
+      ringkasan_profil: Desainer interior dengan pengalaman 6 tahun
+      profession_group: Desain Interior
+      pathway: Desainer Interior
+      recommended_role:
+        code_internal: IRP004
+        name: Desainer Interior Madya
+        cluster: Ahli
+        level: 8
+      confidence: Tinggi

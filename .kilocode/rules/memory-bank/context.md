@@ -6,6 +6,34 @@
 
 The template has been expanded into a comprehensive construction AI assistant application (KonstruksiAI) with chat interface, landing page, solver, tools, Knowledge Base, and full Engineering + Design + Project Management system (Business, Construction Classification - Gedung, Bangunan Sipil, Instalasi, Konstruksi Khusus, Penyewaan Peralatan, Penyelesaian Bangunan, Persiapan, Consultancy Architecture - AR, Consultancy Civil Engineering - RK, Consultancy Landscape Architecture - AL, Consultancy Integrated Engineering - RT, Specialist Testing & Analysis - AT, Specialist Technical Consultancy - IT, Construction PM, Construction Safety, Construction Quality, Legal & Contract Administration, Cost Estimation, Dispute Resolution, Civil, Electrical, Mechanical, Environment, Architecture, Landscape, Interior, Illumination).
 
+## Recently Completed (Session 43 — Profession Classification Domains)
+
+### New Domains Added
+1. **Civil Profession (Teknik Sipil)** - civil-profession-v3 (4 agents)
+   - CRP001–CRP005: Jalur Insinyur Sipil
+   - CRP006–CRP008: Jalur Teknisi Sipil
+
+2. **MEP Profession** - mep-profession-v3 (4 agents)
+   - MRP001–MRP005: Jalur Insinyur MEP
+   - MRP006–MRP008: Jalur Teknisi MEP
+
+3. **Interior Design Profession** - interior-profession-v3 (4 agents)
+   - IRP001–IRP005: Jalur Desainer Interior
+   - IRP006–IRP008: Jalur Teknisi Interior
+
+### Architecture Summary
+```
+KonstruksiAI Master Orchestrator (246 agents total)
+├── Profession Classification (4 domains, 16 agents)
+│   ├── Architect Profession (ARP001–ARP008)
+│   ├── Civil Profession (CRP001–CRP008)
+│   ├── MEP Profession (MRP001–MRP008)
+│   └── Interior Design Profession (IRP001–IRP008)
+└── Other domains...
+```
+
+---
+
 ## Recently Completed (Session 42 — Architect Profession Classification)
 
 ### New Domain Added
@@ -18,21 +46,14 @@ The template has been expanded into a comprehensive construction AI assistant ap
 - [x] Updated Master Orchestrator with routing rules
 
 ### Architect Profession Codes
-Jalur Arsitek:
 - ARP001: Asisten Pemula Arsitek | level 6
 - ARP002: Asisten Arsitek | level 7
 - ARP003: Asisten Arsitek (Freshgraduate) | level 7
 - ARP004: Arsitek Madya | level 8
 - ARP005: Arsitek Utama | level 9
-
-Jalur Juru Gambar:
 - ARP006: Juru Gambar Arsitektur Level 2 | level 2
 - ARP007: Juru Gambar Arsitektur Level 3 | level 3
 - ARP008: Juru Gambar Arsitektur Muda | level 4
-
-### Reference Standards
-- SKKNI 196 Tahun 2021 untuk Jalur Arsitek
-- SKK Khusus Reg SKKK 36-2022 untuk Jalur Juru Gambar Arsitektur
 
 ---
 
