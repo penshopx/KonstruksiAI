@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useParams } from "wouter";
 import Link from "@/shims/next-link";
 import { getAgent, getBusinessFunction, getEngineeringDomain } from "@/lib/agents";
 
@@ -12,14 +13,14 @@ interface Message {
 }
 
 interface PageProps {
-  params: Promise<{
+  params?: {
     businessId: string;
     columnId: string;
-  }>;
+  };
 }
 
-export default function AgentPage({ params }: PageProps) {
-  const [resolvedParams, setResolvedParams] = useState<{ businessId: string; columnId: string } | null>(null);
+export default function AgentPage(_props: PageProps) {
+  const params = useParams<{ businessId: string; columnId: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -27,16 +28,12 @@ export default function AgentPage({ params }: PageProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    params.then(setResolvedParams);
-  }, [params]);
-
-  const agent = resolvedParams
-    ? getAgent(resolvedParams.businessId, resolvedParams.columnId)
+  const agent = params.businessId && params.columnId
+    ? getAgent(params.businessId, params.columnId)
     : null;
 
-  const business = resolvedParams ? getBusinessFunction(resolvedParams.businessId) : null;
-  const domain = resolvedParams ? getEngineeringDomain(resolvedParams.columnId) : null;
+  const business = params.businessId ? getBusinessFunction(params.businessId) : null;
+  const domain = params.columnId ? getEngineeringDomain(params.columnId) : null;
 
   // Initialize with welcome message
   useEffect(() => {

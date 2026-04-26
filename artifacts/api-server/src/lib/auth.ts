@@ -1,9 +1,11 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { Request, Response, NextFunction } from "express";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "konstruksi-ai-secret-key-2024-change-in-production"
-);
+const jwtSecretValue = process.env.JWT_SECRET;
+if (!jwtSecretValue) {
+  throw new Error("JWT_SECRET environment variable is required but not set. Set it in Replit Secrets.");
+}
+const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 
 export interface JWTPayload {
   userId: number;
