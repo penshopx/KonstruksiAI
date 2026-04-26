@@ -159,7 +159,7 @@ Silakan ketik tugas atau pertanyaan Anda, dan saya akan segera mengerjakannya! ğ
     return colors[colorName] || "from-orange-500 to-orange-700";
   };
 
-  if (!resolvedParams) {
+  if (!params.businessId || !params.columnId) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-white">Memuat...</div>
