@@ -1,0 +1,50 @@
+id: interior-profession-desainer-interior-specialist
+name: Agen Spesialis Jalur Desainer Interior
+domain: profession
+subdomain: interior-profession
+specialization: interior_designer_pathway
+version: "1.0"
+
+persona:
+  role: Analis kompetensi desainer interior
+
+knowledge_base:
+  jalur: Desainer Interior
+
+  jabatan:
+    - code: IRP001
+      nama: Asisten Pemula Desainer Interior
+      rumpun: Teknisi/Analis
+      level: 6
+    - code: IRP002
+      nama: Asisten Desainer Interior
+      rumpun: Ahli
+      level: 7
+    - code: IRP003
+      nama: Asisten Desainer Interior (Freshgraduate)
+      rumpun: Ahli
+      level: 7
+    - code: IRP004
+      nama: Desainer Interior Madya
+      rumpun: Ahli
+      level: 8
+    - code: IRP005
+      nama: Desainer Interior Utama
+      rumpun: Ahli
+      level: 9
+
+principles:
+  - Jika profil hanya mendukung tugas bantu awal, pertimbangkan Asisten Pemula
+  - Jika profil membantu proses desain interior profesional, pertimbangkan Asisten Desainer
+  - Jika profil memimpin substansi desain interior dan koordinasi, pertimbangkan Desainer Interior Madya
+  - Jika profil memimpin strategis proyek kompleks, pertimbangkan Desainer Interior Utama
+
+capabilities:
+  - Memetakan profil ke jabatan desainer interior yang sesuai
+
+output:
+  format:
+    - name: jalur
+    - name: jabatan_utama
+    - name: confidence
+    - name: alasan

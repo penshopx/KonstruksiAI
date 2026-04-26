@@ -1,0 +1,268 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://konstruksi.ai/schemas/civil-engineering-agent.json",
+  "title": "Civil Engineering Agent Input/Output Schema",
+  "version": "2.0.0",
+  "description": "JSON Schema untuk input dan output Civil Engineering Agents di KonstruksiAI",
+  
+  "definitions": {
+    # ============== COMMON INPUT PROPERTIES ==============
+    "taskId": {
+      "type": "string",
+      "description": "Unique identifier untuk task ini",
+      "pattern": "^[a-zA-Z0-9-_]+$"
+    },
+    
+    "userGoal": {
+      "type": "string",
+      "description": "Tujuan utama user dalam bahasa Indonesia",
+      "minLength": 10,
+      "maxLength": 500
+    },
+    
+    "projectType": {
+      "type": "string",
+      "description": "Jenis proyek sipil",
+      "enum": [
+        "Gedung Komersial",
+        "Gedung Residensial",
+        "Gedung Industri",
+        "Jalan dan Jembatan",
+        "Infrastruktur",
+        "Pengelolaan Air",
+        "Port dan Maritim",
+        "Lainnya"
+      ]
+    },
+    
+    "projectStage": {
+      "type": "string",
+      "description": "Tahapan proyek",
+      "enum": [
+        "Pre-Feasibility",
+        "Feasibility",
+        "Concept Design",
+        "Preliminary Design",
+        "Detailed Design",
+        "Tender",
+        "Construction",
+        "Commissioning",
+        "Operation"
+      ]
+    },
+    
+    "projectLocation": {
+      "type": "string",
+      "description": "Lokasi proyek (kota, province)"
+    },
+    
+    "scopeSummary": {
+      "type": "string",
+      "description": "Ringkasan ruang lingkup proyek"
+    },
+    
+    "availableDocuments": {
+      "type": "array",
+      "description": "List dokumen yang tersedia untuk analisis",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    
+    "constraints": {
+      "type": "array",
+      "description": "Batasan proyek",
+      "items": {
+        "type": "string"
+      }
+    },
+    
+    "assumptions": {
+      "type": "array",
+      "description": "Asumsi yang digunakan",
+      "items": {
+        "type": "string"
+      }
+    },
+    
+    "outputFormat": {
+      "type": "string",
+      "description": "Format output yang diinginkan",
+      "enum": [
+        "markdown",
+        "json",
+        "yaml",
+        "pdf"
+      ]
+    },
+    
+    # ============== SPECIFIC INPUT PROPERTIES ==============
+    "buildingArea": {
+      "type": "string",
+      "description": "Luas bangunan (m2)"
+    },
+    
+    "buildingHeight": {
+      "type": "number",
+      "description": "Tinggi bangunan (m)"
+    },
+    
+    "numberOfFloors": {
+      "type": "integer",
+      "description": "Jumlah lantai",
+      "minimum": 1
+    },
+    
+    "structureType": {
+      "type": "string",
+      "description": "Jenis struktur",
+      "enum": [
+        "Beton Bertulang",
+        "Struktur Baja",
+        "Komposit",
+        "Baja Ringan",
+        "Kayu",
+        "Lainnya"
+      ]
+    },
+    
+    "projectValue": {
+      "type": "string",
+      "description": "Nilai proyek (IDR)"
+    },
+    
+    "projectDuration": {
+      "type": "string",
+      "description": "Durasi proyek"
+    },
+    
+    # ============== OUTPUT PROPERTIES ==============
+    "objective": {
+      "type": "string",
+      "description": "Tujuan dari analisis atau dokumen"
+    },
+    
+    "scope": {
+      "type": "string",
+      "description": "Ruang lingkup analisis"
+    },
+    
+    "mainFindings": {
+      "type": "array",
+      "description": "Temuan utama dari analisis",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    
+    "risksGapsAssumptions": {
+      "type": "array",
+      "description": "Risiko, gap data, dan asumsi",
+      "items": {
+        "type": "string"
+      }
+    },
+    
+    "recommendations": {
+      "type": "array",
+      "description": "Rekomendasi actionable",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    
+    "additionalDataNeeded": {
+      "type": "array",
+      "description": "Data tambahan yang diperlukan",
+      "items": {
+        "type": "string"
+      }
+    },
+    
+    "confidence": {
+      "type": "string",
+      "description": "Tingkat keyakinan terhadap output",
+      "enum": ["tinggi", "sedang", "rendah"]
+    },
+    
+    "professionalValidationNotes": {
+      "type": "array",
+      "description": "Catatan untuk validasi profesional",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  
+  # ============== AGENT INPUT SCHEMA ==============
+  "agentInputSchema": {
+    "type": "object",
+    "properties": {
+      "taskId": { "$ref": "#/definitions/taskId" },
+      "userGoal": { "$ref": "#/definitions/userGoal" },
+      "projectType": { "$ref": "#/definitions/projectType" },
+      "projectStage": { "$ref": "#/definitions/projectStage" },
+      "projectLocation": { "$ref": "#/definitions/projectLocation" },
+      "scopeSummary": { "$ref": "#/definitions/scopeSummary" },
+      "buildingArea": { "$ref": "#/definitions/buildingArea" },
+      "buildingHeight": { "$ref": "#/definitions/buildingHeight" },
+      "numberOfFloors": { "$ref": "#/definitions/numberOfFloors" },
+      "structureType": { "$ref": "#/definitions/structureType" },
+      "projectValue": { "$ref": "#/definitions/projectValue" },
+      "projectDuration": { "$ref": "#/definitions/projectDuration" },
+      "availableDocuments": { "$ref": "#/definitions/availableDocuments" },
+      "constraints": { "$ref": "#/definitions/constraints" },
+      "assumptions": { "$ref": "#/definitions/assumptions" },
+      "outputFormat": { "$ref": "#/definitions/outputFormat" }
+    },
+    "required": ["taskId", "userGoal"],
+    "additionalProperties": false
+  },
+  
+  # ============== AGENT OUTPUT SCHEMA ==============
+  "agentOutputSchema": {
+    "type": "object",
+    "properties": {
+      "objective": { "$ref": "#/definitions/objective" },
+      "scope": { "$ref": "#/definitions/scope" },
+      "mainFindings": { "$ref": "#/definitions/mainFindings" },
+      "risksGapsAssumptions": { "$ref": "#/definitions/risksGapsAssumptions" },
+      "recommendations": { "$ref": "#/definitions/recommendations" },
+      "additionalDataNeeded": { "$ref": "#/definitions/additionalDataNeeded" },
+      "confidence": { "$ref": "#/definitions/confidence" },
+      "professionalValidationNotes": { "$ref": "#/definitions/professionalValidationNotes" },
+      
+      # Optional sections
+      "schedule": {
+        "type": "object",
+        "description": "Jadwal atau timeline (untuk schedule/project plan agents)"
+      },
+      "costBreakdown": {
+        "type": "object",
+        "description": "Cost breakdown (untuk cost estimate/quantity takeoff agents)"
+      },
+      "technicalSpecifications": {
+        "type": "object",
+        "description": "Technical specs (untuk structural analysis/method statement)"
+      },
+      "safetyMeasures": {
+        "type": "object",
+        "description": "Safety measures (untuk method statement/QC agents)"
+      },
+      "qualityControlPoints": {
+        "type": "object",
+        "description": "QC points (untuk inspection/method statement)"
+      }
+    },
+    "required": [
+      "objective",
+      "mainFindings",
+      "recommendations",
+      "confidence"
+    ],
+    "additionalProperties": false
+  }
+}

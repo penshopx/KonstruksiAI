@@ -1,0 +1,152 @@
+civil_orchestrator_examples:
+  id: "civil_orchestrator_examples"
+  version: "2.0.0"
+  description: "Contoh orkestrasi Civil Engineering Agents untuk berbagai use case"
+  
+  examples:
+    # Contoh 1: Proposal Proyek Baru
+    - name: "Proposal Proyek Gedung Pelatihan"
+      user_goal: "Buatkan proposal proyek pembangunan gedung pelatihan 3 lantai"
+      use_agents:
+        - civil_project_proposal_agent
+        - civil_cost_estimate_agent
+        - civil_project_plan_agent
+      orchestration_type: "sequential"
+      description: "Urutan: proposal → cost estimate → project plan"
+      
+    # Contoh 2: Jadwal Konstruksi
+    - name: "Jadwal Konstruksi Gudang"
+      user_goal: "Buat jadwal konstruksi awal untuk proyek gudang baja 5 bulan"
+      use_agents:
+        - civil_construction_schedule_agent
+      orchestration_type: "single"
+      description: "Single agent untuk jadwal konstruksi"
+      
+    # Contoh 3: Kajian Lingkungan
+    - name: "AMDAL Jalan Akses"
+      user_goal: "Review potensi dampak lingkungan proyek jalan akses dan drainase"
+      use_agents:
+        - civil_eia_agent
+      orchestration_type: "single"
+      description: "Single agent untuk kajian lingkungan"
+      
+    # Contoh 4: Analisis Struktur dan Biaya
+    - name: "Analisis Struktur dengan Implikasi Biaya"
+      user_goal: "Saya butuh analisis struktural awal dan dampaknya ke biaya"
+      use_agents:
+        - civil_structural_analysis_agent
+        - civil_cost_estimate_agent
+      orchestration_type: "parallel"
+      description: "Parallel execution karena analisis struktur dan cost independent"
+      
+    # Contoh 5: Feasibility Study Lengkap
+    - name: "Studi Kelayakan Komprehensif"
+      user_goal: "Studi kelayakan untuk pembangunan gedung komersial 10 lantai"
+      use_agents:
+        - civil_project_proposal_agent
+        - civil_structural_analysis_agent
+        - civil_cost_estimate_agent
+        - civil_construction_schedule_agent
+        - civil_eia_agent
+      orchestration_type: "staged"
+      stages:
+        - stage: 1
+          agents: [civil_project_proposal_agent]
+          description: "Proposal dan ruang lingkup"
+        - stage: 2
+          agents: [civil_structural_analysis_agent, civil_cost_estimate_agent]
+          description: "Analisis teknik dan biaya"
+        - stage: 3
+          agents: [civil_construction_schedule_agent, civil_eia_agent]
+          description: "Jadwal dan lingkungan"
+          
+    # Contoh 6: Tender Package
+    - name: "Tender Package Persiapan"
+      user_goal: "Siapkan tender package untuk proyek struktur gedung"
+      use_agents:
+        - civil_quantity_takeoff_agent
+        - civil_cost_estimate_agent
+        - civil_method_statement_agent
+      orchestration_type: "sequential"
+      description: "Urutan: quantity → cost estimate → method statement"
+      
+    # Contoh 7: Construction Package
+    - name: "Construction Package Lengkap"
+      user_goal: "Siapkan dokumen konstruksi untuk kontraktor"
+      use_agents:
+        - civil_construction_schedule_agent
+        - civil_method_statement_agent
+        - civil_site_logistics_agent
+        - civil_quality_inspection_agent
+        - civil_progress_reporting_agent
+      orchestration_type: "staged"
+      stages:
+        - stage: 1
+          agents: [civil_construction_schedule_agent]
+          description: "Jadwal utama"
+        - stage: 2
+          agents: [civil_method_statement_agent]
+          description: "Metode pelaksanaan"
+        - stage: 3
+          agents: [civil_site_logistics_agent, civil_quality_inspection_agent]
+          description: "Logistik dan QC"
+        - stage: 4
+          agents: [civil_progress_reporting_agent]
+          description: "Reporting template"
+          
+    # Contoh 8: Due Diligence
+    - name: "Due Diligence Proyek Eksisting"
+      user_goal: "Lakukan due diligence untuk akuisisi proyek gedung"
+      use_agents:
+        - civil_structural_analysis_agent
+        - civil_cost_estimate_agent
+        - civil_eia_agent
+      orchestration_type: "parallel"
+      description: "Parallel execution untuk efisiensi"
+      
+    # Contoh 9: Progress Review
+    - name: "Review Progress Proyek"
+      user_goal: "Buatkan progress report untuk proyek yang sedang berjalan"
+      use_agents:
+        - civil_progress_reporting_agent
+      orchestration_type: "single"
+      description: "Single agent untuk progress reporting"
+      
+    # Contoh 10: Quality Assurance
+    - name: "Quality Plan untuk Proyek"
+      user_goal: "Siapkan quality assurance plan untuk proyek beton"
+      use_agents:
+        - civil_quality_inspection_agent
+        - civil_method_statement_agent
+      orchestration_type: "sequential"
+      description: "Urutan: QC plan → method statement"
+
+  # Orchestration patterns
+  orchestration_patterns:
+    single:
+      description: "Hanya satu agent yang digunakan"
+      use_when:
+        - "Permintaan spesifik ke satu domain"
+        - "Tidak memerlukan cross-domain analysis"
+        - "Data sudah tersedia dan lengkap"
+        
+    parallel:
+      description: "Multiple agents dijalankan bersamaan"
+      use_when:
+        - "Task independent satu sama lain"
+        - "Butuh hasil dari multiple domain"
+        - "Waktu response kritikal"
+        
+    sequential:
+      description: "Agents dijalankan berurutan"
+      use_when:
+        - "Output dari satu agent jadi input agent lain"
+        - "Butuh informasi dari hasil sebelumnya"
+        - "Depends on previous output"
+        
+    staged:
+      description: "Agents dijalankan dalam stage/stage"
+      use_when:
+        - "Proyek kompleks dengan multiple phases"
+        - "Output dari stage sebelumnya jadi input stage berikutnya"
+        - "Butuh review antar stages"

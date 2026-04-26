@@ -1,0 +1,18 @@
+construction_classification_output_contract:
+  required_sections:
+    - "Status"
+    - "Ringkasan Proyek"
+    - "Klasifikasi"
+    - "Subklasifikasi"
+    - "Confidence"
+    - "Dasar Penetapan"
+    - "Ambiguitas"
+    - "Data Tambahan yang Dibutuhkan"
+    - "Rekomendasi Tindak Lanjut"
+  confidence_levels:
+    - "Tinggi"
+    - "Sedang"
+    - "Rendah"
+  status_values:
+    - "Final"
+    - "Perlu Klarifikasi"

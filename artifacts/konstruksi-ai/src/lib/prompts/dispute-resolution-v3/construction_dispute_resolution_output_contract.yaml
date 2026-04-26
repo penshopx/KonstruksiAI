@@ -1,0 +1,15 @@
+construction_dispute_resolution_output_contract:
+  required_sections:
+    - "Tujuan"
+    - "Konteks / Ruang Lingkup"
+    - "Isi utama / Temuan"
+    - "Isu inti / Bukti / Asumsi"
+    - "Risiko / Kelemahan Posisi"
+    - "Rekomendasi / Tindakan"
+    - "Data tambahan yang dibutuhkan"
+    - "Tingkat keyakinan"
+    - "Catatan validasi profesional"
+  confidence_levels:
+    - "tinggi"
+    - "sedang"
+    - "rendah"

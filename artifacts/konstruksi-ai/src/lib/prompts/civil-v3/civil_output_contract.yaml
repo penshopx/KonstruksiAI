@@ -1,0 +1,32 @@
+civil_output_contract:
+  id: "civil_output_contract"
+  version: "3.0.0"
+  description: "Standard output format untuk Civil Engineering agents"
+  
+  required_sections:
+    - name: "Tujuan"
+      required: true
+    - name: "Isi utama / Temuan"
+      required: true
+    - name: "Risiko / Gap / Asumsi"
+      required: true
+    - name: "Rekomendasi / Tindakan"
+      required: true
+    - name: "Data tambahan yang dibutuhkan"
+      required: false
+    - name: "Tingkat keyakinan"
+      required: true
+
+  confidence_levels:
+    - tinggi
+    - sedang
+    - rendah
+
+  confidence_descriptions:
+    tinggi: "Data lengkap dan valid, analisis mendalam, hasil dapat diandalkan"
+    sedang: "Data cukup, beberapa asumsi digunakan, hasil perlu verifikasi"
+    rendah: "Data terbatas, banyak asumsi, hasil sebagai guidance awal"
+
+  review_mode:
+    default: "off"
+    description: "Review hanya dilakukan jika diminta pengguna"

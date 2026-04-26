@@ -1,0 +1,149 @@
+civil_output_contract:
+  id: "civil_output_contract"
+  version: "2.0.0"
+  description: "Standard output format untuk semua Civil Engineering agents"
+  
+  # Required sections for all civil agent outputs
+  required_sections:
+    - name: "Tujuan"
+      required: true
+      description: "Tujuan dari analisis atau dokumen yang disusun"
+      type: "string"
+    
+    - name: "Konteks / Ruang Lingkup"
+      required: true
+      description: "Konteks proyek dan batasan ruang lingkup"
+      type: "string"
+    
+    - name: "Isi Utama / Temuan"
+      required: true
+      description: " Konten utama atau findings dari analisis"
+      type: "array"
+      items:
+        type: "string"
+    
+    - name: "Risiko / Gap / Asumsi"
+      required: true
+      description: "Identifikasi risiko, gap data, dan asumsi yang digunakan"
+      type: "array"
+      items:
+        type: "string"
+    
+    - name: "Rekomendasi / Tindakan"
+      required: true
+      description: "Rekomendasi spesifik dan actionable"
+      type: "array"
+      items:
+        type: "string"
+    
+    - name: "Data Tambahan yang Dibutuhkan"
+      required: true
+      description: "Daftar data atau informasi yang diperlukan untuk analisis lebih lanjut"
+      type: "array"
+      items:
+        type: "string"
+    
+    - name: "Tingkat Keyakinan"
+      required: true
+      description: "Tingkat keyakinan terhadap output berdasarkan ketersediaan data"
+      type: "string"
+      enum:
+        - "tinggi"
+        - "sedang"
+        - "rendah"
+      description_enum:
+        tinggi: "Data lengkap dan valid, analisis mendalam, hasil dapat diandalkan"
+        sedang: "Data cukup, beberapa asumsi digunakan, hasil perlu verifikasi"
+        rendah: "Data terbatas, banyak asumsi, hasil sebagai guidance awal"
+    
+    - name: "Catatan Validasi Profesional"
+      required: true
+      description: "Catatan untuk validasi atau review oleh profesional terkait"
+      type: "array"
+      items:
+        type: "string"
+  
+  # Optional sections based on agent type
+  optional_sections:
+    - name: "Jadwal / Timeline"
+      applicable_to:
+        - civil_construction_schedule_agent
+        - civil_project_plan_agent
+        - civil_method_statement_agent
+      type: "object"
+    
+    - name: "Cost Breakdown"
+      applicable_to:
+        - civil_cost_estimate_agent
+        - civil_quantity_takeoff_agent
+      type: "object"
+    
+    - name: "Technical Specifications"
+      applicable_to:
+        - civil_structural_analysis_agent
+        - civil_method_statement_agent
+      type: "object"
+    
+    - name: "Safety Measures"
+      applicable_to:
+        - civil_method_statement_agent
+        - civil_quality_inspection_agent
+        - civil_site_logistics_agent
+      type: "object"
+    
+    - name: "Quality Control Points"
+      applicable_to:
+        - civil_quality_inspection_agent
+        - civil_method_statement_agent
+      type: "object"
+
+  # Confidence level guidelines
+  confidence_guidelines:
+    tinggi:
+      criteria:
+        - "Data desain lengkap dan valid"
+        - "Referensi standar dan regulasi jelas"
+        - "Perhitungan didukung data kuantitatif"
+        - "Tidak ada asumsi kritis yang open"
+      recommendation: "Output dapat digunakan untuk pengambilan keputusan"
+    
+    sedang:
+      criteria:
+        - "Data cukup tetapi perlu verifikasi"
+        - "Beberapa asumsi digunakan"
+        - "Referensi standar ada tetapi perlu konfirmasi"
+        - "Perkiraan kuantitas berdasarkan historical data"
+      recommendation: "Output sebagai panduan, perlu validasi detail"
+    
+    rendah:
+      criteria:
+        - "Data sangat terbatas"
+        - "Banyak asumsi yang harus divalidasi"
+        - "Tidak ada data kuantitatif spesifik"
+        - "Analisis berbasis pengalaman umum"
+      recommendation: "Output sebagai kerangka awal, sangat memerlukan validasi profesional"
+
+  # Example output
+  example:
+    objective: "Analisis struktural awal gedung perkantoran 5 lantai"
+    scope: "Struktur utama (kolom, balok, plat) di Jakarta"
+    main_findings:
+      - "Sistem struktur: RC frame dengan shear wall"
+      - "Response spectrum analysis diperlukan"
+      - "Shear wall pada core efektif untuk lateral load"
+    risks_gaps_assumptions:
+      - "Data tanah dari soil investigation belum tersedia (asumsi: tanah sedang)"
+      - "Design loads berdasarkan SNI 1727 (asumsi: sesuai standar)"
+    recommendations:
+      - "Lakukan pemodelan 3D dengan ETABS/SAP2000"
+      - "Lakukan soil investigation untuk foundation design"
+      - "Coordination dengan MEP untuk penetration"
+    additional_data_needed:
+      - "Soil investigation report"
+      - "Arsitektur drawing revision 3"
+      - "MEP layout"
+    confidence: "sedang"
+    professional_validation_notes:
+      - "Perlu peer review oleh structural engineer"
+      - "Design harus diverifikasi dengan software engineering"
+      - "Sesuaikan dengan kondisi site actual"

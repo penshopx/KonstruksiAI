@@ -1,0 +1,1155 @@
+master_orchestrator:
+  id: "konstruksiai_master_orchestrator"
+  version: "1.0.0"
+  description: "Master Orchestrator untuk KonstruksiAI dengan routing lintas domain"
+  
+app:
+  name: "KonstruksiAI"
+  version: "1.0.0"
+  description: >
+    Sistem Agentic AI untuk bisnis jasa konstruksi, profesi konstruksi,
+    pengadaan/tender, proyek, ERP, software engineering,
+    electrical engineering, civil engineering, mechanical engineering,
+    environment engineering, architecture engineering,
+    landscape design, interior design, illumination design,
+    construction & project management, construction safety,
+    construction quality, legal & contract administration,
+    construction cost estimation, construction dispute resolution,
+    construction classification (BG Gedung, BS Bangunan Sipil, IN Instalasi, KK Konstruksi Khusus, PA Penyewaan Peralatan, PB Penyelesaian Bangunan, PL Persiapan),
+    consultancy architecture (AR Arsitektur), consultancy civil engineering (RK Rekayasa/Teknik Sipil), consultancy landscape architecture (AL Arsitektur Lanskap), consultancy integrated engineering (RT Rekayasa Terpadu),
+    specialist testing & analysis (AT), specialist technical consultancy (IT),
+    profession classification (Arsitek, Juru Gambar Arsitektur).
+
+globals:
+  primary_language: "id-ID"
+  domain: "industri konstruksi Indonesia"
+  
+  response_rules:
+    - "Jangan mengarang data, angka, regulasi, volume, atau hasil hitung."
+    - "Bedakan fakta, asumsi, risiko, dan rekomendasi."
+    - "Jika data belum cukup, nyatakan secara eksplisit."
+    - "Prioritaskan keluaran yang dapat dipakai untuk tindakan."
+    - "Tandai area yang memerlukan validasi profesional."
+
+  validation_required_for:
+    - "legal review final"
+    - "kepatuhan final"
+    - "keputusan tender resmi"
+    - "persetujuan kontrak"
+    - "komitmen biaya besar"
+    - "keputusan keselamatan/K3"
+    - "sign-off desain struktural"
+    - "sign-off desain kelistrikan"
+    - "otorisasi engineering final"
+
+core_persona: |
+  Anda adalah KonstruksiAI, sistem AI profesional untuk industri konstruksi Indonesia.
+
+  Anda membantu pada area:
+  - bisnis jasa konstruksi
+  - praktik konsultansi keprofesian
+  - tender dan pengadaan
+  - manajemen proyek
+  - ERP dan workflow
+  - software engineering
+  - electrical engineering
+  - civil engineering
+  - mechanical engineering
+  - environment engineering
+  - architecture engineering
+  - landscape design
+  - interior design
+  - illumination design
+  - construction & project management
+  - construction safety
+  - construction quality
+  - legal & contract administration
+  - construction cost estimation
+  - construction dispute resolution
+  - construction classification (BG Gedung, BS Bangunan Sipil, IN Instalasi, KK Konstruksi Khusus, PA Penyewaan Peralatan, PB Penyelesaian Bangunan, PL Persiapan)
+  - consultancy architecture (AR Arsitektur)
+  - consultancy civil engineering (RK Rekayasa/Teknik Sipil)
+  - consultancy landscape architecture (AL Arsitektur Lanskap)
+  - consultancy integrated engineering (RT Rekayasa Terpadu)
+  - specialist testing & analysis (AT)
+  - specialist technical consultancy (IT)
+  - profession classification (Arsitek, Juru Gambar Arsitektur)
+
+  Anda bekerja seperti gabungan:
+  - penasihat bisnis konstruksi
+  - project strategist
+  - procurement specialist
+  - construction manager senior
+  - project manager senior
+  - safety manager senior
+  - quality manager senior
+  - contract manager senior
+  - legal advisor (kontrak dan administrasi)
+  - cost estimator senior
+  - dispute resolution advisor
+  - ERP architect
+  - software architect
+  - electrical engineer senior
+  - civil engineer senior
+  - mechanical engineer senior
+  - environmental engineer senior
+  - architect senior
+  - landscape architect senior
+  - interior designer senior
+  - lighting designer senior
+
+  Prinsip utama:
+  - analitis
+  - sistematis
+  - praktis
+  - teliti
+  - berbasis proses
+  - berorientasi implementasi
+
+output_style: |
+  Struktur default output:
+  1. Ringkasan
+  2. Analisis / Isi utama
+  3. Risiko / Gap / Asumsi
+  4. Rekomendasi
+  5. Data tambahan yang dibutuhkan
+  6. Langkah berikutnya
+
+universal_output_contract:
+  required_sections:
+    - "Tujuan"
+    - "Konteks / Ruang Lingkup"
+    - "Isi utama / Temuan"
+    - "Risiko / Gap / Asumsi"
+    - "Rekomendasi / Tindakan"
+    - "Data tambahan yang dibutuhkan"
+    - "Tingkat keyakinan"
+    - "Catatan validasi profesional"
+
+  confidence_levels:
+    - "tinggi"
+    - "sedang"
+    - "rendah"
+
+domain_orchestrators:
+  - id: "business_construction_orchestrator"
+    role: "Orchestrator untuk bisnis konstruksi dan domain proyek"
+    domain: "business_construction"
+    specialist_agents:
+      - "business_strategy_agent"
+      - "professional_practice_agent"
+      - "tender_intake_agent"
+      - "tender_writer_agent"
+      - "procurement_agent"
+      - "vendor_evaluation_agent"
+      - "contract_review_agent"
+      - "cost_control_agent"
+      - "project_management_agent"
+      - "risk_analyzer_agent"
+      - "compliance_agent"
+      - "erp_odoo_architect_agent"
+
+  - id: "construction_classification_orchestrator"
+    role: "Orchestrator untuk klasifikasi jasa pelaksana pekerjaan konstruksi gedung"
+    domain: "construction_classification"
+    specialist_agents:
+      - "building_classification_agent"
+      - "scale_subclassification_agent"
+      - "ambiguity_validation_agent"
+      - "output_composer_agent"
+
+  - id: "civil_works_classification_orchestrator"
+    role: "Orchestrator untuk klasifikasi jasa pelaksana pekerjaan konstruksi Bangunan Sipil"
+    domain: "civil_works_classification"
+    specialist_agents:
+      - "civil_works_classification_agent"
+      - "civil_works_qualification_agent"
+      - "civil_works_ambiguity_agent"
+      - "civil_works_output_composer_agent"
+
+  - id: "installation_classification_orchestrator"
+    role: "Orchestrator untuk klasifikasi jasa pekerjaan konstruksi spesialis Instalasi"
+    domain: "installation_classification"
+    specialist_agents:
+      - "installation_classification_agent"
+      - "installation_ambiguity_agent"
+      - "installation_output_composer_agent"
+
+  - id: "special_works_classification_orchestrator"
+    role: "Orchestrator untuk klasifikasi jasa pekerjaan konstruksi spesialis Konstruksi Khusus"
+    domain: "special_works_classification"
+    specialist_agents:
+      - "special_works_classification_agent"
+      - "special_works_ambiguity_agent"
+      - "special_works_output_composer_agent"
+
+  - id: "equipment_rental_classification_orchestrator"
+    role: "Orchestrator untuk klasifikasi jasa pekerjaan konstruksi spesialis Penyewaan Peralatan"
+    domain: "equipment_rental_classification"
+    specialist_agents:
+      - "equipment_rental_classification_agent"
+      - "equipment_rental_ambiguity_agent"
+      - "equipment_rental_output_composer_agent"
+
+  - id: "building_completion_classification_orchestrator"
+    role: "Orchestrator untuk klasifikasi jasa pekerjaan konstruksi spesialis Penyelesaian Bangunan"
+    domain: "building_completion_classification"
+    specialist_agents:
+      - "building_completion_classification_agent"
+      - "building_completion_ambiguity_agent"
+      - "building_completion_output_composer_agent"
+
+  - id: "preparation_works_classification_orchestrator"
+    role: "Orchestrator untuk klasifikasi jasa pekerjaan konstruksi spesialis Persiapan"
+    domain: "preparation_works_classification"
+    specialist_agents:
+      - "preparation_works_classification_agent"
+      - "preparation_works_ambiguity_agent"
+      - "preparation_works_output_composer_agent"
+
+  - id: "architecture_consultancy_orchestrator"
+    role: "Orchestrator untuk klasifikasi layanan Konsultan Konstruksi bidang Arsitektur"
+    domain: "architecture_consultancy"
+    specialist_agents:
+      - "architecture_building_specialist"
+      - "architecture_interior_landscape_specialist"
+      - "architecture_ambiguity_validator"
+      - "architecture_output_composer_agent"
+
+  - id: "civil_consultancy_orchestrator"
+    role: "Orchestrator untuk klasifikasi layanan Konsultan Konstruksi bidang Rekayasa/Teknik Sipil"
+    domain: "civil_consultancy"
+    specialist_agents:
+      - "civil_consultancy_building_specialist"
+      - "civil_consultancy_sda_specialist"
+      - "civil_consultancy_transport_specialist"
+      - "civil_consultancy_mechanical_specialist"
+      - "civil_consultancy_ambiguity_validator"
+      - "civil_consultancy_output_composer_agent"
+
+  - id: "landscape_consultancy_orchestrator"
+    role: "Orchestrator untuk klasifikasi layanan Konsultan Konstruksi bidang Arsitektur Lanskap dan Perencanaan Wilayah"
+    domain: "landscape_consultancy"
+    specialist_agents:
+      - "landscape_consultancy_al001_specialist"
+      - "landscape_consultancy_al004_specialist"
+      - "landscape_consultancy_ambiguity_validator"
+      - "landscape_consultancy_output_composer_agent"
+
+  - id: "rtp_consultancy_orchestrator"
+    role: "Orchestrator untuk klasifikasi layanan Konsultan Konstruksi bidang Rekayasa Terpadu"
+    domain: "rtp_consultancy"
+    specialist_agents:
+      - "rtp_consultancy_classification_specialist"
+      - "rtp_consultancy_ambiguity_validator"
+      - "rtp_consultancy_output_composer_agent"
+
+  - id: "testing_analysis_orchestrator"
+    role: "Orchestrator untuk klasifikasi jasa spesialis Pengujian dan Analisa Teknis"
+    domain: "testing_analysis"
+    specialist_agents:
+      - "testing_analysis_geosains_specialist"
+      - "testing_analysis_material_lab_specialist"
+      - "testing_analysis_performa_specialist"
+      - "testing_analysis_ambiguity_validator"
+      - "testing_analysis_output_composer_agent"
+
+  - id: "technical_consultancy_orchestrator"
+    role: "Orchestrator untuk klasifikasi jasa Spesialis Konsultansi Ilmiah dan Teknik"
+    domain: "technical_consultancy"
+    specialist_agents:
+      - "technical_consultancy_geosains_specialist"
+      - "technical_consultancy_prasrana_llla_specialist"
+      - "technical_consultancy_hidrolika_specialist"
+      - "technical_consultancy_ambiguity_validator"
+      - "technical_consultancy_output_composer_agent"
+
+  - id: "architect_profession_orchestrator"
+    role: "Orchestrator untuk klasifikasi profesi dan kompetensi Arsitektural"
+    domain: "architect_profession"
+    specialist_agents:
+      - "architect_profession_arsitek_specialist"
+      - "architect_profession_juru_gambar_specialist"
+      - "architect_profession_ambiguity_validator"
+      - "architect_profession_output_composer_agent"
+
+  - id: "civil_profession_orchestrator"
+    role: "Orchestrator untuk klasifikasi profesi dan kompetensi Teknik Sipil"
+    domain: "civil_profession"
+    specialist_agents:
+      - "civil_profession_insinyur_sipil_specialist"
+      - "civil_profession_teknisi_sipil_specialist"
+      - "civil_profession_ambiguity_validator"
+      - "civil_profession_output_composer_agent"
+
+  - id: "mep_profession_orchestrator"
+    role: "Orchestrator untuk klasifikasi profesi dan kompetensi MEP"
+    domain: "mep_profession"
+    specialist_agents:
+      - "mep_profession_insinyur_mep_specialist"
+      - "mep_profession_teknisi_mep_specialist"
+      - "mep_profession_ambiguity_validator"
+      - "mep_profession_output_composer_agent"
+
+  - id: "interior_profession_orchestrator"
+    role: "Orchestrator untuk klasifikasi profesi dan kompetensi Desain Interior"
+    domain: "interior_profession"
+    specialist_agents:
+      - "interior_profession_desainer_interior_specialist"
+      - "interior_profession_teknisi_interior_specialist"
+      - "interior_profession_ambiguity_validator"
+      - "interior_profession_output_composer_agent"
+
+  - id: "construction_pm_orchestrator"
+    role: "Orchestrator untuk construction & project management"
+    domain: "construction_pm"
+    specialist_agents:
+      - "construction_management_expert_agent"
+      - "project_execution_plan_agent"
+      - "construction_schedule_control_agent"
+      - "project_cost_control_agent"
+      - "quality_management_agent"
+      - "project_risk_management_agent"
+      - "construction_progress_reporting_agent"
+      - "issue_delay_analysis_agent"
+      - "resource_manpower_planning_agent"
+      - "procurement_coordination_agent"
+      - "subcontractor_coordination_agent"
+      - "project_change_management_agent"
+      - "project_governance_reporting_agent"
+      - "handover_closeout_agent"
+
+  - id: "construction_safety_orchestrator"
+    role: "Orchestrator untuk construction safety"
+    domain: "construction_safety"
+    specialist_agents:
+      - "construction_safety_expert_agent"
+      - "construction_hse_plan_agent"
+      - "construction_hira_agent"
+      - "job_safety_analysis_agent"
+      - "safe_work_method_statement_agent"
+      - "permit_to_work_agent"
+      - "working_at_height_safety_agent"
+      - "lifting_rigging_safety_agent"
+      - "excavation_confined_space_safety_agent"
+      - "construction_emergency_response_agent"
+      - "safety_inspection_audit_agent"
+      - "construction_incident_investigation_agent"
+      - "toolbox_talk_safety_communication_agent"
+      - "construction_safety_compliance_agent"
+
+  - id: "construction_quality_orchestrator"
+    role: "Orchestrator untuk construction quality"
+    domain: "construction_quality"
+    specialist_agents:
+      - "construction_quality_expert_agent"
+      - "project_quality_plan_agent"
+      - "inspection_test_plan_agent"
+      - "quality_inspection_checklist_agent"
+      - "material_submittal_approval_agent"
+      - "method_verification_agent"
+      - "mockup_benchmark_quality_agent"
+      - "ncr_corrective_action_agent"
+      - "construction_quality_audit_agent"
+      - "quality_document_traceability_agent"
+      - "handover_quality_readiness_agent"
+      - "multidisciplinary_quality_coordination_agent"
+
+  - id: "legal_contract_orchestrator"
+    role: "Orchestrator untuk legal & contract administration"
+    domain: "legal_contract_administration"
+    specialist_agents:
+      - "contract_advisory_expert_agent"
+      - "legal_contract_review_agent"
+      - "rights_obligations_agent"
+      - "contract_administration_plan_agent"
+      - "contract_correspondence_agent"
+      - "variation_change_order_agent"
+      - "eot_delay_entitlement_agent"
+      - "payment_certification_agent"
+      - "claims_support_agent"
+      - "bonds_guarantees_retention_agent"
+      - "contract_compliance_tracking_agent"
+      - "dispute_avoidance_preparation_agent"
+      - "final_account_closeout_agent"
+      - "legal_document_records_agent"
+
+  - id: "construction_cost_estimation_orchestrator"
+    role: "Orchestrator untuk construction cost estimation"
+    domain: "construction_cost_estimation"
+    specialist_agents:
+      - "cost_estimation_expert_agent"
+      - "conceptual_estimate_agent"
+      - "preliminary_estimate_agent"
+      - "detailed_cost_estimate_agent"
+      - "unit_rate_analysis_agent"
+      - "tender_pricing_support_agent"
+      - "owner_estimate_agent"
+      - "cost_benchmark_validation_agent"
+      - "cost_risk_contingency_agent"
+      - "value_engineering_cost_agent"
+      - "estimate_exclusions_assumptions_agent"
+
+  - id: "construction_dispute_resolution_orchestrator"
+    role: "Orchestrator untuk construction dispute resolution"
+    domain: "construction_dispute_resolution"
+    specialist_agents:
+      - "construction_dispute_expert_agent"
+      - "expert_assessment_agent"
+      - "dispute_issue_framing_agent"
+      - "chronology_evidence_mapping_agent"
+      - "entitlement_review_agent"
+      - "delay_disruption_dispute_agent"
+      - "variation_payment_dispute_agent"
+      - "defect_quality_dispute_agent"
+      - "mediation_preparation_agent"
+      - "arbitration_preparation_agent"
+      - "settlement_options_agent"
+      - "dispute_avoidance_agent"
+
+  - id: "software_engineering_orchestrator"
+    role: "Orchestrator untuk software engineering"
+    domain: "software_engineering"
+    specialist_agents:
+      - "software_engineer_expert_agent"
+      - "requirements_document_agent"
+      - "technical_specification_agent"
+      - "api_documentation_agent"
+      - "deployment_plan_agent"
+      - "performance_report_agent"
+      - "incident_report_agent"
+      - "postmortem_analysis_agent"
+      - "release_notes_agent"
+      - "user_guide_agent"
+      - "risk_assessment_agent"
+
+  - id: "electrical_engineering_orchestrator"
+    role: "Orchestrator untuk electrical engineering"
+    domain: "electrical_engineering"
+    specialist_agents:
+      - "electrical_engineer_expert_agent"
+      - "project_proposal_agent"
+      - "electrical_risk_assessment_agent"
+      - "safety_procedures_agent"
+      - "test_reports_agent"
+      - "bill_of_materials_agent"
+      - "equipment_manuals_agent"
+      - "change_requests_agent"
+      - "regulatory_compliance_agent"
+      - "test_plans_agent"
+      - "vendor_evaluations_agent"
+
+  - id: "civil_orchestrator"
+    role: "Orchestrator untuk civil engineering"
+    domain: "civil_engineering"
+    specialist_agents:
+      - "civil_engineer_expert_agent"
+      - "environmental_impact_assessment_agent"
+      - "construction_schedule_agent"
+      - "structural_analysis_agent"
+      - "cost_estimate_agent"
+      - "project_plan_agent"
+
+  - id: "mechanical_orchestrator"
+    role: "Orchestrator untuk mechanical engineering"
+    domain: "mechanical_engineering"
+    specialist_agents:
+      - "mechanical_engineer_expert_agent"
+      - "hvac_design_agent"
+      - "plumbing_piping_agent"
+      - "fire_protection_mechanical_agent"
+      - "mechanical_equipment_selection_agent"
+      - "mechanical_bill_of_materials_agent"
+      - "mechanical_method_statement_agent"
+      - "mechanical_test_commissioning_agent"
+      - "mechanical_maintenance_plan_agent"
+      - "mechanical_energy_efficiency_agent"
+      - "mechanical_compliance_agent"
+      - "mechanical_progress_reporting_agent"
+
+  - id: "environment_orchestrator"
+    role: "Orchestrator untuk environment engineering"
+    domain: "environment_engineering"
+    specialist_agents:
+      - "environmental_engineer_expert_agent"
+      - "environmental_impact_assessment_agent"
+      - "environmental_management_plan_agent"
+      - "water_wastewater_agent"
+      - "air_quality_emissions_agent"
+      - "waste_management_agent"
+      - "hazardous_waste_agent"
+      - "noise_vibration_agent"
+      - "sustainability_resource_efficiency_agent"
+      - "environmental_compliance_agent"
+      - "environmental_monitoring_reporting_agent"
+      - "environmental_incident_agent"
+
+  - id: "architecture_orchestrator"
+    role: "Orchestrator untuk architecture engineering"
+    domain: "architecture_engineering"
+    specialist_agents:
+      - "architecture_expert_agent"
+      - "architecture_design_brief_agent"
+      - "architecture_concept_design_agent"
+      - "architecture_space_planning_agent"
+      - "architecture_site_massing_agent"
+      - "architecture_facade_envelope_agent"
+      - "architecture_material_finishing_agent"
+      - "architecture_compliance_agent"
+      - "architecture_coordination_agent"
+      - "architecture_specification_agent"
+      - "architecture_method_statement_agent"
+      - "architecture_progress_reporting_agent"
+
+  - id: "landscape_orchestrator"
+    role: "Orchestrator untuk landscape design"
+    domain: "landscape_design"
+    specialist_agents:
+      - "landscape_expert_agent"
+      - "landscape_concept_agent"
+      - "site_landscape_planning_agent"
+      - "planting_strategy_agent"
+      - "hardscape_softscape_agent"
+      - "public_realm_open_space_agent"
+      - "landscape_irrigation_agent"
+      - "landscape_specification_agent"
+      - "landscape_maintenance_agent"
+      - "landscape_coordination_agent"
+
+  - id: "interior_orchestrator"
+    role: "Orchestrator untuk interior design"
+    domain: "interior_design"
+    specialist_agents:
+      - "interior_expert_agent"
+      - "interior_design_brief_agent"
+      - "interior_concept_agent"
+      - "interior_space_planning_agent"
+      - "furniture_fixture_agent"
+      - "interior_material_finishing_agent"
+      - "ceiling_partition_coordination_agent"
+      - "interior_specification_agent"
+      - "interior_method_statement_agent"
+      - "interior_progress_reporting_agent"
+
+  - id: "illumination_orchestrator"
+    role: "Orchestrator untuk illumination / lighting design"
+    domain: "illumination_design"
+    specialist_agents:
+      - "lighting_expert_agent"
+      - "lighting_concept_agent"
+      - "interior_lighting_agent"
+      - "facade_lighting_agent"
+      - "landscape_lighting_agent"
+      - "public_realm_lighting_agent"
+      - "lighting_fixture_selection_agent"
+      - "lighting_control_strategy_agent"
+      - "lighting_coordination_agent"
+      - "lighting_specification_agent"
+
+master_routing:
+  rules:
+    - if: "permintaan terkait strategi bisnis aplikasi atau superapp konstruksi"
+      use_orchestrators:
+        - "business_construction_orchestrator"
+        - "software_engineering_orchestrator"
+
+    - if: "permintaan terkait ERP, workflow, dan implementasi produk digital"
+      use_orchestrators:
+        - "business_construction_orchestrator"
+        - "software_engineering_orchestrator"
+
+    - if: "permintaan terkait sistem MEP listrik"
+      use_orchestrators:
+        - "business_construction_orchestrator"
+        - "electrical_engineering_orchestrator"
+
+    - if: "permintaan terkait sistem MEP mekanikal"
+      use_orchestrators:
+        - "business_construction_orchestrator"
+        - "mechanical_orchestrator"
+
+    - if: "permintaan terkait AMDAL, UKL-UPL, atau kajian lingkungan"
+      use_orchestrators:
+        - "environment_orchestrator"
+
+    - if: "permintaan terkait desain arsitektur, space planning, atau concept design"
+      use_orchestrators:
+        - "architecture_orchestrator"
+
+    - if: "permintaan terkait façade, material, atau building envelope"
+      use_orchestrators:
+        - "architecture_orchestrator"
+
+    - if: "permintaan terkait site planning atau massing"
+      use_orchestrators:
+        - "architecture_orchestrator"
+        - "civil_orchestrator"
+
+    - if: "permintaan terkait pengelolaan limbah atau waste management"
+      use_orchestrators:
+        - "environment_orchestrator"
+
+    - if: "permintaan terkait sustainability gedung atau fasilitas"
+      use_orchestrators:
+        - "architecture_orchestrator"
+        - "environment_engineering_orchestrator"
+        - "mechanical_orchestrator"
+        - "electrical_engineering_orchestrator"
+        - "civil_orchestrator"
+
+    - if: "permintaan terkait struktur, biaya, jadwal, dan metode pelaksanaan"
+      use_orchestrators:
+        - "civil_orchestrator"
+        - "business_construction_orchestrator"
+
+    - if: "permintaan terkait proyek bangunan lengkap"
+      use_orchestrators:
+        - "architecture_orchestrator"
+        - "civil_orchestrator"
+        - "electrical_engineering_orchestrator"
+        - "mechanical_orchestrator"
+        - "environment_orchestrator"
+        - "business_construction_orchestrator"
+
+    - if: "permintaan terkait desain gedung dan utilitas bangunan"
+      use_orchestrators:
+        - "architecture_orchestrator"
+        - "civil_orchestrator"
+        - "electrical_engineering_orchestrator"
+        - "mechanical_orchestrator"
+        - "environment_orchestrator"
+
+    - if: "permintaan terkait konsep design yang berdampak ke struktur, façade, dan utilitas"
+      use_orchestrators:
+        - "architecture_orchestrator"
+        - "civil_orchestrator"
+        - "mechanical_orchestrator"
+        - "electrical_engineering_orchestrator"
+
+    - if: "permintaan terkait operasi fasilitas, maintenance, dan efficiency"
+      use_orchestrators:
+        - "mechanical_orchestrator"
+        - "electrical_engineering_orchestrator"
+        - "environment_orchestrator"
+
+    - if: "permintaan terkait MEP execution"
+      use_orchestrators:
+        - "mechanical_orchestrator"
+        - "electrical_engineering_orchestrator"
+        - "civil_orchestrator"
+
+    - if: "permintaan terkait pengelolaan proyek yang perlu environmental monitoring"
+      use_orchestrators:
+        - "environment_orchestrator"
+        - "business_construction_orchestrator"
+
+    - if: "permintaan terkait produk KonstruksiAI yang perlu PRD, arsitektur, dan use case konstruksi"
+      use_orchestrators:
+        - "software_engineering_orchestrator"
+        - "business_construction_orchestrator"
+        - "civil_orchestrator"
+        - "electrical_engineering_orchestrator"
+        - "mechanical_orchestrator"
+        - "environment_orchestrator"
+        - "architecture_orchestrator"
+
+    - if: "permintaan terkait landscape, taman, atau ruang luar"
+      use_orchestrators:
+        - "landscape_orchestrator"
+
+    - if: "permintaan terkait interior, fit-out, atau desain ruang dalam"
+      use_orchestrators:
+        - "interior_orchestrator"
+
+    - if: "permintaan terkait pencahayaan, lighting, atau illumination"
+      use_orchestrators:
+        - "illumination_orchestrator"
+
+    - if: "permintaan terkait desain bangunan lengkap dengan interior dan lighting"
+      use_orchestrators:
+        - "architecture_orchestrator"
+        - "interior_orchestrator"
+        - "illumination_orchestrator"
+        - "mechanical_orchestrator"
+        - "electrical_engineering_orchestrator"
+
+    - if: "permintaan terkait ruang publik dengan landscape dan lighting"
+      use_orchestrators:
+        - "landscape_orchestrator"
+        - "illumination_orchestrator"
+        - "environment_orchestrator"
+
+    - if: "permintaan terkait eksekusi proyek, schedule, atau cost control"
+      use_orchestrators:
+        - "construction_pm_orchestrator"
+
+    - if: "permintaan terkait progress report atau progress proyek"
+      use_orchestrators:
+        - "construction_pm_orchestrator"
+
+    - if: "permintaan terkait delay analysis atau issue proyek"
+      use_orchestrators:
+        - "construction_pm_orchestrator"
+
+    - if: "permintaan terkait handover atau close-out proyek"
+      use_orchestrators:
+        - "construction_pm_orchestrator"
+
+    - if: "permintaan terkait kontrol jadwal, biaya, dan procurement proyek"
+      use_orchestrators:
+        - "construction_pm_orchestrator"
+        - "business_construction_orchestrator"
+
+    - if: "permintaan terkait keselamatan konstruksi, HSE, atau K3"
+      use_orchestrators:
+        - "construction_safety_orchestrator"
+
+    - if: "permintaan terkait safety plan, JSA, atau permit to work"
+      use_orchestrators:
+        - "construction_safety_orchestrator"
+
+    - if: "permintaan terkait incident investigation atau safety audit"
+      use_orchestrators:
+        - "construction_safety_orchestrator"
+
+    - if: "permintaan terkait pekerjaan berisiko tinggi dan safety review"
+      use_orchestrators:
+        - "construction_safety_orchestrator"
+        - "construction_pm_orchestrator"
+
+    - if: "permintaan terkait quality control, QC, atau pengendalian mutu"
+      use_orchestrators:
+        - "construction_quality_orchestrator"
+
+    - if: "permintaan terkait inspection, ITP, atau checklist inspeksi mutu"
+      use_orchestrators:
+        - "construction_quality_orchestrator"
+
+    - if: "permintaan terkait NCR, corrective action, atau quality audit"
+      use_orchestrators:
+        - "construction_quality_orchestrator"
+
+    - if: "permintaan terkait handover readiness atau quality documentation"
+      use_orchestrators:
+        - "construction_quality_orchestrator"
+        - "construction_pm_orchestrator"
+
+    - if: "permintaan terkait kontrak, review kontrak, atau administrasi kontrak"
+      use_orchestrators:
+        - "legal_contract_orchestrator"
+
+    - if: "permintaan terkait variation, change order, atau perubahan lingkup"
+      use_orchestrators:
+        - "legal_contract_orchestrator"
+        - "construction_pm_orchestrator"
+
+    - if: "permintaan terkait klaim, EOT, atau delay entitlement"
+      use_orchestrators:
+        - "legal_contract_orchestrator"
+        - "construction_pm_orchestrator"
+
+    - if: "permintaan terkait pembayaran, termin, atau sertifikasi"
+      use_orchestrators:
+        - "legal_contract_orchestrator"
+        - "business_construction_orchestrator"
+
+    - if: "permintaan terkait dispute, sengketa, atau penyelesaian konflik"
+      use_orchestrators:
+        - "legal_contract_orchestrator"
+        - "construction_pm_orchestrator"
+
+    - if: "permintaan terkait final account, close-out, atau handover kontraktual"
+      use_orchestrators:
+        - "legal_contract_orchestrator"
+        - "construction_pm_orchestrator"
+        - "construction_quality_orchestrator"
+
+    - if: "permintaan terkait jaminan, bond, retensi, atau warranty"
+      use_orchestrators:
+        - "legal_contract_orchestrator"
+        - "business_construction_orchestrator"
+
+    - if: "permintaan terkait execution proyek yang berdampak ke change order dan klaim"
+      use_orchestrators:
+        - "construction_pm_orchestrator"
+        - "legal_contract_orchestrator"
+
+    - if: "permintaan terkait dispute avoidance yang perlu dukungan bukti teknis"
+      use_orchestrators:
+        - "legal_contract_orchestrator"
+        - "construction_pm_orchestrator"
+        - "civil_orchestrator"
+        - "mechanical_orchestrator"
+        - "electrical_engineering_orchestrator"
+
+    - if: "permintaan terkait estimasi biaya, cost estimate, atau RAB"
+      use_orchestrators:
+        - "construction_cost_estimation_orchestrator"
+
+    - if: "permintaan terkait conceptual estimate atau order of magnitude"
+      use_orchestrators:
+        - "construction_cost_estimation_orchestrator"
+
+    - if: "permintaan terkait detailed estimate atau analisa harga satuan"
+      use_orchestrators:
+        - "construction_cost_estimation_orchestrator"
+
+    - if: "permintaan terkait tender pricing atau pricing support"
+      use_orchestrators:
+        - "construction_cost_estimation_orchestrator"
+
+    - if: "permintaan terkait owner estimate atau budget"
+      use_orchestrators:
+        - "construction_cost_estimation_orchestrator"
+        - "business_construction_orchestrator"
+
+    - if: "permintaan terkait value engineering dari sisi biaya"
+      use_orchestrators:
+        - "construction_cost_estimation_orchestrator"
+        - "business_construction_orchestrator"
+
+    - if: "permintaan terkait contingency atau risk cost"
+      use_orchestrators:
+        - "construction_cost_estimation_orchestrator"
+        - "construction_pm_orchestrator"
+
+    - if: "permintaan terkait sengketa konstruksi, dispute, atau klaim"
+      use_orchestrators:
+        - "construction_dispute_resolution_orchestrator"
+
+    - if: "permintaan terkait expert opinion atau penilai ahli"
+      use_orchestrators:
+        - "construction_dispute_resolution_orchestrator"
+
+    - if: "permintaan terkait mediasi atau arbitrase"
+      use_orchestrators:
+        - "construction_dispute_resolution_orchestrator"
+        - "legal_contract_orchestrator"
+
+    - if: "permintaan terkait settlement atau resolusi konflik"
+      use_orchestrators:
+        - "construction_dispute_resolution_orchestrator"
+        - "legal_contract_orchestrator"
+
+    - if: "permintaan terkait sengketa delay dan biaya yang memerlukan cost estimation"
+      use_orchestrators:
+        - "construction_dispute_resolution_orchestrator"
+        - "construction_cost_estimation_orchestrator"
+        - "construction_pm_orchestrator"
+
+    - if: "permintaan terkait sengketa mutu yang memerlukanQC input"
+      use_orchestrators:
+        - "construction_dispute_resolution_orchestrator"
+        - "construction_quality_orchestrator"
+
+    - if: "permintaan terkait klasifikasi proyek gedung atau klasifikasi BG001–BG009"
+      use_orchestrators:
+        - "construction_classification_orchestrator"
+
+    - if: "permintaan terkait subklasifikasi skala Kecil, Menengah, atau Besar"
+      use_orchestrators:
+        - "construction_classification_orchestrator"
+
+    - if: "user meminta klasifikasi jasa pelaksana pekerjaan konstruksi"
+      use_orchestrators:
+        - "construction_classification_orchestrator"
+
+    - if: "user ingin mengetahui kode BG untuk proyek gedung"
+      use_orchestrators:
+        - "construction_classification_orchestrator"
+
+    - if: "permintaan terkait klasifikasi BS Bangunan Sipil atau kode BS001–BS020"
+      use_orchestrators:
+        - "civil_works_classification_orchestrator"
+
+    - if: "user meminta klasifikasi proyek infrastruktur, jalan, jembatan, irigasi, atau pelabuhan"
+      use_orchestrators:
+        - "civil_works_classification_orchestrator"
+
+    - if: "user ingin mengetahui kode BS untuk proyek bangunan sipil"
+      use_orchestrators:
+        - "civil_works_classification_orchestrator"
+
+    - if: "user meminta klasifikasi jasa pelaksana pekerjaan konstruksi Bangunan Sipil"
+      use_orchestrators:
+        - "civil_works_classification_orchestrator"
+
+    - if: "permintaan terkait klasifikasi IN Instalasi atau kode IN001–IN010"
+      use_orchestrators:
+        - "installation_classification_orchestrator"
+
+    - if: "user meminta klasifikasi pekerjaan instalasi, HVAC, plumbing, telekomunikasi, atau elektronika"
+      use_orchestrators:
+        - "installation_classification_orchestrator"
+
+    - if: "user ingin mengetahui kode IN untuk proyek instalasi"
+      use_orchestrators:
+        - "installation_classification_orchestrator"
+
+    - if: "user meminta klasifikasi jasa pekerjaan konstruksi spesialis Instalasi"
+      use_orchestrators:
+        - "installation_classification_orchestrator"
+
+    - if: "permintaan terkait klasifikasi KK Konstruksi Khusus atau kode KK001–KK016"
+      use_orchestrators:
+        - "special_works_classification_orchestrator"
+
+    - if: "user meminta klasifikasi pekerjaan konstruksi khusus, pondasi, perkerasan, atau terowongan"
+      use_orchestrators:
+        - "special_works_classification_orchestrator"
+
+    - if: "user ingin mengetahui kode KK untuk proyek konstruksi khusus"
+      use_orchestrators:
+        - "special_works_classification_orchestrator"
+
+    - if: "user meminta klasifikasi jasa pekerjaan konstruksi spesialis Konstruksi Khusus"
+      use_orchestrators:
+        - "special_works_classification_orchestrator"
+
+    - if: "permintaan terkait klasifikasi PA Penyewaan Peralatan atau kode PA001"
+      use_orchestrators:
+        - "equipment_rental_classification_orchestrator"
+
+    - if: "user meminta klasifikasi penyewaan peralatan konstruksi, sewa alat berat, atau rental equipment"
+      use_orchestrators:
+        - "equipment_rental_classification_orchestrator"
+
+    - if: "user ingin mengetahui kode PA untuk penyewaan alat proyek"
+      use_orchestrators:
+        - "equipment_rental_classification_orchestrator"
+
+    - if: "user meminta klasifikasi jasa pekerjaan konstruksi spesialis Penyewaan Peralatan"
+      use_orchestrators:
+        - "equipment_rental_classification_orchestrator"
+
+    - if: "permintaan terkait klasifikasi PB Penyelesaian Bangunan atau kode PB001–PB011"
+      use_orchestrators:
+        - "building_completion_classification_orchestrator"
+
+    - if: "user meminta klasifikasi pekerjaan finishing, penyelesaian bangunan, atau finishing works"
+      use_orchestrators:
+        - "building_completion_classification_orchestrator"
+
+    - if: "user ingin mengetahui kode PB untuk proyek finishing atau penyelesaian"
+      use_orchestrators:
+        - "building_completion_classification_orchestrator"
+
+    - if: "user meminta klasifikasi jasa pekerjaan konstruksi spesialis Penyelesaian Bangunan"
+      use_orchestrators:
+        - "building_completion_classification_orchestrator"
+
+    - if: "permintaan terkait klasifikasi PL Persiapan atau kode PL001–PL008"
+      use_orchestrators:
+        - "preparation_works_classification_orchestrator"
+
+    - if: "user meminta klasifikasi pekerjaan persiapan, pembongkaran, atau pekerjaan tanah"
+      use_orchestrators:
+        - "preparation_works_classification_orchestrator"
+
+    - if: "user ingin mengetahui kode PL untuk proyek persiapan"
+      use_orchestrators:
+        - "preparation_works_classification_orchestrator"
+
+    - if: "user meminta klasifikasi jasa pekerjaan konstruksi spesialis Persiapan"
+      use_orchestrators:
+        - "preparation_works_classification_orchestrator"
+
+    - if: "permintaan terkait klasifikasi AR Arsitektur atau layanan jasa arsitektural"
+      use_orchestrators:
+        - "architecture_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi jasa konsultansi arsitektur, desain gedung, atau desain interior"
+      use_orchestrators:
+        - "architecture_consultancy_orchestrator"
+
+    - if: "user ingin mengetahui subbidang AR untuk proyek arsitektur"
+      use_orchestrators:
+        - "architecture_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi layanan Konsultan Konstruksi bidang Arsitektur"
+      use_orchestrators:
+        - "architecture_consultancy_orchestrator"
+
+    - if: "permintaan terkait klasifikasi RK Rekayasa/Teknik Sipil atau layanan jasa rekayasa"
+      use_orchestrators:
+        - "civil_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi jasa konsultansi rekayasa teknik sipil, rekayasa gedung, atau rekayasa infrastruktur"
+      use_orchestrators:
+        - "civil_consultancy_orchestrator"
+
+    - if: "user ingin mengetahui subbidang RK untuk proyek rekayasa"
+      use_orchestrators:
+        - "civil_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi layanan Konsultan Konstruksi bidang Rekayasa/Teknik Sipil"
+      use_orchestrators:
+        - "civil_consultancy_orchestrator"
+
+    - if: "permintaan terkait klasifikasi AL Arsitektur Lanskap atau layanan jasa perencanaan lanskap"
+      use_orchestrators:
+        - "landscape_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi jasa konsultansi arsitektur lanskap, landscape design, atau perencanaan lanskap"
+      use_orchestrators:
+        - "landscape_consultancy_orchestrator"
+
+    - if: "user ingin mengetahui subbidang AL untuk proyek lanskap"
+      use_orchestrators:
+        - "landscape_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi layanan Konsultan Konstruksi bidang Arsitektur Lanskap"
+      use_orchestrators:
+        - "landscape_consultancy_orchestrator"
+
+    - if: "permintaan terkait klasifikasi RT Rekayasa Terpadu atau layanan jasa manajemen proyek"
+      use_orchestrators:
+        - "rtp_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi jasa konsultansi rekayasa terpadu, design & build, atau project management"
+      use_orchestrators:
+        - "rtp_consultancy_orchestrator"
+
+    - if: "user ingin mengetahui subbidang RT untuk proyek design build"
+      use_orchestrators:
+        - "rtp_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi layanan Konsultan Konstruksi bidang Rekayasa Terpadu"
+      use_orchestrators:
+        - "rtp_consultancy_orchestrator"
+
+    - if: "permintaan terkait klasifikasi AT Pengujian dan Analisa Teknis atau jasa pengujian laboratorium"
+      use_orchestrators:
+        - "testing_analysis_orchestrator"
+
+    - if: "user meminta klasifikasi jasa spesialis pengujian geologi, geofisika, atau geokimia"
+      use_orchestrators:
+        - "testing_analysis_orchestrator"
+
+    - if: "user meminta klasifikasi jasa pengujian material, komposisi, atau mutu konstruksi"
+      use_orchestrators:
+        - "testing_analysis_orchestrator"
+
+    - if: "user meminta klasifikasi jasa commissioning atau uji akustik bangunan"
+      use_orchestrators:
+        - "testing_analysis_orchestrator"
+
+    - if: "user meminta klasifikasi jasa spesialis Pengujian dan Analisa Teknis"
+      use_orchestrators:
+        - "testing_analysis_orchestrator"
+
+    - if: "permintaan terkait klasifikasi IT Konsultansi Ilmiah dan Teknik atau jasa konsultansi geologi"
+      use_orchestrators:
+        - "technical_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi jasa konsultansi ilmiah dan teknis, prospektus geologi, atau konsultasi bawah tanah"
+      use_orchestrators:
+        - "technical_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi jasa konsultansi prasaranan umum atau sistem kendali lalu lintas"
+      use_orchestrators:
+        - "technical_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi jasa konsultansi hidrolika, hidrologi, atau oseanografi"
+      use_orchestrators:
+        - "technical_consultancy_orchestrator"
+
+    - if: "user meminta klasifikasi jasa Spesialis Konsultansi Ilmiah dan Teknik"
+      use_orchestrators:
+        - "technical_consultancy_orchestrator"
+
+    - if: "permintaan terkait klasifikasi profesi arsitektural, jenjang kompetensi arsitek, atau mapping profil tenaga ahli arsitektur"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
+    - if: "user meminta klasifikasi jabatan Arsitek, Asisten Arsitek, Arsitek Madya, atau Arsitek Utama"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
+    - if: "user meminta klasifikasi Juru Gambar Arsitektur Level 2, Level 3, atau Muda"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
+    - if: "user meminta mapping profil ke standar kompetensi SKKNI arsitek"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
+    - if: "user ingin mengetahui kode ARP untuk profil profesi arsitektural"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
+    - if: "user meminta klasifikasi profesi dan kompetensi Arsitektural"
+      use_orchestrators:
+        - "architect_profession_orchestrator"
+
+    - if: "permintaan terkait klasifikasi profesi teknik sipil, jenjang kompetensi sipil, atau mapping profil tenaga ahli teknik sipil"
+      use_orchestrators:
+        - "civil_profession_orchestrator"
+
+    - if: "user meminta klasifikasi jabatan Insinyur Sipil, Asisten Insinyur, atau Teknisi Sipil"
+      use_orchestrators:
+        - "civil_profession_orchestrator"
+
+    - if: "user meminta klasifikasi profesi dan kompetensi Teknik Sipil"
+      use_orchestrators:
+        - "civil_profession_orchestrator"
+
+    - if: "permintaan terkait klasifikasi profesi MEP, jenjang kompetensi mechanical electrical plumbing"
+      use_orchestrators:
+        - "mep_profession_orchestrator"
+
+    - if: "user meminta klasifikasi jabatan Insinyur MEP, Asisten Insinyur MEP, atau Teknisi MEP"
+      use_orchestrators:
+        - "mep_profession_orchestrator"
+
+    - if: "user meminta klasifikasi profesi dan kompetensi MEP"
+      use_orchestrators:
+        - "mep_profession_orchestrator"
+
+    - if: "permintaan terkait klasifikasi profesi desain interior, jenjang kompetensi interior design"
+      use_orchestrators:
+        - "interior_profession_orchestrator"
+
+    - if: "user meminta klasifikasi jabatan Desainer Interior, Asisten Desainer Interior, atau Teknisi Interior"
+      use_orchestrators:
+        - "interior_profession_orchestrator"
+
+    - if: "user meminta klasifikasi profesi dan kompetensi Desain Interior"
+      use_orchestrators:
+        - "interior_profession_orchestrator"
+
+all_agents_count:
+  business_construction: 12
+  construction_classification: 4
+  civil_works_classification: 4
+  installation_classification: 3
+  special_works_classification: 3
+  equipment_rental_classification: 3
+  building_completion_classification: 3
+  preparation_works_classification: 3
+  architecture_consultancy: 5
+  civil_consultancy: 7
+  landscape_consultancy: 4
+  rtp_consultancy: 4
+  testing_analysis: 6
+  technical_consultancy: 6
+  construction_pm: 14
+  construction_safety: 14
+  construction_quality: 12
+  legal_contract_administration: 14
+  construction_cost_estimation: 11
+  construction_dispute_resolution: 12
+  software_engineering: 11
+  electrical_engineering: 11
+  civil_engineering: 6
+  mechanical_engineering: 12
+  environment_engineering: 12
+  architecture_engineering: 12
+  landscape_design: 10
+  interior_design: 10
+  illumination_design: 10
+  architect_profession: 4
+  civil_profession: 4
+  mep_profession: 4
+  interior_profession: 4
+  total: 246

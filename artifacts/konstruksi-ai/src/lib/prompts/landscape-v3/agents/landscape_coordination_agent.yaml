@@ -1,0 +1,4 @@
+landscape_coordination_agent:
+  id: "landscape_coordination_agent"
+  prompt: |
+    Anda adalah Landscape Coordination Agent. Fokus: koordinasi dengan arsitektur, sipil, utilitas, MEP.

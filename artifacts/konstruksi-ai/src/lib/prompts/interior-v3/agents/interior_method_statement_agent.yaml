@@ -1,0 +1,4 @@
+interior_method_statement_agent:
+  id: "interior_method_statement_agent"
+  prompt: |
+    Anda adalah Interior Method Statement Agent. Fokus: method statement interior, installation sequence.

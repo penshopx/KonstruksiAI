@@ -1,0 +1,151 @@
+id: landscape-consultancy-classification-specialists
+name: Agen Spesialis Klasifikasi AL
+domain: consultancy
+subdomain: landscape-consultancy
+specialization: classification
+version: "4.0"
+
+specialists:
+  - id: pengembangan-manfaat-ruang
+    name: Agen Spesialis Pengembangan Manfaat Ruang
+    code: AL001
+    kbli: "71101"
+    full_name: Jasa Pengembangan Manfaat Ruang
+
+    knowledge_base:
+      indicators:
+        - pengembangan manfaat ruang
+        - pengembangan wilayah berbasis pemanfaatan ruang
+        - kajian tata guna ruang
+        - optimalisasi pemanfaatan ruang
+        - perencanaan pemanfaatan ruang
+        - pengembangan ruang kawasan
+        - struktur ruang
+        - fungsi ruang
+        - tata ruang
+        - rencana tata ruang
+        - penataan ruang
+        - zonifikasi
+        - utilisasi ruang
+
+    principles:
+      - Fokus pada manfaat ruang, pemanfaatan ruang, dan skala wilayah atau kawasan
+      - Jika kebutuhan lebih dominan pada lingkungan bangunan atau lansekap tapak, jangan langsung pilih AL001 tanpa klarifikasi
+      - Jika kebutuhan lebih dominan pada desain bangunan, jangan klasifikasikan ke AL001
+      - Jika dominan belum jelas, keluarkan kandidat
+
+    output_format:
+      - name: lingkup_utama
+        type: string
+      - name: kode_utama
+        type: string
+        value: AL001
+      - name: subklasifikasi
+        type: string
+        value: Jasa Pengembangan Manfaat Ruang
+      - name: kbli
+        type: string
+        value: "71101"
+      - name: kandidat_lain
+        type: array
+      - name: confidence
+        type: string
+        values: [Tinggi, Sedang, Rendah]
+      - name: alasan
+        type: array
+        items: string
+      - name: butuh_klarifikasi
+        type: boolean
+      - name: pertanyaan_klarifikasi
+        type: array
+        items: string
+
+    examples:
+      - input: "kajian pengembangan manfaat ruang kawasan pesisir"
+        expected:
+          lingkup_utama: Pengembangan manfaat ruang
+          kode_utama: AL001
+          confidence: Tinggi
+          alasan:
+            - Fokus utama pada pengembangan manfaat ruang kawasan
+      - input: "perencanaan tata ruang kawasan perkotaan"
+        expected:
+          lingkup_utama: Pengembangan manfaat ruang
+          kode_utama: AL001
+          confidence: Tinggi
+          alasan:
+            - Fokus pada tata ruang dan pemanfaatan ruang wilayah
+
+  - id: lingkungan-bangunan-lansekap
+    name: Agen Spesialis Lingkungan Bangunan dan Lansekap
+    code: AL004
+    kbli: "71101"
+    full_name: Jasa Pengembangan Lingkungan Bangunan dan Lansekap
+
+    knowledge_base:
+      indicators:
+        - lingkungan bangunan
+        - pengembangan lansekap bangunan
+        - pengembangan lansekap kawasan bangunan
+        - site landscape
+        - penataan lingkungan bangunan
+        - desain lingkungan luar bangunan
+        - pengembangan ruang luar bangunan
+        - kualitas lingkungan tapak
+        - elemen lansekap
+        - masterplan lansekap
+        - konsep ruang luar
+        - penataan taman kawasan
+        - ruang terbuka hijau
+        - waterfront landscape
+        - softscape
+        - hardscape
+        - planting plan
+
+    principles:
+      - Fokus pada lingkungan bangunan dan lansekap
+      - Jika kebutuhan lebih dominan pada pengembangan manfaat ruang skala wilayah, jangan langsung pilih AL004 tanpa klarifikasi
+      - Jika kebutuhan lebih dominan pada pekerjaan pelaksanaan taman atau lanskap fisik, tandai potensi di luar ruang lingkup konsultansi umum AL
+      - Jika dominan belum jelas, keluarkan kandidat
+
+    output_format:
+      - name: lingkup_utama
+        type: string
+      - name: kode_utama
+        type: string
+        value: AL004
+      - name: subklasifikasi
+        type: string
+        value: Jasa Pengembangan Lingkungan Bangunan dan Lansekap
+      - name: kbli
+        type: string
+        value: "71101"
+      - name: kandidat_lain
+        type: array
+      - name: confidence
+        type: string
+        values: [Tinggi, Sedang, Rendah]
+      - name: alasan
+        type: array
+        items: string
+      - name: butuh_klarifikasi
+        type: boolean
+      - name: pertanyaan_klarifikasi
+        type: array
+        items: string
+
+    examples:
+      - input: "penataan lingkungan bangunan kampus dan lansekap ruang luar"
+        expected:
+          lingkup_utama: Lingkungan bangunan dan lansekap
+          kode_utama: AL004
+          confidence: Tinggi
+          alasan:
+            - Fokus pada lingkungan bangunan dan lansekap
+      - input: "desain lanskap untuk kawasan perumahan"
+        expected:
+          lingkup_utama: Lingkungan bangunan dan lansekap
+          kode_utama: AL004
+          confidence: Tinggi
+          alasan:
+            - Fokus pada site landscape dan lansekap kawasan

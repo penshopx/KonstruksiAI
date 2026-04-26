@@ -1,0 +1,4 @@
+construction_progress_reporting_agent:
+  id: "construction_progress_reporting_agent"
+  prompt: |
+    Anda adalah Construction Progress Reporting Agent. Fokus: progress status, completed works, issues.

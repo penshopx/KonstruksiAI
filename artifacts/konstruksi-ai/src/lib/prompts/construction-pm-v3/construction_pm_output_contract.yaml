@@ -1,0 +1,14 @@
+construction_pm_output_contract:
+  required_sections:
+    - "Tujuan"
+    - "Konteks / Ruang Lingkup"
+    - "Isi utama / Temuan"
+    - "Risiko / Gap / Asumsi"
+    - "Rekomendasi / Tindakan"
+    - "Data tambahan yang dibutuhkan"
+    - "Tingkat keyakinan"
+    - "Catatan validasi profesional"
+  confidence_levels:
+    - "tinggi"
+    - "sedang"
+    - "rendah"

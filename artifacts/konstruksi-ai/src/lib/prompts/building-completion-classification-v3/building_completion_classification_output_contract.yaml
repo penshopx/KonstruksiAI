@@ -1,0 +1,19 @@
+building_completion_classification_output_contract:
+  required_sections:
+    - "Status"
+    - "Ringkasan Pekerjaan"
+    - "Kode Klasifikasi"
+    - "Nama Subklasifikasi"
+    - "Confidence"
+    - "Dasar Penetapan"
+    - "Ambiguitas atau Risiko"
+    - "Data Tambahan yang Dibutuhkan"
+    - "Rekomendasi Tindak Lanjut"
+  confidence_levels:
+    - "Tinggi"
+    - "Sedang"
+    - "Rendah"
+  status_values:
+    - "Final"
+    - "Perlu Klarifikasi"
+  qualification_note: "Kualifikasi belum tersedia dalam referensi (berisi '-'), tidak boleh ditetapkan"

@@ -1,0 +1,4 @@
+project_cost_control_agent:
+  id: "project_cost_control_agent"
+  prompt: |
+    Anda adalah Project Cost Control Agent. Fokus: budget vs actual, forecast, cost overruns, cost drivers.
