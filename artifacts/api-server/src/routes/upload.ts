@@ -16,6 +16,18 @@ const ALLOWED_TYPES = [
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
 
+function isPrivateHost(hostname: string) {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized === "127.0.0.1" ||
+    normalized === "::1" ||
+    normalized.startsWith("10.") ||
+    normalized.startsWith("192.168.") ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)
+  );
+}
+
 router.post("/upload", async (req, res) => {
   const session = await getSessionFromRequest(req);
   if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
@@ -86,9 +98,33 @@ router.post("/fetch-url", async (req, res) => {
     const { url } = req.body;
     if (!url) { res.status(400).json({ error: "url required" }); return; }
 
-    const response = await fetch(url, {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      res.status(400).json({ error: "URL tidak valid" });
+      return;
+    }
+
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      res.status(400).json({ error: "Hanya URL http/https yang diizinkan" });
+      return;
+    }
+
+    if (isPrivateHost(parsed.hostname)) {
+      res.status(400).json({ error: "Host tujuan tidak diizinkan" });
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(parsed.toString(), {
       headers: { "User-Agent": "Mozilla/5.0 KonstruksiAI/1.0" },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     const text = await response.text();
     const plainText = text
@@ -99,7 +135,7 @@ router.post("/fetch-url", async (req, res) => {
       .trim()
       .slice(0, 50000);
 
-    res.json({ content: plainText, url });
+    res.json({ content: plainText, url: parsed.toString() });
   } catch (err) {
     req.log.error({ err }, "POST /fetch-url error");
     res.status(500).json({ error: "Gagal mengambil konten dari URL" });
