@@ -46,6 +46,7 @@ router.post("/auth/login", async (req, res) => {
     res.json({
       success: true,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      token,
     });
   } catch (err) {
     req.log.error({ err }, "Login error");

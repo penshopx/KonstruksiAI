@@ -42,6 +42,13 @@ export function parseCookies(cookieHeader: string | undefined): Record<string, s
 }
 
 export async function getSessionFromRequest(req: Request): Promise<JWTPayload | null> {
+  // 1. Check Authorization: Bearer <token> header (for mobile clients)
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const bearerToken = authHeader.slice(7).trim();
+    if (bearerToken) return verifyToken(bearerToken);
+  }
+  // 2. Fall back to cookie (for web clients)
   const cookies = parseCookies(req.headers.cookie);
   const token = cookies["auth-token"];
   if (!token) return null;
