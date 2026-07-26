@@ -1,9 +1,9 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { Request, Response, NextFunction } from "express";
 
-const jwtSecretValue = process.env.JWT_SECRET;
+const jwtSecretValue = process.env.JWT_SECRET || process.env.SESSION_SECRET;
 if (!jwtSecretValue) {
-  throw new Error("JWT_SECRET environment variable is required but not set. Set it in Replit Secrets.");
+  throw new Error("JWT_SECRET (or SESSION_SECRET) environment variable is required but not set. Set it in Replit Secrets.");
 }
 const JWT_SECRET = new TextEncoder().encode(jwtSecretValue);
 

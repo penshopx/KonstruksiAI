@@ -1,0 +1,1 @@
+- [KonstruksiAI migration](konstruksi-ai-migration.md) — Vercel/Next.js → Replit pnpm workspace; auth uses SESSION_SECRET as JWT_SECRET fallback
