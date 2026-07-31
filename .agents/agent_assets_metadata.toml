@@ -6,3 +6,9 @@ id = "thX0glwAg4lG2wpMoA9HV"
 uri = "file://artifacts/konstruksi-promo-video/public/audio/bg_music.mp3"
 type = "audio"
 title = "KonstruksiAI background music"
+
+[[outputs]]
+id = "DkK9TUQtxoy_YlD_zVviY"
+uri = "file://artifacts/konstruksi-promo-video/public/audio/bg_music_2.mp3"
+type = "audio"
+title = "background music"

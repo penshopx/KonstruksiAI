@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, Repeat, Volume2, VolumeX } from 'lucide-react';
-import VideoTemplate, { SCENE_DURATIONS } from './VideoTemplate';
+import VideoTemplate from './VideoTemplate';
+import { SCENE_DURATIONS_RECORD } from '@/lib/video/config';
 import { useSceneControls } from './useSceneControls';
 
 const PROGRESS_TICK_MS = 60;
@@ -162,7 +163,7 @@ export default function VideoWithControls() {
     onSceneChange,
     jumpTo,
     toggleLock,
-  } = useSceneControls(SCENE_DURATIONS);
+  } = useSceneControls(SCENE_DURATIONS_RECORD);
 
   const [muted, setMuted] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
