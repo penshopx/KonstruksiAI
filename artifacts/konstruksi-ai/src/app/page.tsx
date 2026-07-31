@@ -431,6 +431,51 @@ function PlanComparisonSection() {
 }
 
 // ============================================================
+// EXPANDABLE ACCORDION SECTION
+// ============================================================
+
+function ExpandableSection({
+  icon,
+  title,
+  subtitle,
+  children,
+}: {
+  icon: string;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-2xl px-6 py-4 transition-all text-left group"
+      >
+        <div className="flex items-center gap-4">
+          <span className="text-xl">{icon}</span>
+          <div>
+            <span className="text-white font-semibold">{title}</span>
+            {subtitle && (
+              <p className="text-slate-500 text-sm mt-0.5 hidden sm:block">{subtitle}</p>
+            )}
+          </div>
+        </div>
+        <svg
+          className={`w-5 h-5 text-slate-400 group-hover:text-white flex-shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && <div className="mt-4 pb-2">{children}</div>}
+    </div>
+  );
+}
+
+// ============================================================
 // MAIN PAGE
 // ============================================================
 
@@ -572,17 +617,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Problem Deep Dive - INTEREST */}
-      <section id="problem" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Mengapa Industri Konstruksi Indonesia Butuh Solusi Digital?
-          </h2>
-          <p className="text-slate-400 text-lg max-w-3xl mx-auto">
-            Mari kita lihat realitas yang dihadapi kontraktor dan profesional jasa konstruksi setiap hari
-          </p>
-        </div>
-
+      {/* Problem Deep Dive - collapsible */}
+      <ExpandableSection
+        icon="🚨"
+        title="Tantangan Industri Konstruksi Indonesia"
+        subtitle="6 masalah utama yang dihadapi kontraktor dan profesional setiap hari"
+      >
+      <div id="problem" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {[
             {
@@ -660,58 +701,16 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </div>
+      </ExpandableSection>
 
-      {/* Video Demo Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-8">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-white mb-4">Lihat KonstruksiAI dalam Aksi</h2>
-            <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-              Demo 2 menit yang menunjukkan bagaimana KonstruksiAI mengatasi masalah nyata industri konstruksi
-            </p>
-          </div>
-
-          <div className="relative max-w-4xl mx-auto">
-            {/* Video Placeholder - In real implementation, replace with actual video */}
-            <div className="aspect-video bg-slate-900 border border-slate-700 rounded-xl flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-500/20 to-blue-500/20"></div>
-              <div className="relative z-10 text-center">
-                <div className="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center text-4xl mb-4 mx-auto">
-                  ▶️
-                </div>
-                <h3 className="text-white font-bold text-xl mb-2">Demo KonstruksiAI</h3>
-                <p className="text-slate-400 mb-4">Tonton bagaimana AI ini menjawab pertanyaan teknis kompleks</p>
-                <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
-                  Putar Video
-                </button>
-              </div>
-
-              {/* Video thumbnail overlay */}
-              <div className="absolute top-4 right-4 bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
-                LIVE DEMO
-              </div>
-            </div>
-
-            {/* Video Stats */}
-            <div className="grid grid-cols-3 gap-4 mt-6">
-              {[
-                { value: "2:30", label: "Durasi Video" },
-                { value: "5000+", label: "Penonton" },
-                { value: "4.9/5", label: "Rating" }
-              ].map((stat, i) => (
-                <div key={stat.label} className="text-center bg-slate-800/50 rounded-lg p-3">
-                  <div className="text-orange-400 font-bold">{stat.value}</div>
-                  <div className="text-slate-400 text-sm">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Solution & Value Proposition - INTEREST */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      {/* Solution & Value Proposition - collapsible */}
+      <ExpandableSection
+        icon="✨"
+        title="Solusi & Nilai Tambah KonstruksiAI"
+        subtitle="Platform AI pertama yang dirancang khusus untuk industri konstruksi Indonesia"
+      >
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-white mb-4">
             KonstruksiAI: Solusi Komprehensif untuk Industri Konstruksi Indonesia
@@ -796,15 +795,15 @@ export default function Home() {
           ))}
         </div>
       </section>
+      </ExpandableSection>
 
-      {/* How It Works - Interactive Infographic */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-white mb-4">Bagaimana KonstruksiAI Bekerja</h2>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Sistem AI canggih yang mengubah cara Anda menangani kompleksitas industri konstruksi
-          </p>
-        </div>
+      {/* How It Works - collapsible */}
+      <ExpandableSection
+        icon="⚙️"
+        title="Cara Kerja KonstruksiAI"
+        subtitle="5 langkah dari input hingga solusi — proses kompleks dalam hitungan detik"
+      >
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Interactive Workflow Diagram */}
         <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 mb-8">
@@ -899,17 +898,15 @@ export default function Home() {
           ))}
         </div>
       </section>
+      </ExpandableSection>
 
-      {/* Success Stories & Benefits - DESIRE */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Prospek Kemajuan yang Akan Anda Dapatkan
-          </h2>
-          <p className="text-slate-400 text-lg max-w-3xl mx-auto">
-            Lihat bagaimana KonstruksiAI mentransformasi bisnis konstruksi dan karir profesional
-          </p>
-        </div>
+      {/* Success Stories - collapsible */}
+      <ExpandableSection
+        icon="📈"
+        title="Hasil Nyata Pengguna KonstruksiAI"
+        subtitle="Win rate tender naik 300%, perijinan 80% lebih cepat — data dari 5000+ pengguna aktif"
+      >
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* Contractor Benefits */}
@@ -1010,6 +1007,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      </ExpandableSection>
 
       {/* Animated Stats Bar */}
       <StatsSection />
