@@ -530,6 +530,21 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Promo Video */}
+        <div className="mb-12">
+          <div className="relative w-full max-w-4xl mx-auto rounded-2xl overflow-hidden border border-slate-700 shadow-2xl shadow-orange-500/10" style={{ aspectRatio: '16/9' }}>
+            <iframe
+              src="/konstruksi-promo-video/"
+              className="absolute inset-0 w-full h-full"
+              allow="autoplay"
+              title="KonstruksiAI – Demo Video"
+            />
+          </div>
+          <p className="text-center text-slate-500 text-sm mt-3">
+            ▶ Lihat bagaimana KonstruksiAI membantu profesional konstruksi Indonesia
+          </p>
+        </div>
+
         {/* CTA - Primary Action */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
           <Link
