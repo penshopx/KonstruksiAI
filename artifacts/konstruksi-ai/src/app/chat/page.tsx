@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "@/shims/next-link";
 import { extractPdfFromFile, extractPdfFromBase64 } from "@/lib/pdf-client";
+import DOMPurify from "dompurify";
 
 // ============================================================
 // TYPES
@@ -154,12 +155,19 @@ function renderMarkdown(content: string, highlight?: string): string {
 
   // Code blocks (must be before inline code) - with copy button
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    const escaped = code.replace(/</g, "<").replace(/>/g, ">");
+    // lang comes from the regex \w* so it is already restricted to [a-zA-Z0-9_]
+    // code content is escaped so < and > cannot form tags
+    const escaped = code
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
     const codeId = `code-${Math.random().toString(36).substr(2, 9)}`;
+    // Use data-copy-id instead of onclick — React handles the click via event delegation
     return `<div class="my-3 rounded-lg overflow-hidden border border-slate-600 group">
       <div class="bg-slate-700 px-3 py-1.5 text-xs text-slate-400 font-mono flex items-center justify-between">
         <span>${lang || "code"}</span>
-        <button onclick="window.copyCode('${codeId}', this)" class="text-slate-400 hover:text-white transition-colors flex items-center gap-1 text-xs" title="Salin kode">
+        <button data-copy-id="${codeId}" class="text-slate-400 hover:text-white transition-colors flex items-center gap-1 text-xs" title="Salin kode">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
           </svg>
@@ -235,7 +243,28 @@ function renderMarkdown(content: string, highlight?: string): string {
   html = html.replace(/\n\n/g, '</p><p class="mb-2">');
   html = html.replace(/\n/g, "<br/>");
 
-  return `<p class="mb-2">${html}</p>`;
+  const raw = `<p class="mb-2">${html}</p>`;
+  // Sanitize to prevent XSS from model-generated content.
+  // No event-handler attributes are allowed — copy buttons use data-copy-id
+  // handled by React event delegation, not inline JS.
+  return DOMPurify.sanitize(raw, {
+    ALLOWED_TAGS: [
+      "p","br","h2","h3","h4","strong","em","code","pre","div","span",
+      "table","thead","tbody","tr","th","td","blockquote","hr","mark",
+      "button","svg","path","b","i","ul","ol","li",
+    ],
+    ALLOWED_ATTR: [
+      "class","id","title",
+      "data-copy-id",
+      // SVG presentation attributes only — no event attributes
+      "fill","stroke","stroke-linecap","stroke-linejoin","stroke-width",
+      "viewBox","d","xmlns",
+    ],
+    // Explicitly forbid all event handlers and javascript: URIs
+    FORBID_ATTR: ["style","onerror","onload","onfocus","onclick","onmouseover","onmouseenter","onkeydown","onkeyup","onkeypress","onsubmit","onchange","onblur","href","src","action","formaction","xlink:href"],
+    ALLOW_DATA_ATTR: false,
+    FORCE_BODY: false,
+  });
 }
 
 // ============================================================
@@ -713,6 +742,22 @@ function MessageBubble({
             <div
               className={`${fontSizeClass} leading-relaxed text-slate-200 prose-custom`}
               dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content, searchQuery) }}
+              onClick={(e) => {
+                // Event delegation for code-block copy buttons (data-copy-id replaces unsafe onclick)
+                const btn = (e.target as HTMLElement).closest("[data-copy-id]");
+                if (!btn) return;
+                const codeId = btn.getAttribute("data-copy-id");
+                if (!codeId) return;
+                const pre = document.getElementById(codeId);
+                if (!pre) return;
+                navigator.clipboard.writeText(pre.innerText).then(() => {
+                  const label = btn.querySelector(".copy-text");
+                  if (label) {
+                    label.textContent = "Tersalin!";
+                    setTimeout(() => { label.textContent = "Salin"; }, 2000);
+                  }
+                }).catch(() => {});
+              }}
             />
           )}
         </div>
@@ -1684,54 +1729,65 @@ export default function ChatPage() {
         body: JSON.stringify({
           messages: [...historyMessages, { role: "user", content: userContent }],
           agentId: selectedAgent.id,
+          stream: true,
         }),
         signal: abortRef.current.signal,
       });
 
-      const data = await response.json();
-      const responseText = data.message || "Maaf, terjadi kesalahan. Silakan coba lagi.";
-      const wc = countWords(responseText);
-
-      // Enhanced streaming simulation - word by word with natural pacing
-      const words = responseText.split(/(\s+)/); // Keep whitespace as separate tokens
-      let displayed = "";
-      let wordIndex = 0;
-      
-      // Variable speed for natural feel (faster for punctuation, slower for sentences)
-      const getDelay = (token: string): number => {
-        if (/[.!?]$/.test(token)) return 80; // Pause after sentences
-        if (/[,;]$/.test(token)) return 50;  // Slight pause after commas
-        if (/\s+/.test(token)) return 10;    // Fast for whitespace
-        if (token.length > 8) return 40;      // Slower for long words
-        return 25;                            // Normal speed
-      };
-
-      while (wordIndex < words.length) {
-        if (abortRef.current?.signal.aborted) break;
-        
-        // Batch multiple tokens for smoother animation
-        const batchSize = Math.min(2 + Math.floor(Math.random() * 2), words.length - wordIndex);
-        const batch = words.slice(wordIndex, wordIndex + batchSize);
-        const token = batch.join("");
-        
-        displayed += token;
-        wordIndex += batchSize;
-        
-        setConversations(prev => prev.map(c =>
-          c.id === convId
-            ? {
-                ...c,
-                messages: c.messages.map(m =>
-                  m.id === streamingMsgId
-                    ? { ...m, content: displayed, isStreaming: true }
-                    : m
-                ),
-              }
-            : c
-        ));
-        
-        await new Promise(r => setTimeout(r, getDelay(token)));
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
       }
+
+      // Consume real SSE stream from OpenAI via server
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullResponse = "";
+      let buffer = "";
+
+      if (reader) {
+        while (true) {
+          if (abortRef.current?.signal.aborted) break;
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const jsonStr = line.slice(6).trim();
+            if (!jsonStr) continue;
+            try {
+              const event = JSON.parse(jsonStr) as { content?: string; done?: boolean; error?: string; message?: string };
+              if (event.error) {
+                fullResponse = event.error;
+                break;
+              }
+              if (event.content) {
+                fullResponse += event.content;
+                setConversations(prev => prev.map(c =>
+                  c.id === convId
+                    ? {
+                        ...c,
+                        messages: c.messages.map(m =>
+                          m.id === streamingMsgId
+                            ? { ...m, content: fullResponse, isStreaming: true }
+                            : m
+                        ),
+                      }
+                    : c
+                ));
+              }
+            } catch {
+              // skip malformed SSE line
+            }
+          }
+        }
+      }
+
+      const responseText = fullResponse || "Maaf, terjadi kesalahan. Silakan coba lagi.";
+      const wc = countWords(responseText);
 
       // Finalize
       setConversations(prev => prev.map(c =>

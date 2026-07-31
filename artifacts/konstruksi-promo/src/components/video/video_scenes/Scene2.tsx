@@ -42,17 +42,17 @@ export function Scene2() {
       <div className="relative z-10 flex flex-col items-center justify-center h-full px-[6vw]">
         {/* Header */}
         <motion.div
-          className="text-center mb-16"
+          className="text-center mb-6"
           initial={{ opacity: 0, y: -30 }}
           animate={phase >= 1 ? { opacity: 1, y: 0 } : { opacity: 0, y: -30 }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         >
-          <div className="w-20 h-1 bg-orange-500 mx-auto mb-6" />
+          <div className="w-20 h-1 bg-orange-500 mx-auto mb-4" />
           <h2
-            className="text-white mb-4"
+            className="text-white mb-2"
             style={{
               fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(2rem, 6vw, 4rem)',
+              fontSize: 'clamp(1.6rem, 4.5vw, 3rem)',
               fontWeight: 800,
               letterSpacing: '-0.02em'
             }}
@@ -63,7 +63,7 @@ export function Scene2() {
             className="text-slate-400"
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: 'clamp(0.9rem, 1.8vw, 1.2rem)',
+              fontSize: 'clamp(0.8rem, 1.5vw, 1rem)',
               fontWeight: 500
             }}
           >
@@ -73,7 +73,7 @@ export function Scene2() {
 
         {/* Domain grid */}
         <motion.div
-          className="grid grid-cols-3 gap-6 max-w-5xl w-full"
+          className="grid grid-cols-3 gap-3 max-w-5xl w-full"
           initial={{ opacity: 0 }}
           animate={phase >= 2 ? { opacity: 1 } : { opacity: 0 }}
           transition={{ duration: 0.6 }}
@@ -90,13 +90,13 @@ export function Scene2() {
                 ease: [0.16, 1, 0.3, 1]
               }}
             >
-              <div className="relative bg-slate-900/60 backdrop-blur-sm border border-slate-800 rounded-xl p-6 h-full transition-all duration-300">
+              <div className="relative bg-slate-900/60 backdrop-blur-sm border border-slate-800 rounded-xl p-4 h-full transition-all duration-300">
                 {/* Icon container */}
-                <div className="w-16 h-16 mb-4 mx-auto bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-lg flex items-center justify-center border border-orange-500/30">
+                <div className="w-12 h-12 mb-3 mx-auto bg-gradient-to-br from-orange-500/20 to-orange-600/10 rounded-lg flex items-center justify-center border border-orange-500/30">
                   <img 
                     src={`${import.meta.env.BASE_URL}images/icon-${domain.icon}.png`}
                     alt={domain.name}
-                    className="w-10 h-10 object-contain"
+                    className="w-8 h-8 object-contain"
                   />
                 </div>
                 
@@ -126,7 +126,7 @@ export function Scene2() {
 
         {/* Bottom accent */}
         <motion.div
-          className="mt-12 flex items-center gap-2"
+          className="mt-6 flex items-center gap-2"
           initial={{ opacity: 0, y: 20 }}
           animate={phase >= 3 ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6 }}

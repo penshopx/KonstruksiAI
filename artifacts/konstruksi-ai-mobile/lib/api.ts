@@ -85,6 +85,7 @@ export interface ChatResponse {
 export async function apiChat(messages: ChatMessage[], agentId: string): Promise<ChatResponse> {
   return request<ChatResponse>('/chat', {
     method: 'POST',
-    body: JSON.stringify({ messages, agentId }),
+    // stream: false → server returns JSON (SSE streaming not supported in React Native fetch)
+    body: JSON.stringify({ messages, agentId, stream: false }),
   });
 }
