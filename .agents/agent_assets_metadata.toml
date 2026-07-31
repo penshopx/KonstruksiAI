@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "thX0glwAg4lG2wpMoA9HV"
+uri = "file://artifacts/konstruksi-promo-video/public/audio/bg_music.mp3"
+type = "audio"
+title = "KonstruksiAI background music"

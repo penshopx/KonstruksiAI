@@ -1,0 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import 'tailwindcss';
+
+:root {
+  --color-primary: hsl(25, 95%, 53%); /* Orange Accent */
+  --color-secondary: hsl(215, 20%, 65%); /* Muted slate */
+  --color-accent: hsl(25, 95%, 53%); 
+
+  --color-bg-base: hsl(215, 28%, 11%); /* Dark slate background */
+  --color-bg-card: hsl(215, 25%, 15%); /* Card background */
+  --color-bg-light: #1e293b;
+  --color-bg-dark: #020617;
+  --color-bg-muted: hsl(215, 28%, 15%);
+
+  --color-text-primary: #ffffff;
+  --color-text-secondary: hsl(215, 20%, 65%);
+  --color-text-muted: hsl(215, 15%, 50%);
+  --color-text-inverse: hsl(215, 28%, 11%);
+
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-bg-base: var(--color-bg-base);
+  --color-bg-card: var(--color-bg-card);
+  --color-bg-light: var(--color-bg-light);
+  --color-bg-dark: var(--color-bg-dark);
+  --color-bg-muted: var(--color-bg-muted);
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-inverse: var(--color-text-inverse);
+  --color-success: var(--color-success);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-error);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #ffffff 0%, var(--color-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-primary {
+  background: linear-gradient(135deg, #ffb347 0%, var(--color-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.glass-panel {
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Base styles for UI components in video */
+.ai-msg {
+  background: var(--color-bg-card);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 0 1rem 1rem 1rem;
+}
+.user-msg {
+  background: var(--color-primary);
+  color: white;
+  border-radius: 1rem 0 1rem 1rem;
+}

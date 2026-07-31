@@ -1,0 +1,27 @@
+kind = "video"
+previewPath = "/konstruksi-promo-video/"
+title = "KonstruksiAI Promo Video"
+version = "1.0.0"
+id = "artifacts/konstruksi-promo-video"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/konstruksi-promo-video/" ]
+localPort = 18959
+
+[services.development]
+run = "pnpm --filter @workspace/konstruksi-promo-video run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/konstruksi-promo-video", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/konstruksi-promo-video/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18959"
+BASE_PATH = "/konstruksi-promo-video/"
