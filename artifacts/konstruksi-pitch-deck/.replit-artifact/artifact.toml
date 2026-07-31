@@ -1,0 +1,27 @@
+kind = "slides"
+previewPath = "/konstruksi-pitch-deck/"
+title = "KonstruksiAI Pitch Deck"
+version = "1.0.0"
+id = "artifacts/konstruksi-pitch-deck"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/konstruksi-pitch-deck/" ]
+localPort = 26128
+
+[services.development]
+run = "pnpm --filter @workspace/konstruksi-pitch-deck run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/konstruksi-pitch-deck", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/konstruksi-pitch-deck/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26128"
+BASE_PATH = "/konstruksi-pitch-deck/"
