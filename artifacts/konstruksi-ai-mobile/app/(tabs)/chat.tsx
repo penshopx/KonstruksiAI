@@ -8,15 +8,18 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useColors } from '@/hooks/useColors';
 import { useChat, AGENTS, type Message } from '@/context/ChatContext';
-import { apiChat } from '@/lib/api';
+import { apiChat, type ChatAttachment } from '@/lib/api';
 
 // ─── Agent selector chip ─────────────────────────────────────────────────────
 
@@ -94,41 +97,70 @@ function MessageBubble({ msg }: { msg: Message }) {
           <Ionicons name="construct" size={14} color="#fff" />
         </View>
       )}
-      <View
-        style={[
-          bubbleStyles.bubble,
-          {
-            backgroundColor: isUser ? '#f97316' : colors.card,
-            borderColor: isUser ? '#f97316' : colors.border,
-            maxWidth: '82%',
-          },
-        ]}
-      >
-        {msg.isLoading ? (
-          <View style={bubbleStyles.loadingRow}>
-            <ActivityIndicator size="small" color={colors.mutedForeground} />
-            <Text style={[bubbleStyles.loadingText, { color: colors.mutedForeground }]}>
-              Memproses...
-            </Text>
-          </View>
-        ) : (
-          <Text
+      <View style={{ maxWidth: '82%' }}>
+        {/* Attachment indicator */}
+        {msg.attachmentName && (
+          <View
             style={[
-              bubbleStyles.text,
-              { color: isUser ? '#fff' : colors.foreground },
+              bubbleStyles.attachmentChip,
+              {
+                backgroundColor: isUser ? 'rgba(255,255,255,0.2)' : colors.card,
+                borderColor: isUser ? 'rgba(255,255,255,0.3)' : colors.border,
+                alignSelf: isUser ? 'flex-end' : 'flex-start',
+              },
             ]}
           >
-            {msg.content}
-          </Text>
+            <Ionicons
+              name="document-attach"
+              size={12}
+              color={isUser ? '#fff' : colors.mutedForeground}
+            />
+            <Text
+              numberOfLines={1}
+              style={[
+                bubbleStyles.attachmentName,
+                { color: isUser ? '#fff' : colors.mutedForeground },
+              ]}
+            >
+              {msg.attachmentName}
+            </Text>
+          </View>
         )}
-        <Text
+        <View
           style={[
-            bubbleStyles.time,
-            { color: isUser ? 'rgba(255,255,255,0.6)' : colors.mutedForeground },
+            bubbleStyles.bubble,
+            {
+              backgroundColor: isUser ? '#f97316' : colors.card,
+              borderColor: isUser ? '#f97316' : colors.border,
+            },
           ]}
         >
-          {msg.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-        </Text>
+          {msg.isLoading ? (
+            <View style={bubbleStyles.loadingRow}>
+              <ActivityIndicator size="small" color={colors.mutedForeground} />
+              <Text style={[bubbleStyles.loadingText, { color: colors.mutedForeground }]}>
+                Memproses...
+              </Text>
+            </View>
+          ) : (
+            <Text
+              style={[
+                bubbleStyles.text,
+                { color: isUser ? '#fff' : colors.foreground },
+              ]}
+            >
+              {msg.content}
+            </Text>
+          )}
+          <Text
+            style={[
+              bubbleStyles.time,
+              { color: isUser ? 'rgba(255,255,255,0.6)' : colors.mutedForeground },
+            ]}
+          >
+            {msg.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -157,6 +189,22 @@ const bubbleStyles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
+  },
+  attachmentChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 4,
+    maxWidth: '100%',
+  },
+  attachmentName: {
+    fontSize: 11,
+    fontFamily: 'Inter_400Regular',
+    flexShrink: 1,
   },
   text: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 21 },
   time: { fontSize: 10, fontFamily: 'Inter_400Regular', marginTop: 4 },
@@ -190,7 +238,58 @@ const emptyStyles = StyleSheet.create({
   hint: { fontSize: 12, fontFamily: 'Inter_400Regular', textAlign: 'center' },
 });
 
+// ─── Pending attachment preview ───────────────────────────────────────────────
+
+function AttachmentPreview({
+  name,
+  onRemove,
+}: {
+  name: string;
+  onRemove: () => void;
+}) {
+  const colors = useColors();
+  return (
+    <View style={[attachStyles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Ionicons name="document-attach" size={16} color="#f97316" />
+      <Text numberOfLines={1} style={[attachStyles.name, { color: colors.foreground }]}>
+        {name}
+      </Text>
+      <TouchableOpacity onPress={onRemove} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+        <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const attachStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  name: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+  },
+});
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
+
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+];
 
 export default function ChatScreen() {
   const colors = useColors();
@@ -200,6 +299,8 @@ export default function ChatScreen() {
 
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<ChatAttachment | null>(null);
+  const [pickingDoc, setPickingDoc] = useState(false);
   const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -210,22 +311,59 @@ export default function ChatScreen() {
     }
   }, [params.initialPrompt]);
 
-  const sendMessage = useCallback(async (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed || sending || isSyncing) return;
+  const pickDocument = useCallback(async () => {
+    if (pickingDoc) return;
+    setPickingDoc(true);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ALLOWED_MIME_TYPES,
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      const { uri, name, mimeType } = asset;
+
+      // Read file as base64 ('base64' string accepted by legacy API)
+      const base64 = await FileSystem.readAsStringAsync(uri, {
+        encoding: 'base64' as FileSystem.EncodingType,
+      });
+
+      const type = mimeType ?? 'application/octet-stream';
+      setPendingAttachment({ name: name ?? 'document', type, base64 });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      Alert.alert('Gagal', 'Tidak dapat membaca dokumen. Coba lagi.');
+    } finally {
+      setPickingDoc(false);
+    }
+  }, [pickingDoc]);
+
+  const sendMessage = useCallback(async (text: string, attachment?: ChatAttachment | null) => {
+    const attachToSend = attachment ?? pendingAttachment;
+    const typedText = text.trim();
+    // Require either typed text or a pending attachment
+    if (!typedText && !attachToSend) return;
+    if (sending || isSyncing) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setInput('');
+    setPendingAttachment(null);
     setSending(true);
 
-    addUserMessage(trimmed);
+    // API message: use typed text, or a default prompt when attachment-only
+    const apiText = typedText || 'Tolong analisis dokumen ini.';
+    // Display shows typed text (attachment chip shows regardless via attachmentName)
+    addUserMessage(typedText, attachToSend?.name);
     const loadingId = addLoadingMessage();
 
     // Build history for API
     const history = messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
-    history.push({ role: 'user', content: trimmed });
+    history.push({ role: 'user', content: apiText });
 
     try {
-      const { message } = await apiChat(history, selectedAgent.id);
+      const { message } = await apiChat(history, selectedAgent.id, attachToSend ?? undefined);
       addAssistantMessage(message, loadingId);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (err: unknown) {
@@ -235,7 +373,7 @@ export default function ChatScreen() {
       setSending(false);
       inputRef.current?.focus();
     }
-  }, [sending, messages, selectedAgent, addUserMessage, addLoadingMessage, addAssistantMessage]);
+  }, [sending, messages, selectedAgent, pendingAttachment, addUserMessage, addLoadingMessage, addAssistantMessage]);
 
   const handleSend = () => sendMessage(input);
 
@@ -262,6 +400,7 @@ export default function ChatScreen() {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setSelectedAgent(item);
                 clearMessages();
+                setPendingAttachment(null);
               }}
             />
           )}
@@ -294,8 +433,34 @@ export default function ChatScreen() {
           />
         )}
 
+        {/* Pending attachment preview */}
+        {pendingAttachment && (
+          <AttachmentPreview
+            name={pendingAttachment.name}
+            onRemove={() => setPendingAttachment(null)}
+          />
+        )}
+
         {/* Input bar */}
         <View style={[s.inputBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
+          {/* Attach button */}
+          <TouchableOpacity
+            style={[s.attachBtn, { opacity: (sending || isSyncing || pickingDoc) ? 0.4 : 1 }]}
+            onPress={pickDocument}
+            disabled={sending || isSyncing || pickingDoc}
+            activeOpacity={0.75}
+          >
+            {pickingDoc ? (
+              <ActivityIndicator size="small" color="#f97316" />
+            ) : (
+              <Ionicons
+                name={pendingAttachment ? 'document-attach' : 'attach'}
+                size={22}
+                color={pendingAttachment ? '#f97316' : colors.mutedForeground}
+              />
+            )}
+          </TouchableOpacity>
+
           <TextInput
             ref={inputRef}
             style={s.textInput}
@@ -309,9 +474,9 @@ export default function ChatScreen() {
             onSubmitEditing={handleSend}
           />
           <TouchableOpacity
-            style={[s.sendBtn, { opacity: (!input.trim() || sending || isSyncing) ? 0.4 : 1 }]}
+            style={[s.sendBtn, { opacity: ((!input.trim() && !pendingAttachment) || sending || isSyncing) ? 0.4 : 1 }]}
             onPress={handleSend}
-            disabled={!input.trim() || sending || isSyncing}
+            disabled={(!input.trim() && !pendingAttachment) || sending || isSyncing}
             activeOpacity={0.75}
           >
             {sending ? (
@@ -342,12 +507,19 @@ const styles = (colors: ReturnType<typeof useColors>, insets: ReturnType<typeof 
     inputBar: {
       flexDirection: 'row',
       alignItems: 'flex-end',
-      gap: 10,
-      paddingHorizontal: 16,
+      gap: 8,
+      paddingHorizontal: 12,
       paddingTop: 10,
       backgroundColor: colors.background,
       borderTopWidth: 1,
       borderTopColor: colors.border,
+    },
+    attachBtn: {
+      width: 36,
+      height: 42,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
     },
     textInput: {
       flex: 1,

@@ -2,6 +2,16 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import { getSessionFromRequest } from "../lib/auth";
 import OpenAI from "openai";
+// pdf-parse v2 exports a PDFParse class via its CJS bundle.
+// Page selection uses `partial: number[]`; always call destroy() to release pdfjs resources.
+import { createRequire } from "module";
+const _require = createRequire(import.meta.url);
+const { PDFParse: _PDFParse } = _require("pdf-parse") as {
+  PDFParse: new (opts: { data: Buffer | Uint8Array; verbosity?: number }) => {
+    getText(params?: { partial?: number[] }): Promise<{ text: string; total: number }>;
+    destroy(): Promise<void>;
+  };
+};
 
 const router = Router();
 
@@ -49,9 +59,86 @@ setInterval(() => {
 
 // ─── Input limits ─────────────────────────────────────────────────────────────
 
-const MAX_MESSAGES = 20;           // number of messages in history
-const MAX_MESSAGE_CHARS = 8_000;   // max chars per single message
-const MAX_TOTAL_CHARS = 32_000;    // max total chars across all messages
+const MAX_MESSAGES = 20;             // number of messages in history
+const MAX_MESSAGE_CHARS = 8_000;     // max chars per single message
+const MAX_TOTAL_CHARS = 32_000;      // max total chars across all messages
+const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB base64 decoded
+// Combined budget for history + attachment text before the API call.
+// gpt-4o-mini has a 128k token context (~512k chars); we stay well below that,
+// leaving ≥4,096 tokens (~16k chars) for the completion and space for the system prompt.
+const MAX_COMBINED_PROMPT_CHARS = 60_000;
+
+// ─── Attachment text extraction ───────────────────────────────────────────────
+
+interface Attachment {
+  name: string;
+  type: string;
+  base64: string;
+}
+
+async function extractAttachmentText(attachment: Attachment): Promise<string> {
+  const buffer = Buffer.from(attachment.base64, "base64");
+  if (buffer.length > MAX_ATTACHMENT_SIZE) {
+    return "[File terlalu besar untuk diproses (maks 10 MB)]";
+  }
+
+  const { type, name } = attachment;
+
+  if (type === "application/pdf") {
+    const parser = new _PDFParse({ data: buffer });
+    try {
+      // Build list of first 50 page numbers for partial extraction
+      // (we don't know total yet, so we'll load and cap post-hoc if < 50 pages)
+      // pdf-parse v2 `partial: []` means "all pages"; passing page numbers limits parsing
+      // We first load with no limit to get page count, then pass capped range
+      const fullInfo = await (async () => {
+        // Get total pages via a lightweight probe using partial=[] which parses all,
+        // but we'll limit text collection by slicing the result instead.
+        // Use partial list of pages 1..50 directly.
+        const pages = Array.from({ length: 50 }, (_, i) => i + 1);
+        return parser.getText({ partial: pages });
+      })();
+      let text = fullInfo.text.replace(/\s+/g, " ").trim();
+      const pageCount = fullInfo.total;
+      if (!text || text.length < 20) {
+        return "[PDF berisi gambar/scan tanpa teks yang dapat dibaca]";
+      }
+      if (text.length > 50_000) {
+        text = text.substring(0, 50_000) + "\n\n[... dipotong karena terlalu panjang ...]";
+      }
+      const truncNote = pageCount > 50 ? ` (menampilkan 50 dari ${pageCount} halaman)` : "";
+      return `[Dokumen PDF: ${name} — ${pageCount} halaman${truncNote}]\n\n${text}`;
+    } catch {
+      return `[Gagal membaca PDF: ${name}]`;
+    } finally {
+      await parser.destroy();
+    }
+  }
+
+  if (
+    type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    type === "application/msword"
+  ) {
+    try {
+      const mammoth = await import("mammoth");
+      const result = await mammoth.extractRawText({ buffer });
+      let text = result.value.replace(/\s+/g, " ").trim();
+      if (text.length > 50_000) {
+        text = text.substring(0, 50_000) + "\n\n[... dipotong karena terlalu panjang ...]";
+      }
+      return `[Dokumen Word: ${name}]\n\n${text}`;
+    } catch {
+      return `[Gagal membaca dokumen Word: ${name}]`;
+    }
+  }
+
+  if (type === "text/plain" || type === "text/markdown" || type === "text/csv") {
+    const text = buffer.toString("utf-8").slice(0, 50_000);
+    return `[File teks: ${name}]\n\n${text}`;
+  }
+
+  return `[File ${name} tidak dapat diekstrak teksnya]`;
+}
 
 // ─── System prompts per agent ─────────────────────────────────────────────────
 
@@ -181,10 +268,11 @@ router.post("/chat", async (req: Request, res: Response) => {
   }
 
   try {
-    const { messages: chatMessages, agentId, stream: wantStream } = req.body as {
+    const { messages: chatMessages, agentId, stream: wantStream, attachment } = req.body as {
       messages: Array<{ role: string; content: string }>;
       agentId?: string;
       stream?: boolean;
+      attachment?: Attachment;
     };
 
     if (!chatMessages || !Array.isArray(chatMessages)) {
@@ -222,12 +310,52 @@ router.post("/chat", async (req: Request, res: Response) => {
 
     const systemPrompt = getSystemPrompt(agentId ?? "general");
 
+    // Validate attachment base64 size before decoding to give a clean error message
+    if (attachment) {
+      if (typeof attachment.base64 !== "string" || !attachment.name || !attachment.type) {
+        res.status(400).json({ error: "Format attachment tidak valid." });
+        return;
+      }
+      // base64 is ~4/3 of the binary size; decoded size ≈ base64.length * 0.75
+      const approxBytes = Math.ceil(attachment.base64.length * 0.75);
+      if (approxBytes > MAX_ATTACHMENT_SIZE) {
+        res.status(413).json({ error: "File terlalu besar untuk diproses (maks 10 MB)." });
+        return;
+      }
+    }
+
+    // If an attachment is provided, extract its text and append to the last user message.
+    // Truncate to the remaining combined prompt budget so total input stays within
+    // MAX_COMBINED_PROMPT_CHARS (60k chars ≈ 15k tokens), safely below model limits.
+    let extractedAttachmentText: string | null = null;
+    if (attachment) {
+      const raw = await extractAttachmentText(attachment);
+      const remainingBudget = MAX_COMBINED_PROMPT_CHARS - totalChars;
+      if (remainingBudget <= 0) {
+        extractedAttachmentText = "[Riwayat percakapan terlalu panjang untuk memuat dokumen. Mulai percakapan baru.]";
+      } else if (raw.length > remainingBudget) {
+        extractedAttachmentText = raw.substring(0, remainingBudget)
+          + "\n\n[... konten dokumen dipotong agar sesuai dengan batas konteks ...]";
+      } else {
+        extractedAttachmentText = raw;
+      }
+    }
+
+    // Find the index of the last user-role message to inject attachment text
+    let lastUserIdx = -1;
+    for (let i = chatMessages.length - 1; i >= 0; i--) {
+      if (chatMessages[i]!.role === "user") { lastUserIdx = i; break; }
+    }
+
     const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: systemPrompt },
-      ...chatMessages.map((m) => ({
-        role: m.role as "user" | "assistant",
-        content: m.content,
-      })),
+      ...chatMessages.map((m, i) => {
+        const content =
+          i === lastUserIdx && extractedAttachmentText
+            ? `${m.content}\n\n---\nISI DOKUMEN TERLAMPIR:\n${extractedAttachmentText}\n---`
+            : m.content;
+        return { role: m.role as "user" | "assistant", content };
+      }),
     ];
 
     // ── Streaming (SSE) mode ───────────────────────────────────────────────────

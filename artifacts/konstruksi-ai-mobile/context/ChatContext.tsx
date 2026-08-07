@@ -40,13 +40,14 @@ export interface Message {
   content: string;
   timestamp: Date;
   isLoading?: boolean;
+  attachmentName?: string;
 }
 
 interface ChatContextValue {
   selectedAgent: Agent;
   setSelectedAgent: (agent: Agent) => void;
   messages: Message[];
-  addUserMessage: (content: string) => Message;
+  addUserMessage: (content: string, attachmentName?: string) => Message;
   addAssistantMessage: (content: string, replaceLoadingId?: string) => void;
   addLoadingMessage: () => string;
   clearMessages: () => void;
@@ -166,12 +167,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // ── Message helpers ─────────────────────────────────────────────────────────
 
   const addUserMessage = useCallback(
-    (content: string): Message => {
+    (content: string, attachmentName?: string): Message => {
       const msg: Message = {
         id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
         role: 'user',
         content,
         timestamp: new Date(),
+        attachmentName,
       };
       setMessages(prev => [...prev, msg]);
 
