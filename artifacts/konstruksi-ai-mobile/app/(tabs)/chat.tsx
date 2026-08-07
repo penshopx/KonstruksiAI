@@ -196,7 +196,7 @@ export default function ChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ initialPrompt?: string }>();
-  const { selectedAgent, setSelectedAgent, messages, addUserMessage, addLoadingMessage, addAssistantMessage, clearMessages } = useChat();
+  const { selectedAgent, setSelectedAgent, messages, addUserMessage, addLoadingMessage, addAssistantMessage, clearMessages, isSyncing } = useChat();
 
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -212,7 +212,7 @@ export default function ChatScreen() {
 
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || sending) return;
+    if (!trimmed || sending || isSyncing) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setInput('');
     setSending(true);
@@ -270,7 +270,16 @@ export default function ChatScreen() {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={0}>
         {messages.length === 0 ? (
-          <EmptyChat agent={selectedAgent} />
+          isSyncing ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator size="large" color="#f97316" />
+              <Text style={{ color: colors.mutedForeground, marginTop: 12, fontSize: 13, fontFamily: 'Inter_400Regular' }}>
+                Memuat riwayat percakapan...
+              </Text>
+            </View>
+          ) : (
+            <EmptyChat agent={selectedAgent} />
+          )
         ) : (
           <FlatList
             ref={flatListRef}
@@ -300,9 +309,9 @@ export default function ChatScreen() {
             onSubmitEditing={handleSend}
           />
           <TouchableOpacity
-            style={[s.sendBtn, { opacity: (!input.trim() || sending) ? 0.4 : 1 }]}
+            style={[s.sendBtn, { opacity: (!input.trim() || sending || isSyncing) ? 0.4 : 1 }]}
             onPress={handleSend}
-            disabled={!input.trim() || sending}
+            disabled={!input.trim() || sending || isSyncing}
             activeOpacity={0.75}
           >
             {sending ? (

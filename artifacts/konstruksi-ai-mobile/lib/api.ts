@@ -89,3 +89,60 @@ export async function apiChat(messages: ChatMessage[], agentId: string): Promise
     body: JSON.stringify({ messages, agentId, stream: false }),
   });
 }
+
+// ─── Conversation API ─────────────────────────────────────────────────────────
+
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  agentId: string;
+  label?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ServerMessage {
+  id: string;
+  conversationId: string;
+  role: string;
+  content: string;
+  attachmentName?: string;
+  attachmentType?: string;
+  /** Epoch seconds (number) or ISO-8601 string — handle both */
+  createdAt: number | string;
+}
+
+export async function apiGetConversations(): Promise<{ conversations: ConversationSummary[] }> {
+  return request<{ conversations: ConversationSummary[] }>('/conversations');
+}
+
+export async function apiCreateConversation(
+  title: string,
+  agentId: string,
+): Promise<{ id: string; title: string; agentId: string }> {
+  return request<{ id: string; title: string; agentId: string }>('/conversations', {
+    method: 'POST',
+    body: JSON.stringify({ title, agentId }),
+  });
+}
+
+export async function apiGetConversationMessages(
+  conversationId: string,
+): Promise<{ messages: ServerMessage[] }> {
+  return request<{ messages: ServerMessage[] }>(`/conversations/${conversationId}/messages`);
+}
+
+export async function apiAddMessage(
+  conversationId: string,
+  role: string,
+  content: string,
+): Promise<{ id: string }> {
+  return request<{ id: string }>(`/conversations/${conversationId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({ role, content }),
+  });
+}
+
+export async function apiDeleteConversation(conversationId: string): Promise<void> {
+  await request(`/conversations/${conversationId}`, { method: 'DELETE' });
+}
