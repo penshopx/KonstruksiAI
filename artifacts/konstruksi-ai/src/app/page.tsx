@@ -502,7 +502,7 @@ export default function Home() {
             <Link href="/" className="group flex min-w-0 items-center gap-3" aria-label="KonstruksiAI beranda">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                   <span className="truncate text-lg font-bold tracking-[0.01em] text-white">KONSTRUKSI<span className="text-orange-400">AI</span></span>
+                   <span className="truncate text-2xl font-bold leading-none tracking-[0.01em] text-white sm:text-[1.6875rem]">KONSTRUKSI<span className="text-orange-400">AI</span></span>
                   <span className="hidden rounded-full border border-orange-400/25 bg-orange-400/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-orange-300 sm:inline-flex">
                     Beta
                   </span>
