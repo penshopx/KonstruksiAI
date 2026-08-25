@@ -15,10 +15,12 @@ import {
   Link2,
   MessageCircle,
   Radar,
+  RefreshCw,
   Scale,
   Settings2,
   ShieldCheck,
   Target,
+  TrendingUp,
   UsersRound,
   Wrench,
 } from "lucide-react";
@@ -507,7 +509,22 @@ export default function Home() {
                     Beta
                   </span>
                 </div>
-                 <span className="block truncate text-[18px] leading-tight tracking-[-0.01em] text-slate-500 sm:text-[20px]">Learn · Update · Grow</span>
+                  <span className="flex items-center gap-1.5 whitespace-nowrap text-[13px] leading-tight tracking-[0.01em] text-slate-500 sm:gap-2 sm:text-[15px]">
+                    <span className="inline-flex items-center gap-1 text-slate-400">
+                      <BookOpen className="h-3.5 w-3.5 text-cyan-400/80 sm:h-4 sm:w-4" strokeWidth={2} />
+                      <span>Learn</span>
+                    </span>
+                    <span aria-hidden="true" className="text-slate-600">·</span>
+                    <span className="inline-flex items-center gap-1 text-slate-400">
+                      <RefreshCw className="h-3.5 w-3.5 text-blue-400/80 sm:h-4 sm:w-4" strokeWidth={2} />
+                      <span>Update</span>
+                    </span>
+                    <span aria-hidden="true" className="text-slate-600">·</span>
+                    <span className="inline-flex items-center gap-1 text-slate-400">
+                      <TrendingUp className="h-3.5 w-3.5 text-orange-400/80 sm:h-4 sm:w-4" strokeWidth={2} />
+                      <span>Grow</span>
+                    </span>
+                  </span>
               </div>
             </Link>
 
