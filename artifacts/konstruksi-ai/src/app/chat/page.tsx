@@ -23,6 +23,8 @@ interface Message {
   content: string;
   timestamp: Date;
   isStreaming?: boolean;
+  retrying?: boolean;
+  interrupted?: boolean;
   reaction?: "up" | "down" | null;
   wordCount?: number;
   starred?: boolean;
@@ -732,13 +734,7 @@ function MessageBubble({
       </div>
       <div className="flex-1 min-w-0">
         <div className="bg-slate-800 border border-slate-700/60 rounded-2xl rounded-tl-sm px-4 py-3 relative">
-          {message.isStreaming ? (
-            <div className="flex gap-1 items-center h-5 py-1">
-              <span className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
-              <span className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
-              <span className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
-            </div>
-          ) : (
+          {message.content ? (
             <div
               className={`${fontSizeClass} leading-relaxed text-slate-200 prose-custom`}
               dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content, searchQuery) }}
@@ -759,6 +755,23 @@ function MessageBubble({
                 }).catch(() => {});
               }}
             />
+          ) : message.isStreaming ? (
+            <div className="flex gap-1 items-center h-5 py-1">
+              <span className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+              <span className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+              <span className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+            </div>
+          ) : null}
+          {message.retrying && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-orange-300" role="status">
+              <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span>
+              Retrying…
+            </div>
+          )}
+          {message.interrupted && (
+            <div className="mt-2 text-xs text-amber-300" role="status">
+              Respons terhenti setelah beberapa kali percobaan. Teks yang sudah diterima tetap tersimpan.
+            </div>
           )}
         </div>
 
@@ -1698,6 +1711,9 @@ export default function ChatPage() {
         : c
     ));
 
+    let fullResponse = "";
+    let streamError: string | null = null;
+
     try {
       // Build history from the updated conversation (not stale state)
       const historyMessages = currentConv
@@ -1741,7 +1757,6 @@ export default function ChatPage() {
       // Consume real SSE stream from OpenAI via server
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let fullResponse = "";
       let buffer = "";
 
       if (reader) {
@@ -1759,10 +1774,43 @@ export default function ChatPage() {
             const jsonStr = line.slice(6).trim();
             if (!jsonStr) continue;
             try {
-              const event = JSON.parse(jsonStr) as { content?: string; done?: boolean; error?: string; message?: string };
+              const event = JSON.parse(jsonStr) as {
+                content?: string;
+                done?: boolean;
+                error?: string;
+                message?: string;
+                retrying?: boolean;
+              };
               if (event.error) {
-                fullResponse = event.error;
+                streamError = event.error;
+                setConversations(prev => prev.map(c =>
+                  c.id === convId
+                    ? {
+                        ...c,
+                        messages: c.messages.map(m =>
+                          m.id === streamingMsgId
+                            ? { ...m, content: fullResponse, isStreaming: false, retrying: false, interrupted: Boolean(fullResponse) }
+                            : m
+                        ),
+                      }
+                    : c
+                ));
                 break;
+              }
+              if (event.retrying) {
+                setConversations(prev => prev.map(c =>
+                  c.id === convId
+                    ? {
+                        ...c,
+                        messages: c.messages.map(m =>
+                          m.id === streamingMsgId
+                            ? { ...m, content: fullResponse, isStreaming: true, retrying: true }
+                            : m
+                        ),
+                      }
+                    : c
+                ));
+                continue;
               }
               if (event.content) {
                 fullResponse += event.content;
@@ -1772,7 +1820,7 @@ export default function ChatPage() {
                         ...c,
                         messages: c.messages.map(m =>
                           m.id === streamingMsgId
-                            ? { ...m, content: fullResponse, isStreaming: true }
+                            ? { ...m, content: fullResponse, isStreaming: true, retrying: false }
                             : m
                         ),
                       }
@@ -1786,7 +1834,7 @@ export default function ChatPage() {
         }
       }
 
-      const responseText = fullResponse || "Maaf, terjadi kesalahan. Silakan coba lagi.";
+      const responseText = fullResponse || streamError || "Maaf, terjadi kesalahan. Silakan coba lagi.";
       const wc = countWords(responseText);
 
       // Finalize
@@ -1796,7 +1844,14 @@ export default function ChatPage() {
               ...c,
               messages: c.messages.map(m =>
                 m.id === streamingMsgId
-                  ? { ...m, content: responseText, isStreaming: false, wordCount: wc }
+                  ? {
+                      ...m,
+                      content: responseText,
+                      isStreaming: false,
+                      retrying: false,
+                      interrupted: Boolean(streamError && fullResponse),
+                      wordCount: wc,
+                    }
                   : m
               ),
               updatedAt: new Date(),
@@ -1819,7 +1874,14 @@ export default function ChatPage() {
               ...c,
               messages: c.messages.map(m =>
                 m.id === streamingMsgId
-                  ? { ...m, content: "Maaf, terjadi kesalahan koneksi. Silakan coba lagi.", isStreaming: false }
+                   ? {
+                       ...m,
+                       content: fullResponse || "Maaf, terjadi kesalahan koneksi. Silakan coba lagi.",
+                       isStreaming: false,
+                       retrying: false,
+                       interrupted: Boolean(fullResponse),
+                       wordCount: countWords(fullResponse),
+                     }
                   : m
               ),
             }

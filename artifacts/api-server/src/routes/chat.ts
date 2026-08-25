@@ -68,6 +68,39 @@ const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB base64 decoded
 // leaving ≥4,096 tokens (~16k chars) for the completion and space for the system prompt.
 const MAX_COMBINED_PROMPT_CHARS = 60_000;
 
+// ─── OpenAI stream retry policy ────────────────────────────────────────────────
+// A stream can fail after content has already reached the browser. Retrying the
+// continuation keeps that content visible instead of forcing the user to start
+// over from an empty response.
+
+const MAX_STREAM_ATTEMPTS = 3;
+const STREAM_RETRY_BASE_DELAY_MS = 500;
+const RETRYABLE_OPENAI_STATUS_CODES = new Set([429, 500, 503]);
+
+function getErrorStatus(error: unknown): number | undefined {
+  if (typeof error !== "object" || error === null || !("status" in error)) {
+    return undefined;
+  }
+
+  const status = (error as { status?: unknown }).status;
+  return typeof status === "number" ? status : undefined;
+}
+
+function isRetryableOpenAIError(error: unknown): boolean {
+  const status = getErrorStatus(error);
+  return status !== undefined && RETRYABLE_OPENAI_STATUS_CODES.has(status);
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function writeSse(res: Response, payload: Record<string, unknown>): void {
+  if (!res.writableEnded && !res.destroyed) {
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  }
+}
+
 // ─── Attachment text extraction ───────────────────────────────────────────────
 
 interface Attachment {
@@ -367,28 +400,77 @@ router.post("/chat", async (req: Request, res: Response) => {
 
       let fullResponse = "";
 
-      try {
-        const stream = await getOpenAI().chat.completions.create({
-          model: "gpt-4o-mini",
-          max_tokens: 4096,
-          messages: openaiMessages,
-          stream: true,
-        });
+      let attempt = 0;
+      let streamMessages = openaiMessages;
 
-        for await (const chunk of stream) {
-          const content = chunk.choices[0]?.delta?.content;
-          if (content) {
-            fullResponse += content;
-            res.write(`data: ${JSON.stringify({ content })}\n\n`);
+      while (attempt < MAX_STREAM_ATTEMPTS) {
+        attempt += 1;
+
+        try {
+          const stream = await getOpenAI().chat.completions.create({
+            model: "gpt-4o-mini",
+            max_tokens: 4096,
+            messages: streamMessages,
+            stream: true,
+          });
+
+          for await (const chunk of stream) {
+            const content = chunk.choices[0]?.delta?.content;
+            if (content) {
+              fullResponse += content;
+              writeSse(res, { content });
+            }
           }
-        }
 
-        res.write(`data: ${JSON.stringify({ done: true, message: fullResponse })}\n\n`);
-        res.end();
-      } catch (streamErr) {
-        req.log.error({ err: streamErr }, "OpenAI stream error");
-        res.write(`data: ${JSON.stringify({ error: "Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi." })}\n\n`);
-        res.end();
+          writeSse(res, { done: true, message: fullResponse });
+          res.end();
+          return;
+        } catch (streamErr) {
+          if (req.aborted || res.destroyed) return;
+
+          const canRetry =
+            isRetryableOpenAIError(streamErr) &&
+            attempt < MAX_STREAM_ATTEMPTS;
+
+          if (!canRetry) {
+            req.log.error({ err: streamErr, attempt, partialLength: fullResponse.length }, "OpenAI stream error");
+            writeSse(res, {
+              error: "Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi.",
+              partial: fullResponse,
+            });
+            res.end();
+            return;
+          }
+
+          const delayMs = STREAM_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+          req.log.warn(
+            { err: streamErr, attempt, nextAttempt: attempt + 1, delayMs, partialLength: fullResponse.length },
+            "Retrying OpenAI stream",
+          );
+          writeSse(res, {
+            retrying: true,
+            attempt: attempt + 1,
+            maxAttempts: MAX_STREAM_ATTEMPTS,
+            delayMs,
+          });
+          await wait(delayMs);
+
+          if (req.aborted || res.destroyed) return;
+
+          // Once content exists, ask the model to continue after the partial
+          // answer. Without this context, appending a fresh completion would
+          // duplicate the text already shown to the user.
+          streamMessages = fullResponse
+            ? [
+                ...openaiMessages,
+                { role: "assistant", content: fullResponse },
+                {
+                  role: "user",
+                  content: "Lanjutkan jawaban sebelumnya dari bagian terakhir tanpa mengulanginya.",
+                },
+              ]
+            : openaiMessages;
+        }
       }
       return;
     }
