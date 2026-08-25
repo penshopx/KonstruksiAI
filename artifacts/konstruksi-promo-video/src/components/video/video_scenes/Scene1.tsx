@@ -42,10 +42,10 @@ export function Scene1() {
       />
 
       {/* Main content */}
-      <div className="relative z-10 flex flex-col justify-center h-full px-[8vw]">
+      <div className="relative z-10 flex h-full flex-col justify-start overflow-hidden px-[8vw] pb-[22%] pt-[9%]">
         {/* Problem statement header */}
         <motion.div
-          className="mb-12"
+          className="mb-[clamp(1.25rem,4vh,3rem)]"
           initial={{ opacity: 0, x: -60 }}
           animate={phase >= 1 ? { opacity: 1, x: 0 } : { opacity: 0, x: -60 }}
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
@@ -55,7 +55,7 @@ export function Scene1() {
             className="text-slate-300"
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+              fontSize: 'clamp(0.8rem, min(2vw, 3vh), 1.25rem)',
               fontWeight: 600,
               letterSpacing: '0.1em',
               textTransform: 'uppercase'
@@ -67,14 +67,13 @@ export function Scene1() {
 
         {/* Main headline */}
         <motion.h1
-          className="text-white mb-16"
+          className="mb-[clamp(1.25rem,4vh,4rem)] max-w-[94%] text-white"
           style={{
             fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(2.5rem, 8vw, 5.5rem)',
+            fontSize: 'clamp(1.9rem, min(7vw, 10vh), 5.5rem)',
             fontWeight: 800,
-            lineHeight: 1.1,
+            lineHeight: 1.05,
             letterSpacing: '-0.02em',
-            maxWidth: '80%'
           }}
           initial={{ opacity: 0, y: 40 }}
           animate={phase >= 2 ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
@@ -86,11 +85,11 @@ export function Scene1() {
         </motion.h1>
 
         {/* Challenge list */}
-        <div className="space-y-4 max-w-2xl">
+        <div className="max-w-2xl space-y-3">
           {challenges.map((challenge, i) => (
             <motion.div
               key={i}
-              className="flex items-center gap-4"
+              className="flex items-center gap-3"
               initial={{ opacity: 0, x: -40 }}
               animate={phase >= 3 ? { opacity: 1, x: 0 } : { opacity: 0, x: -40 }}
               transition={{ 
@@ -104,7 +103,7 @@ export function Scene1() {
                 className="text-slate-400"
                 style={{
                   fontFamily: 'var(--font-body)',
-                  fontSize: 'clamp(1rem, 2.2vw, 1.4rem)',
+                  fontSize: 'clamp(0.85rem, min(2.2vw, 3vh), 1.4rem)',
                   fontWeight: 500
                 }}
               >
@@ -116,7 +115,7 @@ export function Scene1() {
 
         {/* Accent element */}
         <motion.div
-          className="absolute bottom-20 right-[8vw] w-24 h-24 border-2 border-orange-500/40 rotate-12"
+          className="absolute bottom-[26%] right-[8vw] h-24 w-24 rotate-12 border-2 border-orange-500/40"
           initial={{ opacity: 0, scale: 0, rotate: 0 }}
           animate={phase >= 4 ? { opacity: 1, scale: 1, rotate: 12 } : { opacity: 0, scale: 0, rotate: 0 }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
