@@ -3,6 +3,27 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "@/shims/next-link";
 import NavbarAuth from "@/components/NavbarAuth";
+import {
+  Award,
+  BarChart3,
+  BadgeCheck,
+  BookOpen,
+  Building2,
+  ClipboardCheck,
+  FlaskConical,
+  Gauge,
+  GraduationCap,
+  Link2,
+  MessageCircle,
+  Radar,
+  Scale,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  UsersRound,
+  Wrench,
+} from "lucide-react";
 
 const engineeringFields = [
   {
@@ -479,42 +500,128 @@ function ExpandableSection({
 // MAIN PAGE
 // ============================================================
 
+const platformNav = [
+  { href: "/knowledge", label: "Knowledge", icon: BookOpen, tone: "text-violet-300" },
+  { href: "/bimtek", label: "Bimtek", icon: GraduationCap, tone: "text-blue-300" },
+  { href: "/simulasi", label: "Simulasi", icon: Target, tone: "text-fuchsia-300" },
+  { href: "/solver", label: "Solver", icon: FlaskConical, tone: "text-orange-300" },
+  { href: "/tools", label: "Tools", icon: Wrench, tone: "text-slate-300" },
+  { href: "/matrix", label: "Matriks", icon: BarChart3, tone: "text-slate-300" },
+];
+
+const intelligenceNav = [
+  { href: "/tender-intelligence", label: "Tender Intelligence", icon: Radar, tone: "text-emerald-300" },
+  { href: "/tender-eligibility", label: "Tender Eligibility", icon: ClipboardCheck, tone: "text-cyan-300" },
+  { href: "/evidence-mapping", label: "Evidence Mapping", icon: Link2, tone: "text-purple-300" },
+  { href: "/workforce-assignment", label: "Workforce", icon: UsersRound, tone: "text-pink-300" },
+];
+
+const complianceNav = [
+  { href: "/certify", label: "Sertifikasi", icon: Award, tone: "text-emerald-300" },
+  { href: "/legal-licensing", label: "Legal & Licensing", icon: Scale, tone: "text-blue-300" },
+  { href: "/sbu-readiness", label: "SBU Readiness", icon: Building2, tone: "text-orange-300" },
+  { href: "/skk-readiness", label: "SKK Readiness", icon: BadgeCheck, tone: "text-green-300" },
+];
+
+function BrandMark() {
+  return (
+    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-orange-300 via-orange-500 to-amber-600 shadow-lg shadow-orange-500/25 ring-1 ring-orange-200/30">
+      <div className="absolute inset-1 rounded-[0.8rem] border border-white/20" />
+      <svg viewBox="0 0 48 48" aria-hidden="true" className="relative h-8 w-8">
+        <path d="M7 23.5 24 8l17 15.5" fill="none" stroke="white" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M11 22.5V39h26V22.5M17 39V26h14v13" fill="none" stroke="white" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M8 23h32" fill="none" stroke="#172033" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M24 8v7" fill="none" stroke="#172033" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    </div>
+  );
+}
+
+function HeaderNavItem({
+  item,
+}: {
+  item: { href: string; label: string; icon: React.ElementType; tone: string };
+}) {
+  const Icon = item.icon;
+
+  return (
+    <Link
+      href={item.href}
+      className="group inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-slate-400 transition-all hover:bg-white/[0.06] hover:text-white"
+    >
+      <Icon className={`h-3.5 w-3.5 ${item.tone} transition-transform group-hover:-translate-y-0.5`} strokeWidth={2} />
+      <span>{item.label}</span>
+    </Link>
+  );
+}
+
 export default function Home() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header / Navbar */}
-      <header className="border-b border-slate-700 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                K
+      <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-slate-950/90 shadow-2xl shadow-slate-950/20 backdrop-blur-xl">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex min-h-[4.5rem] items-center justify-between gap-4">
+            <Link href="/" className="group flex min-w-0 items-center gap-3" aria-label="KonstruksiAI beranda">
+              <BrandMark />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-lg font-bold tracking-tight text-white">Konstruksi<span className="text-orange-400">AI</span></span>
+                  <span className="hidden rounded-full border border-orange-400/25 bg-orange-400/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-orange-300 sm:inline-flex">
+                    Beta
+                  </span>
+                </div>
+                <span className="block truncate text-[11px] leading-tight text-slate-500">Construction intelligence platform</span>
               </div>
-              <div>
-                <span className="text-white font-bold text-lg">KonstruksiAI</span>
-                <span className="text-slate-400 text-xs block leading-none">Asisten Cerdas Keteknikan Indonesia</span>
+            </Link>
+
+            <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+              <div className="hidden items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-400/[0.06] px-3 py-1.5 text-[10px] font-medium text-emerald-300 lg:flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+                AI siap membantu
               </div>
-            </div>
-            <nav className="hidden md:flex items-center gap-4">
-              <Link href="/knowledge" className="text-purple-400 hover:text-purple-300 text-sm transition-colors font-medium">📚 Knowledge</Link>
-              <Link href="/bimtek" className="text-blue-400 hover:text-blue-300 text-sm transition-colors font-medium">🎓 Bimtek</Link>
-              <Link href="/simulasi" className="text-violet-400 hover:text-violet-300 text-sm transition-colors font-medium">🎯 Simulasi</Link>
-              <Link href="/solver" className="text-orange-400 hover:text-orange-300 text-sm transition-colors font-medium">🔬 Solver</Link>
-              <Link href="/tools" className="text-slate-300 hover:text-white text-sm transition-colors">🔧 Tools</Link>
-              <Link href="/matrix" className="text-slate-300 hover:text-white text-sm transition-colors">📊 Matriks</Link>
-              <Link href="/certify" className="text-emerald-400 hover:text-emerald-300 text-sm transition-colors">🏅 Sertifikasi</Link>
-              <Link href="/tender-intelligence" className="text-emerald-400 hover:text-emerald-300 text-sm transition-colors">🎯 Tender Intelligence</Link>
-              <Link href="/tender-eligibility" className="text-cyan-400 hover:text-cyan-300 text-sm transition-colors">📋 Tender Eligibility</Link>
-              <Link href="/evidence-mapping" className="text-purple-400 hover:text-purple-300 text-sm transition-colors">🔗 Evidence Mapping</Link>
-              <Link href="/workforce-assignment" className="text-pink-400 hover:text-pink-300 text-sm transition-colors">👷 Workforce Assignment</Link>
-              <Link href="/legal-licensing" className="text-blue-400 hover:text-blue-300 text-sm transition-colors">⚖️ Legal & Licensing</Link>
-              <Link href="/sbu-readiness" className="text-orange-400 hover:text-orange-300 text-sm transition-colors">🏗️ SBU Readiness</Link>
-              <Link href="/skk-readiness" className="text-green-400 hover:text-green-300 text-sm transition-colors">🎓 SKK Readiness</Link>
-              <Link href="/pricing" className="text-slate-300 hover:text-white text-sm transition-colors">Harga</Link>
-              <Link href="/chat" className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                Mulai Chat
+              <Link
+                href="/chat"
+                className="hidden items-center gap-2 rounded-xl bg-orange-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition-all hover:-translate-y-0.5 hover:bg-orange-400 hover:shadow-orange-500/30 sm:inline-flex sm:px-4"
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">Mulai Chat</span>
+                <span className="sm:hidden">Chat</span>
               </Link>
               <NavbarAuth />
+            </div>
+          </div>
+
+          <div className="border-t border-white/[0.06]">
+            <nav className="nav-scrollbar flex items-center gap-1 overflow-x-auto py-2" aria-label="Navigasi platform">
+              <span className="mr-1 flex shrink-0 items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-600">
+                <Sparkles className="h-3 w-3 text-orange-400" />
+                Platform
+              </span>
+              <Link
+                href="/chat"
+                className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-orange-500/10 px-3 py-2 text-xs font-semibold text-orange-300 transition-colors hover:bg-orange-500/20 hover:text-orange-200 sm:hidden"
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                Chat AI
+              </Link>
+              {platformNav.map((item) => <HeaderNavItem key={item.href} item={item} />)}
+              <span className="mx-2 h-5 w-px shrink-0 bg-white/[0.08]" />
+              <span className="mr-1 flex shrink-0 items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-600">
+                <Gauge className="h-3 w-3 text-cyan-400" />
+                Intelligence
+              </span>
+              {intelligenceNav.map((item) => <HeaderNavItem key={item.href} item={item} />)}
+              <span className="mx-2 h-5 w-px shrink-0 bg-white/[0.08]" />
+              <span className="mr-1 flex shrink-0 items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-600">
+                <ShieldCheck className="h-3 w-3 text-emerald-400" />
+                Compliance
+              </span>
+              {complianceNav.map((item) => <HeaderNavItem key={item.href} item={item} />)}
+              <Link href="/pricing" className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-lg border border-white/[0.08] px-3 py-2 text-xs font-semibold text-slate-300 transition-colors hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-200">
+                <Settings2 className="h-3.5 w-3.5" />
+                Harga
+              </Link>
             </nav>
           </div>
         </div>

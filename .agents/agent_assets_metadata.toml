@@ -6,12 +6,14 @@ id = "thX0glwAg4lG2wpMoA9HV"
 uri = "file://artifacts/konstruksi-promo-video/public/audio/bg_music.mp3"
 type = "audio"
 title = "KonstruksiAI background music"
+logical_id = "8770b3ed-3b03-47a3-b3bd-5c8d052e5660"
 
 [[outputs]]
 id = "DkK9TUQtxoy_YlD_zVviY"
 uri = "file://artifacts/konstruksi-promo-video/public/audio/bg_music_2.mp3"
 type = "audio"
 title = "background music"
+logical_id = "54b3be67-1d8e-471c-b86c-2bd8fa54bcc2"
 
 [[outputs]]
 id = "xQNw0MVrhdmQzMIs2AW6c"
@@ -19,6 +21,7 @@ uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene5.mp3"
 type = "audio"
 title = "voiceover scene5"
 description = "Text-to-speech audio: Bangun lebih cerdas bersama KonstruksiAI."
+logical_id = "2b31fce8-e57c-4b02-9e35-1a89cf7fafa5"
 
 [[outputs]]
 id = "M5JJhkuQOgs_PbkThHNlZ"
@@ -26,6 +29,7 @@ uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene1.mp3"
 type = "audio"
 title = "voiceover scene1"
 description = "Text-to-speech audio: Proyek terlambat, anggaran membengkak — masalah nyata."
+logical_id = "5963dbe0-aa0f-4f76-8f0a-d5c704201db9"
 
 [[outputs]]
 id = "Mz3FKWmIuQ8qxGsnPKt_s"
@@ -33,6 +37,7 @@ uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene3.mp3"
 type = "audio"
 title = "voiceover scene3"
 description = "Text-to-speech audio: Multi-agen, sertifikasi, dan analisis tender."
+logical_id = "c38a14a8-e7d2-4c8d-a7b7-c9b35987ff15"
 
 [[outputs]]
 id = "ZcEWBHapz7bkJgnb5zlk3"
@@ -40,6 +45,7 @@ uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene4.mp3"
 type = "audio"
 title = "voiceover scene4"
 description = "Text-to-speech audio: Unggah dokumen, dapatkan analisis instan."
+logical_id = "14b7a841-0a06-402d-af79-3f0e57410999"
 
 [[outputs]]
 id = "dV4iUJiWrqMWua7oa5Q_-"
@@ -47,6 +53,7 @@ uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene0.mp3"
 type = "audio"
 title = "voiceover scene0"
 description = "Text-to-speech audio: KonstruksiAI — asisten AI proyek konstruksi."
+logical_id = "19511d94-d8dd-447b-8ff3-cf7478ed2678"
 
 [[outputs]]
 id = "qE00WdgaTmDcGAEEfMnyh"
@@ -54,3 +61,4 @@ uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene2.mp3"
 type = "audio"
 title = "voiceover scene2"
 description = "Text-to-speech audio: Enam domain keahlian, satu platform terintegrasi."
+logical_id = "3cc8a857-333e-4f19-8768-43ec49b91cac"
