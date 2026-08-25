@@ -11,7 +11,6 @@ import {
   Building2,
   ClipboardCheck,
   FlaskConical,
-  Gauge,
   GraduationCap,
   Link2,
   MessageCircle,
@@ -19,7 +18,6 @@ import {
   Scale,
   Settings2,
   ShieldCheck,
-  Sparkles,
   Target,
   UsersRound,
   Wrench,
@@ -500,23 +498,23 @@ function ExpandableSection({
 // MAIN PAGE
 // ============================================================
 
-const platformNav = [
+const learningNav = [
   { href: "/knowledge", label: "Knowledge", icon: BookOpen, tone: "text-violet-300" },
   { href: "/bimtek", label: "Bimtek", icon: GraduationCap, tone: "text-blue-300" },
   { href: "/simulasi", label: "Simulasi", icon: Target, tone: "text-fuchsia-300" },
-  { href: "/solver", label: "Solver", icon: FlaskConical, tone: "text-orange-300" },
-  { href: "/tools", label: "Tools", icon: Wrench, tone: "text-slate-300" },
-  { href: "/matrix", label: "Matriks", icon: BarChart3, tone: "text-slate-300" },
 ];
 
-const intelligenceNav = [
+const dailyInfoNav = [
   { href: "/tender-intelligence", label: "Tender Intelligence", icon: Radar, tone: "text-emerald-300" },
   { href: "/tender-eligibility", label: "Tender Eligibility", icon: ClipboardCheck, tone: "text-cyan-300" },
   { href: "/evidence-mapping", label: "Evidence Mapping", icon: Link2, tone: "text-purple-300" },
-  { href: "/workforce-assignment", label: "Workforce", icon: UsersRound, tone: "text-pink-300" },
 ];
 
-const complianceNav = [
+const bujkNav = [
+  { href: "/solver", label: "Solver", icon: FlaskConical, tone: "text-orange-300" },
+  { href: "/tools", label: "Tools", icon: Wrench, tone: "text-slate-300" },
+  { href: "/matrix", label: "Matriks", icon: BarChart3, tone: "text-slate-300" },
+  { href: "/workforce-assignment", label: "Workforce", icon: UsersRound, tone: "text-pink-300" },
   { href: "/certify", label: "Sertifikasi", icon: Award, tone: "text-emerald-300" },
   { href: "/legal-licensing", label: "Legal & Licensing", icon: Scale, tone: "text-blue-300" },
   { href: "/sbu-readiness", label: "SBU Readiness", icon: Building2, tone: "text-orange-300" },
@@ -528,10 +526,12 @@ function BrandMark() {
     <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-orange-300 via-orange-500 to-amber-600 shadow-lg shadow-orange-500/25 ring-1 ring-orange-200/30">
       <div className="absolute inset-1 rounded-[0.8rem] border border-white/20" />
       <svg viewBox="0 0 48 48" aria-hidden="true" className="relative h-8 w-8">
-        <path d="M7 23.5 24 8l17 15.5" fill="none" stroke="white" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M11 22.5V39h26V22.5M17 39V26h14v13" fill="none" stroke="white" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M8 23h32" fill="none" stroke="#172033" strokeWidth="2.2" strokeLinecap="round" />
-        <path d="M24 8v7" fill="none" stroke="#172033" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M12 8v32M36 8 12 24l24 16" fill="none" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12 24h9" fill="none" stroke="#172033" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="12" cy="8" r="2.5" fill="#172033" />
+        <circle cx="12" cy="40" r="2.5" fill="#172033" />
+        <circle cx="36" cy="8" r="2.5" fill="#172033" />
+        <circle cx="36" cy="40" r="2.5" fill="#172033" />
       </svg>
     </div>
   );
@@ -571,7 +571,7 @@ export default function Home() {
                     Beta
                   </span>
                 </div>
-                <span className="block truncate text-[11px] leading-tight text-slate-500">Construction intelligence platform</span>
+                <span className="block truncate text-[11px] leading-tight text-slate-500">Belajar · Update · Tumbuh</span>
               </div>
             </Link>
 
@@ -594,9 +594,9 @@ export default function Home() {
 
           <div className="border-t border-white/[0.06]">
             <nav className="nav-scrollbar flex items-center gap-1 overflow-x-auto py-2" aria-label="Navigasi platform">
-              <span className="mr-1 flex shrink-0 items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-600">
-                <Sparkles className="h-3 w-3 text-orange-400" />
-                Platform
+              <span className="mr-1 flex shrink-0 items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                <BookOpen className="h-3 w-3 text-violet-400" />
+                LMS Pembelajaran
               </span>
               <Link
                 href="/chat"
@@ -605,19 +605,19 @@ export default function Home() {
                 <MessageCircle className="h-3.5 w-3.5" />
                 Chat AI
               </Link>
-              {platformNav.map((item) => <HeaderNavItem key={item.href} item={item} />)}
+              {learningNav.map((item) => <HeaderNavItem key={item.href} item={item} />)}
               <span className="mx-2 h-5 w-px shrink-0 bg-white/[0.08]" />
-              <span className="mr-1 flex shrink-0 items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-600">
-                <Gauge className="h-3 w-3 text-cyan-400" />
-                Intelligence
+              <span className="mr-1 flex shrink-0 items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                <Radar className="h-3 w-3 text-cyan-400" />
+                Info Harian
               </span>
-              {intelligenceNav.map((item) => <HeaderNavItem key={item.href} item={item} />)}
+              {dailyInfoNav.map((item) => <HeaderNavItem key={item.href} item={item} />)}
               <span className="mx-2 h-5 w-px shrink-0 bg-white/[0.08]" />
-              <span className="mr-1 flex shrink-0 items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-slate-600">
-                <ShieldCheck className="h-3 w-3 text-emerald-400" />
-                Compliance
+              <span className="mr-1 flex shrink-0 items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                <Building2 className="h-3 w-3 text-orange-400" />
+                Aplikasi BUJK
               </span>
-              {complianceNav.map((item) => <HeaderNavItem key={item.href} item={item} />)}
+              {bujkNav.map((item) => <HeaderNavItem key={item.href} item={item} />)}
               <Link href="/pricing" className="ml-auto inline-flex shrink-0 items-center gap-2 rounded-lg border border-white/[0.08] px-3 py-2 text-xs font-semibold text-slate-300 transition-colors hover:border-orange-400/40 hover:bg-orange-400/10 hover:text-orange-200">
                 <Settings2 className="h-3.5 w-3.5" />
                 Harga
