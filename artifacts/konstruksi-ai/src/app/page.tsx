@@ -526,12 +526,14 @@ function BrandMark() {
     <div className="relative flex h-11 w-11 shrink-0 items-center justify-center">
       <div className="absolute h-7 w-7 rounded-full bg-orange-400/20 blur-xl" />
       <svg viewBox="0 0 48 48" aria-hidden="true" className="relative h-10 w-10 drop-shadow-[0_0_8px_rgba(249,115,22,0.45)]">
-        {/* K column stays attached to the side of the building */}
+        {/* Side column: the vertical support of the building */}
         <rect x="8" y="8" width="7" height="32" rx="1" fill="#f97316" />
-        {/* Shortened K beam: its lower end meets the left corner of the roof */}
-        <path d="M15 24 26 13h7L15 32Z" fill="white" />
-        {/* Building body shares the same roof corner as the K beam */}
-        <path d="m15 32 14-9 11 10v7H15Z" fill="#f97316" />
+        {/* Connected white truss: both ends land on the roof structure */}
+        <path d="M15 29 29 16l13 13" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M15 29 29 16" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
+        {/* Building body shares the same roof line and side column */}
+        <path d="m15 30 14-10 13 10v10H15Z" fill="#f97316" />
+        <path d="M20 30v10M37 30v10M15 40h27" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
         {/* Four dark windows keep the silhouette architectural */}
         <rect x="26" y="29" width="3" height="3.5" rx=".4" fill="#172033" />
         <rect x="30.5" y="29" width="3" height="3.5" rx=".4" fill="#172033" />
