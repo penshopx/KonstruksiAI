@@ -28,10 +28,26 @@ export function initializeDatabase() {
       conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
       role TEXT NOT NULL,
       content TEXT NOT NULL,
+      agent_id TEXT,
+      domain_fit_level TEXT,
+      domain_fit_reason TEXT,
       attachment_name TEXT,
       attachment_type TEXT,
       created_at INTEGER NOT NULL
     )`);
+    const messageColumns = new Set(
+      (db.all(sql`PRAGMA table_info(messages)`) as Array<{ name: string }>)
+        .map(({ name }) => name),
+    );
+    for (const [name, definition] of [
+      ["agent_id", "agent_id TEXT"],
+      ["domain_fit_level", "domain_fit_level TEXT"],
+      ["domain_fit_reason", "domain_fit_reason TEXT"],
+    ]) {
+      if (!messageColumns.has(name)) {
+        db.run(sql.raw(`ALTER TABLE messages ADD COLUMN ${definition}`));
+      }
+    }
 
     db.run(sql`CREATE TABLE IF NOT EXISTS radar_articles (
       id TEXT PRIMARY KEY,

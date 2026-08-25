@@ -22,6 +22,9 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  agentId?: string;
+  agentName?: string;
+  domainFit?: { level: "high" | "medium" | "low"; reason: string };
   isStreaming?: boolean;
   retrying?: boolean;
   interrupted?: boolean;
@@ -575,7 +578,7 @@ function WelcomeScreen({ onPrompt, selectedAgent }: { onPrompt: (text: string) =
 
 function MessageBubble({
   message,
-  agentIcon,
+  agent,
   onReaction,
   onRegenerate,
   onStar,
@@ -585,7 +588,7 @@ function MessageBubble({
   searchQuery,
 }: {
   message: Message;
-  agentIcon: string;
+  agent: Agent;
   onReaction: (id: string, reaction: "up" | "down") => void;
   onRegenerate?: () => void;
   onStar: (id: string) => void;
@@ -637,6 +640,16 @@ function MessageBubble({
   };
 
   const fontSizeClass = fontSize === "sm" ? "text-xs" : fontSize === "lg" ? "text-base" : "text-sm";
+  const domainFitStyle = message.domainFit?.level === "high"
+    ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+    : message.domainFit?.level === "medium"
+      ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+      : "bg-slate-500/10 text-slate-300 border-slate-500/30";
+  const domainFitLabel = message.domainFit?.level === "high"
+    ? "Kecocokan tinggi"
+    : message.domainFit?.level === "medium"
+      ? "Kecocokan sedang"
+      : "Kecocokan rendah";
 
   if (message.role === "user") {
     return (
@@ -730,10 +743,22 @@ function MessageBubble({
   return (
     <div className="flex gap-3 group">
       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-sm flex-shrink-0 mt-1 shadow-sm">
-        {agentIcon}
+        {agent.icon}
       </div>
       <div className="flex-1 min-w-0">
         <div className="bg-slate-800 border border-slate-700/60 rounded-2xl rounded-tl-sm px-4 py-3 relative">
+          <div className="flex items-center gap-2 mb-2 text-xs" aria-label={`Dijawab oleh ${agent.name}`}>
+            <span className="text-base leading-none" aria-hidden="true">{agent.icon}</span>
+            <span className="font-semibold text-orange-300">{message.agentName ?? agent.name}</span>
+            {message.domainFit && (
+              <span className={`rounded-full border px-2 py-0.5 font-medium ${domainFitStyle}`}>
+                {domainFitLabel}
+              </span>
+            )}
+          </div>
+          {message.domainFit && (
+            <p className="mb-3 text-xs leading-relaxed text-slate-400">{message.domainFit.reason}</p>
+          )}
           {message.content ? (
             <div
               className={`${fontSizeClass} leading-relaxed text-slate-200 prose-custom`}
@@ -1519,6 +1544,9 @@ export default function ChatPage() {
               id: string;
               role: string;
               content: string;
+              agentId?: string;
+              domainFitLevel?: "high" | "medium" | "low";
+              domainFitReason?: string;
               attachmentName?: string;
               attachmentType?: string;
               createdAt: number;
@@ -1527,6 +1555,10 @@ export default function ChatPage() {
               role: m.role as "user" | "assistant",
               content: m.content,
               timestamp: new Date(m.createdAt * 1000),
+              agentId: m.role === "assistant" ? (m.agentId || existing.agentId) : undefined,
+              domainFit: m.role === "assistant" && m.domainFitLevel && m.domainFitReason
+                ? { level: m.domainFitLevel, reason: m.domainFitReason }
+                : undefined,
               wordCount: m.role === "assistant" ? countWords(m.content) : undefined,
               attachment: m.attachmentName ? {
                 name: m.attachmentName,
@@ -1633,9 +1665,11 @@ export default function ChatPage() {
     // Create or update conversation
     let convId = activeConvId;
     let currentConv: Conversation | undefined;
+    let serverConversationReady = !isLoggedIn;
     
     if (!convId) {
-      convId = `conv_${Date.now()}`;
+      const localConvId = `conv_${Date.now()}`;
+      convId = localConvId;
       const convTitle = generateTitle(messageText);
       currentConv = {
         id: convId,
@@ -1647,28 +1681,26 @@ export default function ChatPage() {
       };
       setConversations(prev => [currentConv!, ...prev]);
       setActiveConvId(convId);
-      // Create in DB if logged in
       if (isLoggedIn) {
-        const dbConvId = convId; // capture for closure
-        fetch("/api/conversations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: convTitle, agentId: selectedAgent.id }),
-        }).then(async (res) => {
+        try {
+          const res = await fetch("/api/conversations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: convTitle, agentId: selectedAgent.id }),
+          });
           if (res.ok) {
-            // Save user message to DB
-            await fetch(`/api/conversations/${dbConvId}/messages`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                role: userMsg.role,
-                content: userMsg.content,
-                attachmentName: userMsg.attachment?.name || null,
-                attachmentType: userMsg.attachment?.type || null,
-              }),
-            });
+            const savedConversation = await res.json() as { id: string };
+            convId = savedConversation.id;
+            currentConv = { ...currentConv, id: convId };
+            serverConversationReady = true;
+            setConversations(prev => prev.map(c =>
+              c.id === localConvId ? { ...c, id: convId! } : c
+            ));
+            setActiveConvId(convId);
           }
-        }).catch(() => {});
+        } catch {
+          // Keep the local conversation usable; the user can retry later.
+        }
       }
     } else {
       const existingConv = conversations.find(c => c.id === convId);
@@ -1680,19 +1712,20 @@ export default function ChatPage() {
           ? { ...c, messages: [...c.messages, userMsg], updatedAt: new Date() }
           : c
       ));
-      // Save user message to DB if logged in
-      if (isLoggedIn) {
-        fetch(`/api/conversations/${convId}/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            role: userMsg.role,
-            content: userMsg.content,
-            attachmentName: userMsg.attachment?.name || null,
-            attachmentType: userMsg.attachment?.type || null,
-          }),
-        }).catch(() => {});
-      }
+      serverConversationReady = !isLoggedIn || Boolean(existingConv);
+    }
+
+    if (isLoggedIn && serverConversationReady && convId) {
+      fetch(`/api/conversations/${convId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: userMsg.role,
+          content: userMsg.content,
+          attachmentName: userMsg.attachment?.name || null,
+          attachmentType: userMsg.attachment?.type || null,
+        }),
+      }).catch(() => {});
     }
 
     // Add streaming placeholder
@@ -1702,6 +1735,8 @@ export default function ChatPage() {
       role: "assistant",
       content: "",
       timestamp: new Date(),
+      agentId: selectedAgent.id,
+      agentName: selectedAgent.name,
       isStreaming: true,
     };
 
@@ -1713,6 +1748,8 @@ export default function ChatPage() {
 
     let fullResponse = "";
     let streamError: string | null = null;
+    let respondingAgentId = selectedAgent.id;
+    let responseDomainFit: Message["domainFit"];
 
     try {
       // Build history from the updated conversation (not stale state)
@@ -1780,7 +1817,31 @@ export default function ChatPage() {
                 error?: string;
                 message?: string;
                 retrying?: boolean;
+                agentId?: string;
+                agentName?: string;
+                domainFit?: { level: "high" | "medium" | "low"; reason: string };
               };
+              if (event.agentId) {
+                respondingAgentId = event.agentId;
+                responseDomainFit = event.domainFit;
+                setConversations(prev => prev.map(c =>
+                  c.id === convId
+                    ? {
+                        ...c,
+                        messages: c.messages.map(m =>
+                          m.id === streamingMsgId
+                            ? {
+                                ...m,
+                                agentId: event.agentId,
+                                agentName: event.agentName ?? m.agentName,
+                                domainFit: event.domainFit ?? m.domainFit,
+                              }
+                            : m
+                        ),
+                      }
+                    : c
+                ));
+              }
               if (event.error) {
                 streamError = event.error;
                 setConversations(prev => prev.map(c =>
@@ -1863,7 +1924,12 @@ export default function ChatPage() {
         fetch(`/api/conversations/${convId}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ role: "assistant", content: responseText }),
+          body: JSON.stringify({
+            role: "assistant",
+            content: responseText,
+            agentId: respondingAgentId,
+            domainFit: responseDomainFit,
+          }),
         }).catch(() => {});
       }
     } catch (err) {
@@ -2323,7 +2389,7 @@ export default function ChatPage() {
                   >
                     <MessageBubble
                       message={message}
-                      agentIcon={selectedAgent.icon}
+                      agent={AGENTS.find(agent => agent.id === message.agentId) ?? selectedAgent}
                       onReaction={handleReaction}
                       onRegenerate={idx === lastAssistantMsgIdx ? regenerateLastResponse : undefined}
                       onStar={handleStar}

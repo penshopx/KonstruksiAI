@@ -40,7 +40,6 @@ import WorkforceAssignmentPage from "@/app/workforce-assignment/page";
 import AgentPage from "@/app/agent/[businessId]/[columnId]/page";
 import RadarKonstruksiPage from "@/app/radar-konstruksi/page";
 
-import { FloatingChatbots } from "@/components/FloatingChatbots";
 
 const queryClient = new QueryClient();
 
@@ -93,7 +92,6 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <Router />
-          <FloatingChatbots />
         </WouterRouter>
         <Toaster />
       </TooltipProvider>

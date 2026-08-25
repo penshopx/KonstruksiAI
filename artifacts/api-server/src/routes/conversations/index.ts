@@ -157,7 +157,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
 
     if (!conv) { res.status(404).json({ error: "Not found" }); return; }
 
-    const { role, content, attachmentName, attachmentType } = req.body;
+    const { role, content, agentId, domainFit, attachmentName, attachmentType } = req.body;
     if (!role || !content) { res.status(400).json({ error: "role and content are required" }); return; }
 
     const msgId = randomUUID();
@@ -168,6 +168,13 @@ router.post("/conversations/:id/messages", async (req, res) => {
       conversationId: req.params.id,
       role,
       content,
+      agentId: role === "assistant" && typeof agentId === "string" ? agentId : null,
+      domainFitLevel: role === "assistant" && ["high", "medium", "low"].includes(domainFit?.level)
+        ? domainFit.level
+        : null,
+      domainFitReason: role === "assistant" && typeof domainFit?.reason === "string"
+        ? domainFit.reason.slice(0, 500)
+        : null,
       attachmentName: attachmentName || null,
       attachmentType: attachmentType || null,
       createdAt: now,

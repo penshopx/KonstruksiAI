@@ -59,15 +59,15 @@ setInterval(() => {
 
 // ─── Input limits ─────────────────────────────────────────────────────────────
 
-const MAX_HISTORY_MESSAGES = 100;     // transport guardrail for raw client history
-const MAX_HISTORY_CHARS = 100_000;    // protects request parsing before token validation
-const MAX_HISTORY_TOKENS = 8_000;     // leaves room for summary formatting inside the model budget
-const MAX_MESSAGE_CHARS = 24_000;     // max chars in the newest user message
+const MAX_HISTORY_MESSAGES = 1_000;   // transport guardrail for raw client history
+const MAX_HISTORY_CHARS = 1_000_000;  // protects request parsing before token validation
+const MAX_MESSAGE_CHARS = 60_000;     // max chars in the newest user message
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB base64 decoded
 // The prompt budget is deliberately separate from max_tokens: it includes the
 // system prompt and all retained conversation messages, but not the completion.
 const MAX_CONTEXT_TOKENS = 12_000;
 const SUMMARY_MAX_TOKENS = 1_200;
+const SUMMARY_SOURCE_CHUNK_TOKENS = 5_000;
 // Combined budget for history + attachment text before the API call. The token
 // budget below is the final guardrail; this limit keeps extraction bounded.
 const MAX_COMBINED_PROMPT_CHARS = 1_000_000;
@@ -162,27 +162,69 @@ function selectRecentMessages(
   };
 }
 
+function splitMessagesIntoChunks(messages: ChatMessage[], tokenBudget: number): ChatMessage[][] {
+  const chunks: ChatMessage[][] = [];
+  let current: ChatMessage[] = [];
+  let currentTokens = 0;
+  for (const message of messages) {
+    for (const part of splitLongMessage(message, tokenBudget)) {
+      const partTokens = estimateMessageTokens(part);
+      if (current.length > 0 && currentTokens + partTokens > tokenBudget) {
+        chunks.push(current);
+        current = [];
+        currentTokens = 0;
+      }
+      current.push(part);
+      currentTokens += partTokens;
+    }
+  }
+  if (current.length > 0) chunks.push(current);
+  return chunks;
+}
+
+function splitLongMessage(message: ChatMessage, tokenBudget: number): ChatMessage[] {
+  if (estimateMessageTokens(message) <= tokenBudget) return [message];
+  const contentBudget = Math.max(1, tokenBudget - 4);
+  const characters = Array.from(message.content);
+  const parts: ChatMessage[] = [];
+  let start = 0;
+  while (start < characters.length) {
+    let low = start + 1;
+    let high = characters.length;
+    let end = start;
+    while (low <= high) {
+      const midpoint = Math.floor((low + high) / 2);
+      if (estimateTokens(characters.slice(start, midpoint).join("")) <= contentBudget) {
+        end = midpoint;
+        low = midpoint + 1;
+      } else high = midpoint - 1;
+    }
+    if (end === start) end = start + 1;
+    parts.push({ ...message, content: characters.slice(start, end).join("") });
+    start = end;
+  }
+  return parts;
+}
+
 function formatMessagesForSummary(messages: ChatMessage[]): string {
   return messages
     .map((message, index) => `${index + 1}. ${message.role === "user" ? "Pengguna" : "Asisten"}:\n${message.content}`)
     .join("\n\n");
 }
 
-async function summarizeText(
-  text: string,
-  maxTokens: number,
-): Promise<string> {
-  const summarySystemPrompt = [
-    "Ringkas percakapan konstruksi berikut secara padat dan faktual.",
-    "Pertahankan nama proyek, lokasi, angka, spesifikasi, keputusan, asumsi,",
-    "preferensi pengguna, serta pertanyaan atau pekerjaan yang belum selesai.",
-    "Jangan mengarang dan jangan memberi jawaban baru. Gunakan bullet points.",
-  ].join(" ");
+const SUMMARY_SYSTEM_PROMPT = [
+  "Ringkas percakapan konstruksi berikut secara padat dan faktual.",
+  "Pertahankan nama proyek, lokasi, angka, spesifikasi, keputusan, asumsi,",
+  "preferensi pengguna, serta pertanyaan atau pekerjaan yang belum selesai.",
+  "Jangan mengarang dan jangan memberi jawaban baru. Gunakan bullet points.",
+].join(" ");
+
+async function summarizeText(text: string, maxTokens: number): Promise<string> {
   const summaryInput: ChatMessage[] = [{
     role: "user",
     content: `Percakapan yang harus diringkas:\n\n${text}`,
   }];
-  if (estimatePromptTokens(summarySystemPrompt, summaryInput) > MAX_CONTEXT_TOKENS) {
+  if (estimatePromptTokens(SUMMARY_SYSTEM_PROMPT, summaryInput) > MAX_CONTEXT_TOKENS) {
     throw new Error("Conversation summary input exceeded the prompt token budget");
   }
 
@@ -193,7 +235,7 @@ async function summarizeText(
     messages: [
       {
         role: "system",
-        content: summarySystemPrompt,
+        content: SUMMARY_SYSTEM_PROMPT,
       },
       summaryInput[0],
     ],
@@ -206,12 +248,26 @@ async function summarizeText(
 async function summarizeOlderMessages(messages: ChatMessage[]): Promise<string | null> {
   if (messages.length === 0) return null;
 
-  // The history token cap guarantees this is exactly one bounded model call.
-  // Keeping one exact recent-message suffix plus one summary of the omitted
-  // prefix prevents silent boundary loss without turning a request into an
-  // unbounded series of summarization calls.
-  const summary = await summarizeText(formatMessagesForSummary(messages), SUMMARY_MAX_TOKENS);
-  return summary || null;
+  // Summarize every omitted message in bounded chunks, then progressively
+  // merge the chunk summaries. No omitted middle section is silently dropped.
+  let summaries: string[] = [];
+  for (const chunk of splitMessagesIntoChunks(messages, SUMMARY_SOURCE_CHUNK_TOKENS)) {
+    const summary = await summarizeText(formatMessagesForSummary(chunk), SUMMARY_MAX_TOKENS);
+    if (summary) summaries.push(summary);
+  }
+  while (summaries.length > 1) {
+    const next: string[] = [];
+    const summaryMessages = summaries.map((content) => ({ role: "assistant" as const, content }));
+    for (const chunk of splitMessagesIntoChunks(summaryMessages, SUMMARY_SOURCE_CHUNK_TOKENS)) {
+      const merged = await summarizeText(
+        chunk.map((message) => message.content).join("\n\n"),
+        SUMMARY_MAX_TOKENS,
+      );
+      if (merged) next.push(merged);
+    }
+    summaries = next;
+  }
+  return summaries[0] ?? null;
 }
 
 // ─── OpenAI stream retry policy ────────────────────────────────────────────────
@@ -430,8 +486,68 @@ Saat membuat BOM/spesifikasi: gunakan tabel, cantumkan spesifikasi teknis lengka
 Jawab dalam Bahasa Indonesia dengan presisi teknis engineering.`,
 };
 
+const DOMAIN_ROUTING_HINT = `
+
+PANDUAN KECOCOKAN DOMAIN:
+Kamu adalah agen yang sedang dipilih pengguna, bukan agen serba bisa. Nilai dulu apakah pertanyaan pengguna berada dalam spesialisasimu.
+- Jika pertanyaan jelas berada di luar domain utamamu, tetap bantu dengan konteks singkat yang aman, lalu katakan secara natural bahwa agen lain lebih cocok dan sebutkan tepat satu agen dari roster berikut: KonstruksiAI (umum), Estimator RAB (biaya/RAB), Tender Expert (tender/pengadaan), Ahli K3 (keselamatan kerja), Konsultan Perijinan (izin/sertifikasi), EBT Specialist (energi terbarukan), Migas Expert (migas/pertambangan), Legal Konstruksi (kontrak/sengketa), atau Electrical Engineer (kelistrikan).
+- Jika pertanyaan hanya bersinggungan atau masih relevan dengan keahlianmu, jawab langsung tanpa memberi peringatan routing.
+- Jangan mengarang angka keyakinan atau membuat klaim bahwa pertanyaan berada di luar domain jika sebenarnya masih relevan. Jangan menyarankan pergantian agen hanya karena pertanyaan memiliki lebih dari satu topik.
+- Saran routing harus menjadi bagian dari jawabanmu, bukan metadata atau label yang ditambahkan setelah respons.
+`;
+
+type DomainFitLevel = "high" | "medium" | "low";
+
+interface DomainFit {
+  level: DomainFitLevel;
+  reason: string;
+}
+
+const AGENT_NAMES: Record<string, string> = {
+  general: "KonstruksiAI",
+  estimator: "Estimator RAB",
+  tender: "Tender Expert",
+  k3: "Ahli K3",
+  perijinan: "Konsultan Perijinan",
+  energi: "EBT Specialist",
+  migas: "Migas Expert",
+  kontrak: "Legal Konstruksi",
+  electrical: "Electrical Engineer",
+};
+
+const DOMAIN_KEYWORDS: Record<string, Array<{ label: string; terms: string[] }>> = {
+  general: [{ label: "konstruksi umum", terms: ["konstruksi", "bangunan", "proyek", "infrastruktur", "teknik sipil", "struktur"] }],
+  estimator: [{ label: "estimasi biaya", terms: ["rab", "estimasi", "anggaran", "boq", "ahsp", "harga satuan", "volume pekerjaan"] }],
+  tender: [{ label: "tender dan pengadaan", terms: ["tender", "lpse", "spse", "pengadaan", "penawaran", "rks", "jaminan tender"] }],
+  k3: [{ label: "K3 proyek", terms: ["k3", "keselamatan kerja", "smkk", "smk3", "jsa", "hirarc", "apd", "kecelakaan kerja"] }],
+  perijinan: [{ label: "perizinan", terms: ["sbu", "skk", "iujk", "nib", "oss", "pbg", "slf", "amdal", "perizinan"] }],
+  energi: [{ label: "energi terbarukan", terms: ["ebt", "plts", "pltb", "plta", "pltmh", "net metering", "energi terbarukan"] }],
+  migas: [{ label: "migas dan pertambangan", terms: ["migas", "minyak", "gas bumi", "psc", "gross split", "skk migas", "iup", "iupk", "minerba", "pengeboran"] }],
+  kontrak: [{ label: "kontrak konstruksi", terms: ["fidic", "kontrak", "klaim", "sengketa", "force majeure", "arbitrase", "bani", "eot"] }],
+  electrical: [{ label: "kelistrikan", terms: ["elektrikal", "kelistrikan", "panel listrik", "grounding", "genset", "ups", "ats", "puil", "instrumentasi"] }],
+};
+
+function getDomainFit(agentId: string, message: string): DomainFit {
+  const text = message.toLocaleLowerCase("id-ID").slice(0, 12_000);
+  const scores = Object.entries(DOMAIN_KEYWORDS).map(([id, groups]) => {
+    const matched = groups.filter(({ terms }) => terms.some((term) => text.includes(term)));
+    return { id, score: matched.length, topics: matched.map(({ label }) => label) };
+  });
+  const selected = scores.find(({ id }) => id === agentId) ?? { id: "general", score: 0, topics: [] };
+  const best = scores.reduce((current, item) => item.score > current.score ? item : current, scores[0]!);
+  const topics = selected.topics.join(", ") || "tidak ada istilah domain spesifik";
+  const agentName = AGENT_NAMES[agentId] ?? AGENT_NAMES.general;
+
+  if (selected.score >= 1 && selected.score >= best.score) {
+    return { level: "high", reason: `Pertanyaan cocok dengan fokus ${agentName}: ${topics}.` };
+  }
+  if (selected.score >= 1 || best.score === 0) {
+    return { level: "medium", reason: `Pertanyaan masih terkait ${topics}, tetapi dapat mencakup fokus agen lain.` };
+  }
+  return { level: "low", reason: `Topik utama lebih dekat ke ${AGENT_NAMES[best.id] ?? "agen lain"}; ${agentName} memberi panduan umum.` };
+}
 function getSystemPrompt(agentId: string): string {
-  return SYSTEM_PROMPTS[agentId] ?? SYSTEM_PROMPTS["general"]!;
+  return (SYSTEM_PROMPTS[agentId] ?? SYSTEM_PROMPTS["general"]!) + DOMAIN_ROUTING_HINT;
 }
 
 function buildSystemPrompt(baseSystemPrompt: string, conversationSummary: string | null): string {
@@ -503,14 +619,7 @@ router.post("/chat", async (req: Request, res: Response) => {
       res.status(400).json({ error: "Riwayat percakapan terlalu besar. Mulai percakapan baru untuk melanjutkan." });
       return;
     }
-    const historyTokenCount = chatMessages.reduce(
-      (total, message) => total + estimateTokens(message.content) + 4,
-      0,
-    );
-    if (historyTokenCount > MAX_HISTORY_TOKENS) {
-      res.status(400).json({ error: "Riwayat percakapan terlalu panjang. Mulai percakapan baru untuk melanjutkan." });
-      return;
-    }
+    const resolvedAgentId = getResolvedAgentId(agentId);
     if (lastUserIdx < 0) {
       res.status(400).json({ error: "Pesan pengguna diperlukan." });
       return;
@@ -520,7 +629,7 @@ router.post("/chat", async (req: Request, res: Response) => {
       return;
     }
 
-    const baseSystemPrompt = getSystemPrompt(agentId ?? "general");
+    const baseSystemPrompt = getSystemPrompt(resolvedAgentId);
 
     // Validate attachment base64 size before decoding to give a clean error message
     if (attachment) {
@@ -560,6 +669,11 @@ router.post("/chat", async (req: Request, res: Response) => {
           ? `${m.content}\n\n---\nISI DOKUMEN TERLAMPIR:\n${extractedAttachmentText}\n---`
           : m.content,
     }));
+    const domainFit = getDomainFit(
+      resolvedAgentId,
+      messagesWithAttachment[lastUserIdx]!.content,
+    );
+    const agentName = AGENT_NAMES[resolvedAgentId] ?? AGENT_NAMES.general;
 
     const baseMessageBudget = Math.max(1, MAX_CONTEXT_TOKENS - estimatePromptTokens(baseSystemPrompt, []));
     const initialSelection = selectRecentMessages(messagesWithAttachment, baseMessageBudget);
@@ -617,6 +731,9 @@ router.post("/chat", async (req: Request, res: Response) => {
 
       let attempt = 0;
       let streamMessages = openaiMessages;
+      // Let clients associate the streamed response with the agent that
+      // actually handled it, even if the user changes the selector mid-stream.
+      writeSse(res, { agentId: resolvedAgentId, agentName, domainFit });
 
       while (attempt < MAX_STREAM_ATTEMPTS) {
         attempt += 1;
@@ -637,7 +754,7 @@ router.post("/chat", async (req: Request, res: Response) => {
             }
           }
 
-          writeSse(res, { done: true, message: fullResponse });
+          writeSse(res, { done: true, message: fullResponse, agentId: resolvedAgentId, agentName, domainFit });
           res.end();
           return;
         } catch (streamErr) {
@@ -720,7 +837,7 @@ router.post("/chat", async (req: Request, res: Response) => {
       completion.choices[0]?.message?.content ??
       "Maaf, terjadi kesalahan. Silakan coba lagi.";
 
-    res.json({ message, agentName: agentId ?? "KonstruksiAI" });
+    res.json({ message, agentId: resolvedAgentId, agentName, domainFit });
   } catch (err) {
     req.log.error({ err }, "POST /chat error");
     const errMsg = err instanceof Error ? err.message : "Internal server error";
@@ -729,3 +846,9 @@ router.post("/chat", async (req: Request, res: Response) => {
 });
 
 export default router;
+
+function getResolvedAgentId(agentId?: string): string {
+  return agentId && Object.prototype.hasOwnProperty.call(SYSTEM_PROMPTS, agentId)
+    ? agentId
+    : "general";
+}

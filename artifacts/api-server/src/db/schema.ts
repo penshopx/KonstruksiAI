@@ -36,6 +36,9 @@ export const messages = sqliteTable("messages", {
   conversationId: text("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
   role: text("role").notNull(),
   content: text("content").notNull(),
+  agentId: text("agent_id"),
+  domainFitLevel: text("domain_fit_level"),
+  domainFitReason: text("domain_fit_reason"),
   attachmentName: text("attachment_name"),
   attachmentType: text("attachment_type"),
   createdAt: integer("created_at", { mode: "timestamp" })
