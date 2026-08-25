@@ -507,7 +507,7 @@ export default function Home() {
                     Beta
                   </span>
                 </div>
-                 <span className="block truncate text-[16.5px] leading-tight text-slate-500">Learn · Update · Grow</span>
+                 <span className="block truncate text-[18px] leading-tight tracking-[-0.01em] text-slate-500 sm:text-[20px]">Learn · Update · Grow</span>
               </div>
             </Link>
 
