@@ -521,29 +521,6 @@ const bujkNav = [
   { href: "/skk-readiness", label: "SKK Readiness", icon: BadgeCheck, tone: "text-green-300" },
 ];
 
-function BrandMark() {
-  return (
-    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center">
-      <div className="absolute h-7 w-7 rounded-full bg-orange-400/20 blur-xl" />
-      <svg viewBox="0 0 48 48" aria-hidden="true" className="relative h-10 w-10 drop-shadow-[0_0_8px_rgba(249,115,22,0.45)]">
-        {/* Side column: the vertical support of the building */}
-        <rect x="8" y="8" width="7" height="32" rx="1" fill="#f97316" />
-        {/* Connected white truss: both ends land on the roof structure */}
-        <path d="M15 29 29 16l13 13" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M15 29 29 16" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" />
-        {/* Building body shares the same roof line and side column */}
-        <path d="m15 30 14-10 13 10v10H15Z" fill="#f97316" />
-        <path d="M20 30v10M37 30v10M15 40h27" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round" />
-        {/* Four dark windows keep the silhouette architectural */}
-        <rect x="26" y="29" width="3" height="3.5" rx=".4" fill="#172033" />
-        <rect x="30.5" y="29" width="3" height="3.5" rx=".4" fill="#172033" />
-        <rect x="26" y="34" width="3" height="3.5" rx=".4" fill="#172033" />
-        <rect x="30.5" y="34" width="3" height="3.5" rx=".4" fill="#172033" />
-      </svg>
-    </div>
-  );
-}
-
 function HeaderNavItem({
   item,
 }: {
@@ -570,7 +547,6 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-[4.5rem] items-center justify-between gap-4">
             <Link href="/" className="group flex min-w-0 items-center gap-3" aria-label="KonstruksiAI beranda">
-              <BrandMark />
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="truncate text-lg font-bold tracking-tight text-white">Konstruksi<span className="text-orange-400">AI</span></span>
