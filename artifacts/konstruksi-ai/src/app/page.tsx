@@ -523,19 +523,19 @@ const bujkNav = [
 
 function BrandMark() {
   return (
-    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-orange-300 via-orange-500 to-amber-600 shadow-lg shadow-orange-500/25 ring-1 ring-orange-200/30">
-      <div className="absolute inset-1 rounded-[0.8rem] border border-white/20" />
-      <svg viewBox="0 0 48 48" aria-hidden="true" className="relative h-8 w-8">
+    <div className="relative flex h-11 w-11 shrink-0 items-center justify-center">
+      <div className="absolute h-7 w-7 rounded-full bg-orange-400/20 blur-xl" />
+      <svg viewBox="0 0 48 48" aria-hidden="true" className="relative h-10 w-10 drop-shadow-[0_0_8px_rgba(249,115,22,0.45)]">
         {/* K formed from a structural column and diagonal beam */}
-        <rect x="9" y="8" width="7" height="32" rx="1" fill="white" />
-        <path d="M16 24 30 10h10L16 33Z" fill="white" />
+        <rect x="8" y="7" width="7" height="33" rx="1" fill="#f97316" />
+        <path d="M15 24 30 8h10L15 34Z" fill="white" />
         {/* Building facade that implies the A / base of the monogram */}
-        <path d="m19 33 10-10 11 10v7H19Z" fill="#172033" />
-        {/* Four small windows keep the silhouette architectural */}
-        <rect x="26" y="29" width="3" height="3.5" rx=".4" fill="white" />
-        <rect x="30.5" y="29" width="3" height="3.5" rx=".4" fill="white" />
-        <rect x="26" y="34" width="3" height="3.5" rx=".4" fill="white" />
-        <rect x="30.5" y="34" width="3" height="3.5" rx=".4" fill="white" />
+        <path d="m19 34 10-11 11 10v7H19Z" fill="#f97316" />
+        {/* Four dark windows keep the silhouette architectural */}
+        <rect x="26" y="29" width="3" height="3.5" rx=".4" fill="#172033" />
+        <rect x="30.5" y="29" width="3" height="3.5" rx=".4" fill="#172033" />
+        <rect x="26" y="34" width="3" height="3.5" rx=".4" fill="#172033" />
+        <rect x="30.5" y="34" width="3" height="3.5" rx=".4" fill="#172033" />
       </svg>
     </div>
   );
