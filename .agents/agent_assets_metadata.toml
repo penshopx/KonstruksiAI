@@ -62,3 +62,17 @@ type = "audio"
 title = "voiceover scene2"
 description = "Text-to-speech audio: Enam domain keahlian, satu platform terintegrasi."
 logical_id = "3cc8a857-333e-4f19-8768-43ec49b91cac"
+
+[[outputs]]
+id = "HJV1FXxfxAbjAba9Lq_EF"
+uri = "file://.local/outputs/KonstruksiAI-Pitch-Deck.pdf"
+type = "pdf"
+title = "KonstruksiAI Pitch Deck (PDF)"
+description = "Polished 16:9 PDF export of the 10-slide KonstruksiAI pitch deck for stakeholder leave-behinds."
+logical_id = "f1846855-c920-459f-a4f8-0bd7ac5223d3"
+content_hash = "sha256:897a7c25237f04bdc13a7b9e32b28fe28c79f6c96c41ff50deaab44a10bfc566"
+size = 592921
+mtime_ms = 1787669330508
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:462635f1-9943-4048-97a7-13be5f52febd/f1846855-c920-459f-a4f8-0bd7ac5223d3/13206a97-5bd4-4668-95fc-570deb94676f"
+storage_version_token = "1787669332210867"
+content_type = "application/pdf"
