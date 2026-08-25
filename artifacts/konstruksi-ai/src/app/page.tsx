@@ -8,6 +8,7 @@ import {
   BarChart3,
   BadgeCheck,
   BookOpen,
+  BriefcaseBusiness,
   Building2,
   ClipboardCheck,
   FlaskConical,
@@ -81,6 +82,13 @@ const engineeringFields = [
 ];
 
 const mainFeatures = [
+  {
+    icon: "🧭",
+    title: "Ruang Proyek",
+    description: "Satu alur kerja dari kesiapan tender, perencanaan, pelaksanaan, monitoring, hingga serah terima.",
+    href: "/ruang-proyek",
+    badge: "Workspace",
+  },
   {
     icon: "📋",
     title: "Tender & Pengadaan",
@@ -458,6 +466,7 @@ const learningNav = [
 ];
 
 const dailyInfoNav = [
+  { href: "/ruang-proyek", label: "Ruang Proyek", icon: BriefcaseBusiness, tone: "text-orange-300" },
   { href: "/radar-konstruksi", label: "Update Terbaru", icon: Radar, tone: "text-cyan-300" },
   { href: "/tender", label: "Tender & Pengadaan", icon: ClipboardCheck, tone: "text-orange-300" },
   { href: "/tender-intelligence", label: "Tender Intelligence", icon: Radar, tone: "text-emerald-300" },
@@ -1121,11 +1130,11 @@ export default function Home() {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-white mb-4">Layanan Utama</h2>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Tiga pilar layanan untuk mendukung profesional dan perusahaan keteknikan Indonesia
+             Empat pintu masuk untuk mendukung profesional dan perusahaan keteknikan Indonesia
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
           {mainFeatures.map((feature) => (
             <Link key={feature.title} href={feature.href}>
               <div className="bg-slate-800 border border-slate-700 hover:border-orange-500/50 rounded-2xl p-6 h-full transition-all hover:-translate-y-1 cursor-pointer group">
