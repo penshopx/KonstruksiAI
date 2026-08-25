@@ -59,15 +59,15 @@ setInterval(() => {
 
 // ─── Input limits ─────────────────────────────────────────────────────────────
 
-const MAX_HISTORY_MESSAGES = 1_000;  // transport guardrail for raw client history
-const MAX_HISTORY_CHARS = 1_000_000; // transport guardrail before summarization
-const MAX_MESSAGE_CHARS = 60_000;    // max chars in the newest user message
+const MAX_HISTORY_MESSAGES = 100;     // transport guardrail for raw client history
+const MAX_HISTORY_CHARS = 100_000;    // protects request parsing before token validation
+const MAX_HISTORY_TOKENS = 8_000;     // leaves room for summary formatting inside the model budget
+const MAX_MESSAGE_CHARS = 24_000;     // max chars in the newest user message
 const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB base64 decoded
 // The prompt budget is deliberately separate from max_tokens: it includes the
 // system prompt and all retained conversation messages, but not the completion.
 const MAX_CONTEXT_TOKENS = 12_000;
 const SUMMARY_MAX_TOKENS = 1_200;
-const SUMMARY_SOURCE_CHUNK_TOKENS = 5_000;
 // Combined budget for history + attachment text before the API call. The token
 // budget below is the final guardrail; this limit keeps extraction bounded.
 const MAX_COMBINED_PROMPT_CHARS = 1_000_000;
@@ -77,14 +77,12 @@ interface ChatMessage {
   content: string;
 }
 
-// A full tokenizer would add a large runtime dependency for a deliberately
-// conservative guardrail. This estimate errs high for Indonesian/Latin text
-// and treats CJK characters as individual tokens, so the actual prompt stays
-// below the model limit even for mixed-language conversations.
+// GPT tokenizers are byte-pair encodings: each token consumes at least one
+// UTF-8 byte. Counting bytes is therefore a conservative upper bound for
+// tokens, including emoji, symbols, CJK, and code-like input. It retains less
+// history than an approximate tokenizer but never underestimates a prompt.
 function estimateTokens(text: string): number {
-  if (!text) return 0;
-  const cjkCharacters = text.match(/[\u1100-\u11ff\u2e80-\u9fff\ua960-\ua97f\uac00-\ud7ff\uf900-\ufaff]/g)?.length ?? 0;
-  return Math.ceil((text.length - cjkCharacters) / 3.5) + cjkCharacters;
+  return Buffer.byteLength(text, "utf8");
 }
 
 function estimateMessageTokens(message: ChatMessage): number {
@@ -164,62 +162,6 @@ function selectRecentMessages(
   };
 }
 
-function splitMessagesIntoChunks(messages: ChatMessage[], tokenBudget: number): ChatMessage[][] {
-  const chunks: ChatMessage[][] = [];
-  let current: ChatMessage[] = [];
-  let currentTokens = 0;
-
-  for (const message of messages) {
-    const messageParts = splitLongMessage(message, tokenBudget);
-    for (const part of messageParts) {
-      const partTokens = estimateMessageTokens(part);
-      if (current.length > 0 && currentTokens + partTokens > tokenBudget) {
-        chunks.push(current);
-        current = [];
-        currentTokens = 0;
-      }
-      current.push(part);
-      currentTokens += partTokens;
-    }
-  }
-
-  if (current.length > 0) chunks.push(current);
-  return chunks;
-}
-
-function splitLongMessage(message: ChatMessage, tokenBudget: number): ChatMessage[] {
-  if (estimateMessageTokens(message) <= tokenBudget) return [message];
-
-  const contentBudget = Math.max(1, tokenBudget - 4);
-  const characters = Array.from(message.content);
-  const parts: ChatMessage[] = [];
-  let start = 0;
-
-  while (start < characters.length) {
-    let low = start + 1;
-    let high = characters.length;
-    let end = start;
-
-    while (low <= high) {
-      const midpoint = Math.floor((low + high) / 2);
-      if (estimateTokens(characters.slice(start, midpoint).join("")) <= contentBudget) {
-        end = midpoint;
-        low = midpoint + 1;
-      } else {
-        high = midpoint - 1;
-      }
-    }
-
-    // contentBudget is at least one token, so this is only a defensive guard
-    // against an unexpected tokenizer-estimation edge case.
-    if (end === start) end = start + 1;
-    parts.push({ ...message, content: characters.slice(start, end).join("") });
-    start = end;
-  }
-
-  return parts;
-}
-
 function formatMessagesForSummary(messages: ChatMessage[]): string {
   return messages
     .map((message, index) => `${index + 1}. ${message.role === "user" ? "Pengguna" : "Asisten"}:\n${message.content}`)
@@ -264,29 +206,12 @@ async function summarizeText(
 async function summarizeOlderMessages(messages: ChatMessage[]): Promise<string | null> {
   if (messages.length === 0) return null;
 
-  // Summarize in bounded chunks first, then merge those summaries. This keeps
-  // even very long histories useful instead of silently ignoring the oldest
-  // messages once the request body grows.
-  let summaries: string[] = [];
-  for (const chunk of splitMessagesIntoChunks(messages, SUMMARY_SOURCE_CHUNK_TOKENS)) {
-    const summary = await summarizeText(formatMessagesForSummary(chunk), SUMMARY_MAX_TOKENS);
-    if (summary) summaries.push(summary);
-  }
-
-  while (summaries.length > 1) {
-    const nextSummaries: string[] = [];
-    const summaryMessages = summaries.map((summary) => ({ role: "assistant" as const, content: summary }));
-    for (const chunk of splitMessagesIntoChunks(summaryMessages, SUMMARY_SOURCE_CHUNK_TOKENS)) {
-      const merged = await summarizeText(
-        chunk.map((message) => message.content).join("\n\n"),
-        SUMMARY_MAX_TOKENS,
-      );
-      if (merged) nextSummaries.push(merged);
-    }
-    summaries = nextSummaries;
-  }
-
-  return summaries[0] ?? null;
+  // The history token cap guarantees this is exactly one bounded model call.
+  // Keeping one exact recent-message suffix plus one summary of the omitted
+  // prefix prevents silent boundary loss without turning a request into an
+  // unbounded series of summarization calls.
+  const summary = await summarizeText(formatMessagesForSummary(messages), SUMMARY_MAX_TOKENS);
+  return summary || null;
 }
 
 // ─── OpenAI stream retry policy ────────────────────────────────────────────────
@@ -576,6 +501,14 @@ router.post("/chat", async (req: Request, res: Response) => {
     }
     if (totalChars > MAX_HISTORY_CHARS) {
       res.status(400).json({ error: "Riwayat percakapan terlalu besar. Mulai percakapan baru untuk melanjutkan." });
+      return;
+    }
+    const historyTokenCount = chatMessages.reduce(
+      (total, message) => total + estimateTokens(message.content) + 4,
+      0,
+    );
+    if (historyTokenCount > MAX_HISTORY_TOKENS) {
+      res.status(400).json({ error: "Riwayat percakapan terlalu panjang. Mulai percakapan baru untuk melanjutkan." });
       return;
     }
     if (lastUserIdx < 0) {

@@ -112,10 +112,10 @@ const quickQuestions = [
 ];
 
 const STATS = [
-  { value: 126, label: "Titik Koneksi", suffix: "" },
-  { value: 3, label: "Sektor Industri", suffix: "" },
-  { value: 26, label: "Sub-Bidang", suffix: "+" },
-  { value: 8, label: "Agen AI", suffix: "" },
+  { value: "Terarah", label: "Panduan berdasarkan kebutuhan kerja", detail: "Mulai dari tender hingga kepatuhan." },
+  { value: "Terhubung", label: "Ruang kerja lintas fungsi", detail: "Fitur disusun untuk alur proyek." },
+  { value: "Terkini", label: "Referensi dan update industri", detail: "Selalu cek sumber asli sebelum mengambil keputusan." },
+  { value: "Praktis", label: "Bantuan untuk pekerjaan harian", detail: "Dibuat agar langkah berikutnya lebih jelas." },
 ];
 
 const FAQ_ITEMS = [
@@ -193,65 +193,16 @@ const TESTIMONIALS = [
 // ANIMATED COUNTER HOOK
 // ============================================================
 
-function useCounter(target: number, duration = 1500, started: boolean) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!started) return;
-    const startTime = performance.now();
-    const step = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [started, target, duration]);
-
-  return count;
-}
-
-// ============================================================
-// STATS SECTION
-// ============================================================
-
 function StatsSection() {
-  const [started, setStarted] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setStarted(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.3 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
-  const counts = [
-    useCounter(STATS[0].value, 1200, started),
-    useCounter(STATS[1].value, 800, started),
-    useCounter(STATS[2].value, 1000, started),
-    useCounter(STATS[3].value, 700, started),
-  ];
-
   return (
-    <section ref={ref} className="bg-slate-950 border-y border-slate-800 py-12">
+    <section className="bg-slate-950 border-y border-slate-800 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-          {STATS.map((stat, i) => (
+          {STATS.map((stat) => (
             <div key={stat.label} className="text-center">
-              <div className="text-4xl font-bold text-orange-400 tabular-nums">
-                {counts[i]}{stat.suffix}
-              </div>
+              <div className="text-xl font-bold text-orange-400">{stat.value}</div>
               <div className="text-slate-400 text-sm mt-1 font-medium">{stat.label}</div>
+              <p className="mt-2 text-xs leading-relaxed text-slate-500">{stat.detail}</p>
             </div>
           ))}
         </div>
@@ -617,16 +568,16 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Hero Stats - Shocking Statistics */}
+        {/* Hero challenges */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
           {[
-            { value: "87%", label: "Proyek Tertunda", desc: "Karena Perijinan" },
-            { value: "IDR 1.2T", label: "Kerugian Tahunan", desc: "Dari Tender Gagal" },
-            { value: "65%", label: "Kontraktor Bangkrut", desc: "Dalam 3 Tahun" },
-            { value: "89%", label: "Kekurangan Tenaga", desc: "Ahli Bersertifikat" },
+            { value: "Perizinan", label: "Alur yang rumit", desc: "Butuh navigasi yang jelas" },
+            { value: "Tender", label: "Persaingan ketat", desc: "Dokumen harus siap dan relevan" },
+            { value: "Kompetensi", label: "Kesiapan tim", desc: "Kebutuhan terus berkembang" },
+            { value: "Proyek", label: "Risiko berlapis", desc: "Waktu, biaya, dan kepatuhan" },
           ].map((stat, i) => (
             <div key={stat.label} className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-red-400 mb-1">{stat.value}</div>
+              <div className="text-lg font-bold text-red-400 mb-1">{stat.value}</div>
               <div className="text-red-300 font-semibold text-sm mb-1">{stat.label}</div>
               <div className="text-red-400/70 text-xs">{stat.desc}</div>
             </div>
@@ -641,9 +592,8 @@ export default function Home() {
           </h1>
 
           <p className="text-slate-300 text-lg sm:text-xl max-w-4xl mx-auto mb-6 leading-relaxed">
-            <strong className="text-red-400">87% proyek konstruksi tertunda</strong> karena birokrasi perijinan yang rumit,
-            <strong className="text-red-400">IDR 1.2 Triliun kerugian tahunan</strong> dari tender yang gagal dimenangkan,
-            dan <strong className="text-red-400">65% kontraktor bangkrut</strong> dalam 3 tahun pertama.
+            Proyek dapat tertahan oleh birokrasi perizinan, tender yang menuntut kesiapan dokumen,
+            serta kebutuhan kompetensi yang terus berubah. <strong className="text-red-400">Setiap keputusan perlu ditopang konteks dan sumber yang dapat diverifikasi.</strong>
           </p>
 
           <p className="text-slate-400 text-base max-w-3xl mx-auto">
@@ -714,11 +664,11 @@ export default function Home() {
 
         {/* Trust Indicators */}
         <div className="text-center">
-          <p className="text-slate-500 text-sm mb-4">Dipercaya oleh ribuan profesional konstruksi Indonesia</p>
+          <p className="text-slate-500 text-sm mb-4">Dirancang untuk mendampingi pekerjaan profesional konstruksi Indonesia</p>
           <div className="flex justify-center items-center gap-6 text-slate-600">
-            <span>🏗️ 5000+ Kontraktor</span>
-            <span>👷 15000+ Profesional</span>
-            <span>📊 25000+ Konsultasi</span>
+            <span>🏗️ Kontraktor</span>
+            <span>👷 Profesional</span>
+            <span>📊 Konsultan</span>
           </div>
         </div>
       </section>
@@ -735,38 +685,38 @@ export default function Home() {
             {
               icon: "📜",
               title: "Birokrasi Perijinan yang Membuat Pusing",
-              problem: "Rata-rata 6-12 bulan untuk mendapatkan IMB/PBG, dengan biaya administrasi mencapai 15% dari nilai proyek",
-              impact: "87% proyek konstruksi tertunda karena proses perijinan yang berbelit-belit"
+              problem: "Alur perizinan melibatkan dokumen, instansi, dan persyaratan yang perlu ditelusuri secara teliti.",
+              impact: "Dampak: jadwal proyek dapat bergeser ketika persiapan dan verifikasi belum lengkap."
             },
             {
               icon: "📊",
               title: "Tender yang Sulit Dimenangkan",
-              problem: "95% kontraktor kecil-menengah gagal dalam tender karena kurangnya pengetahuan teknis dan dokumentasi yang tidak lengkap",
-              impact: "IDR 1.2 Triliun kerugian tahunan dari tender yang gagal dimenangkan"
+              problem: "Persaingan tender menuntut kesiapan administrasi, teknis, harga, dan strategi yang konsisten.",
+              impact: "Dampak: peluang dapat terlewat saat dokumen atau evaluasi internal belum siap."
             },
             {
               icon: "👷",
               title: "Kekurangan Tenaga Ahli Bersertifikat",
-              problem: "Hanya 11% tenaga konstruksi yang memiliki sertifikasi kompetensi SKK/SKKNI, padahal regulasi mewajibkan minimal 70%",
-              impact: "65% proyek mengalami keterlambatan karena kurangnya tenaga terampil"
+              problem: "Kesiapan kompetensi dan sertifikasi perlu direncanakan seiring perubahan kebutuhan proyek.",
+              impact: "Dampak: penugasan dan kepatuhan proyek membutuhkan koordinasi lebih awal."
             },
             {
               icon: "💰",
               title: "Estimasi Biaya yang Tidak Akurat",
-              problem: "85% kontraktor mengalami overrun budget karena estimasi RAB yang tidak akurat dan perubahan regulasi mendadak",
-              impact: "Rata-rata overrun cost mencapai 23% dari nilai kontrak"
+              problem: "Perubahan harga, volume, dan spesifikasi dapat membuat estimasi awal perlu ditinjau kembali.",
+              impact: "Dampak: pengendalian biaya perlu didukung asumsi yang transparan dan pembaruan berkala."
             },
             {
               icon: "⚖️",
               title: "Regulasi yang Berubah-Rubah",
-              problem: "PP No. 28 Tahun 2025, Perpres 16/2018, dan ratusan regulasi daerah yang sering berubah tanpa pemberitahuan",
-              impact: "89% pelanggaran terjadi karena ketidaktahuan akan perubahan regulasi"
+              problem: "Regulasi dan ketentuan teknis dapat berkembang; dokumen rujukan perlu diperiksa langsung ke sumber resmi.",
+              impact: "Dampak: tim perlu membangun kebiasaan pemantauan dan verifikasi sebelum bertindak."
             },
             {
               icon: "🦺",
               title: "K3 yang Diabaikan",
-              problem: "75% kecelakaan kerja terjadi karena kurangnya pemahaman prosedur K3 dan JSA yang benar",
-              impact: "Biaya kecelakaan kerja mencapai IDR 50 Triliun per tahun"
+              problem: "K3 yang tidak diterapkan secara konsisten meningkatkan risiko bagi pekerja dan keberlangsungan proyek.",
+              impact: "Dampak: prosedur kerja, JSA, dan pengendalian risiko perlu menjadi bagian dari rutinitas lapangan."
             }
           ].map((item, i) => (
             <div key={item.title} className="bg-gradient-to-br from-red-900/20 to-slate-800 border border-red-500/30 rounded-2xl p-6">
@@ -781,24 +731,24 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Industry Statistics */}
+        {/* Industry priorities */}
         <div className="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-8 mb-12">
           <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-white mb-2">Fakta Menyedihkan Industri Konstruksi Indonesia</h3>
-            <p className="text-slate-400">Data dari berbagai sumber resmi pemerintah dan asosiasi</p>
+            <h3 className="text-2xl font-bold text-white mb-2">Prioritas yang Perlu Dikelola</h3>
+            <p className="text-slate-400">Analisis kualitatif ini membantu memetakan fokus kerja; keputusan penting tetap perlu mengacu pada sumber resmi.</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { value: "IDR 1.2T", label: "Kerugian Tender Gagal", source: "LPSE Kemenkeu" },
-              { value: "87%", label: "Proyek Tertunda Perijinan", source: "PUPR" },
-              { value: "65%", label: "Kontraktor Bangkrut <3th", source: "Gapensi" },
-              { value: "89%", label: "Kekurangan Tenaga Ahli", source: "Kemenaker" },
-              { value: "23%", label: "Rata-rata Overrun Budget", source: "IKA Jakarta" },
-              { value: "IDR 50T", label: "Biaya Kecelakaan Kerja", source: "BPJS Ketenagakerjaan" },
-              { value: "95%", label: "UMKM Gagal Tender", source: "LPSE Data" },
-              { value: "75%", label: "Kecelakaan Karena K3", source: "Kemnaker RI" }
-            ].map((stat, i) => (
+              { value: "Dokumen", label: "Kesiapan tender", source: "Periksa kelengkapan dan kesesuaian persyaratan." },
+              { value: "Izin", label: "Kepatuhan proyek", source: "Telusuri tahapan dan rujukan instansi terkait." },
+              { value: "Tim", label: "Kompetensi kerja", source: "Rencanakan kebutuhan keahlian dan sertifikasi." },
+              { value: "Biaya", label: "Pengendalian anggaran", source: "Tinjau asumsi, volume, dan perubahan lapangan." },
+              { value: "Risiko", label: "K3 dan mutu", source: "Jadikan pengendalian risiko sebagai praktik harian." },
+              { value: "Kontrak", label: "Kejelasan kewajiban", source: "Pastikan ruang lingkup dan perubahan terdokumentasi." },
+              { value: "Update", label: "Perubahan regulasi", source: "Gunakan Radar untuk memantau sumber yang tersedia." },
+              { value: "Bukti", label: "Keputusan yang dapat diuji", source: "Simpan rujukan sebelum mengambil langkah penting." }
+            ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-2xl font-bold text-orange-400 mb-1">{stat.value}</div>
                 <div className="text-white font-medium text-sm mb-1">{stat.label}</div>
@@ -853,7 +803,7 @@ export default function Home() {
             <div className="space-y-4">
               {[
                 "🤖 AI yang memahami bahasa Indonesia dan regulasi lokal",
-                "📊 Database terintegrasi dengan 27 tabel relasional",
+                "📊 Database relasional yang terintegrasi",
                 "⚡ Real-time processing untuk analisis instan",
                 "🔄 Workflow automation untuk proses bisnis",
                 "📱 Mobile-first design untuk akses dimana saja",
@@ -873,21 +823,21 @@ export default function Home() {
           {[
             {
               icon: "⚡",
-              title: "Waktu Response 5 Detik",
-              desc: "Jawaban instan untuk pertanyaan teknis kompleks, bukan menunggu hari atau minggu",
-              benefit: "Hemat 40 jam kerja per bulan"
+              title: "Jawaban Lebih Terstruktur",
+              desc: "Susun pertanyaan teknis dan langkah kerja dengan konteks yang lebih jelas.",
+              benefit: "Bantu tim menyiapkan langkah berikutnya"
             },
             {
               icon: "🎯",
-              title: "Akurasi 95%",
-              desc: "Informasi berdasarkan regulasi terkini dan praktik terbaik industri konstruksi",
-              benefit: "Kurangi risiko kesalahan hingga 80%"
+              title: "Konteks Lokal",
+              desc: "Gunakan rujukan regulasi dan praktik kerja Indonesia sebagai titik awal analisis.",
+              benefit: "Tetap verifikasi pada sumber resmi"
             },
             {
               icon: "💰",
-              title: "ROI 300%",
-              desc: "Investasi kecil untuk hasil besar - tingkatkan win rate tender dan efisiensi operasional",
-              benefit: "Pengembalian investasi dalam 3 bulan"
+              title: "Kerja Lebih Terkelola",
+              desc: "Satukan panduan tender, dokumen, dan pengetahuan teknis dalam alur yang lebih rapi.",
+              benefit: "Nilai manfaat bergantung pada konteks proyek"
             }
           ].map((item, i) => (
             <div key={item.title} className="bg-slate-800 border border-slate-700 rounded-2xl p-6 hover:border-orange-500/50 transition-colors">
@@ -986,7 +936,7 @@ export default function Home() {
             {
               icon: "🔒",
               title: "Enterprise Security",
-              features: ["End-to-end Encryption", "GDPR Compliance", "Audit Trails", "24/7 Monitoring"]
+              features: ["End-to-end Encryption", "Kontrol akses", "Audit Trails", "Praktik keamanan berkelanjutan"]
             }
           ].map((tech, i) => (
             <div key={tech.title} className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
@@ -1009,8 +959,8 @@ export default function Home() {
       {/* Success Stories - collapsible */}
       <ExpandableSection
         icon="📈"
-        title="Hasil Nyata Pengguna KonstruksiAI"
-        subtitle="Win rate tender naik 300%, perijinan 80% lebih cepat — data dari 5000+ pengguna aktif"
+        title="Manfaat untuk Alur Kerja Konstruksi"
+        subtitle="Gambaran kualitatif tentang cara fitur dapat membantu pekerjaan harian"
       >
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -1020,12 +970,12 @@ export default function Home() {
             <h3 className="text-2xl font-bold text-white mb-6">🏗️ Untuk Kontraktor & Developer</h3>
             <div className="space-y-4">
               {[
-                { icon: "📈", title: "Win Rate Tender Naik 300%", desc: "Dari strategi pemenangan yang terbukti dan dokumentasi lengkap" },
-                { icon: "⏱️", title: "Proses Perijinan 80% Lebih Cepat", desc: "Otomasi pengurusan IMB, PBG, dan semua perijinan konstruksi" },
-                { icon: "💰", title: "Overrun Budget Turun 60%", desc: "Estimasi RAB yang akurat dengan kalkulator canggih" },
-                { icon: "👥", title: "Tim yang Lebih Kompeten", desc: "Akses ke database tenaga ahli bersertifikat" },
-                { icon: "📊", title: "Profit Margin Naik 25%", desc: "Efisiensi operasional dan pengurangan risiko" },
-                { icon: "🌟", title: "Reputasi Meningkat", desc: "Proyek selesai tepat waktu dan sesuai standar" }
+                { icon: "📈", title: "Penawaran Lebih Terkelola", desc: "Gunakan panduan dan checklist untuk menyiapkan dokumen dengan lebih sistematis." },
+                { icon: "⏱️", title: "Persiapan Perizinan Lebih Jelas", desc: "Telusuri kebutuhan dokumen dan langkah kerja sebelum mengajukan proses." },
+                { icon: "💰", title: "Estimasi yang Lebih Transparan", desc: "Tinjau asumsi RAB dan perubahan proyek secara lebih terstruktur." },
+                { icon: "👥", title: "Tim yang Lebih Siap", desc: "Identifikasi kebutuhan kompetensi dan sertifikasi sejak tahap perencanaan." },
+                { icon: "📊", title: "Operasional yang Lebih Rapi", desc: "Jadikan pembelajaran dan dokumentasi sebagai bagian dari alur kerja." },
+                { icon: "🌟", title: "Keputusan yang Lebih Terukur", desc: "Gunakan rujukan, asumsi, dan bukti yang dapat ditinjau kembali." }
               ].map((benefit, i) => (
                 <div key={benefit.title} className="flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg">
                   <span className="text-2xl">{benefit.icon}</span>
@@ -1044,7 +994,7 @@ export default function Home() {
             <div className="space-y-4">
               {[
                 { icon: "🎓", title: "Sertifikasi SKK/SKKNI Mudah", desc: "Panduan lengkap dan bimbingan untuk semua jenjang kompetensi" },
-                { icon: "💼", title: "Karir Meningkat 200%", desc: "Akses ke proyek premium dan networking dengan decision maker" },
+                { icon: "💼", title: "Pengembangan Karier Terarah", desc: "Petakan kompetensi, dokumen, dan area belajar yang relevan dengan peran Anda." },
                 { icon: "📚", title: "Pengetahuan Update Real-time", desc: "Regulasi terbaru dan teknologi konstruksi terkini" },
                 { icon: "🔧", title: "Tools Produktivitas Canggih", desc: "Kalkulator teknik, template dokumen, dan automation workflow" },
                 { icon: "🤝", title: "Kolaborasi Global", desc: "Berkolaborasi dengan profesional konstruksi dari seluruh dunia" },
@@ -1065,21 +1015,21 @@ export default function Home() {
         {/* Success Metrics */}
         <div className="bg-gradient-to-r from-green-900/20 to-slate-800 border border-green-500/30 rounded-2xl p-8 mb-12">
           <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-white mb-2">Hasil Nyata dari Pengguna KonstruksiAI</h3>
-            <p className="text-slate-400">Data dari 5000+ pengguna aktif dalam 2 tahun terakhir</p>
+            <h3 className="text-2xl font-bold text-white mb-2">Dukungan untuk Pekerjaan Sehari-hari</h3>
+            <p className="text-slate-400">Manfaat akan berbeda sesuai konteks proyek, peran, dan proses kerja masing-masing tim.</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { value: "300%", label: "Peningkatan Win Rate Tender", icon: "🎯" },
-              { value: "80%", label: "Penghematan Waktu Perijinan", icon: "⏱️" },
-              { value: "60%", label: "Penurunan Overrun Budget", icon: "💰" },
-              { value: "200%", label: "Peningkatan Karir Profesional", icon: "📈" },
-              { value: "95%", label: "Tingkat Kepuasan Pengguna", icon: "⭐" },
-              { value: "IDR 25M", label: "Penghematan Biaya Rata-rata", icon: "💸" },
-              { value: "50+", label: "Proyek Sukses per Bulan", icon: "🏗️" },
-              { value: "24/7", label: "Dukungan Teknis", icon: "🛟" }
-            ].map((metric, i) => (
+              { value: "Rapi", label: "Dokumen dan checklist", icon: "🎯" },
+              { value: "Jelas", label: "Tahapan perizinan", icon: "⏱️" },
+              { value: "Tinjau", label: "Asumsi biaya proyek", icon: "💰" },
+              { value: "Belajar", label: "Kompetensi profesional", icon: "📈" },
+              { value: "Verifikasi", label: "Sumber dan rujukan", icon: "⭐" },
+              { value: "Selaras", label: "Komunikasi dalam tim", icon: "💸" },
+              { value: "Siap", label: "Persiapan tender", icon: "🏗️" },
+              { value: "Bantu", label: "Panduan saat dibutuhkan", icon: "🛟" }
+            ].map((metric) => (
               <div key={metric.label} className="text-center bg-slate-800/50 rounded-xl p-4">
                 <div className="text-2xl mb-2">{metric.icon}</div>
                 <div className="text-2xl font-bold text-green-400 mb-1">{metric.value}</div>
@@ -1092,23 +1042,13 @@ export default function Home() {
         {/* Case Study */}
         <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <div className="flex-shrink-0">
-              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center text-2xl">
-                🏗️
-              </div>
-            </div>
             <div className="flex-1">
-              <h4 className="text-xl font-bold text-white mb-2">Studi Kasus: PT Maju Konstruksi</h4>
+              <h4 className="text-xl font-bold text-white mb-2">Cara Menggunakan KonstruksiAI secara Bertanggung Jawab</h4>
               <p className="text-slate-400 mb-4">
-                "Sebelum menggunakan KonstruksiAI, kami hanya menang 2 dari 10 tender yang kami ikuti.
-                Setelah 6 bulan menggunakan platform ini, win rate kami naik menjadi 8 dari 10 tender.
-                Profit margin meningkat 35% dan kami berhasil mengurangi waktu perijinan dari 8 bulan menjadi 2 bulan."
+                Mulai dengan mendokumentasikan kebutuhan proyek, gunakan panduan untuk menyusun pertanyaan dan checklist,
+                lalu verifikasi rekomendasi terhadap dokumen kontrak, regulasi, dan sumber resmi yang berlaku.
               </p>
-              <div className="text-orange-400 font-semibold">- Direktur PT Maju Konstruksi</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-400">400%</div>
-              <div className="text-slate-400 text-sm">Peningkatan Profit</div>
+              <div className="text-orange-400 font-semibold">Prinsip KonstruksiAI: bantu analisis, bukan menggantikan penilaian profesional.</div>
             </div>
           </div>
         </div>
@@ -1205,7 +1145,7 @@ export default function Home() {
                 Knowledge Base Keteknikan
               </h2>
               <p className="text-slate-400 text-lg mb-6 leading-relaxed">
-                Akses <strong className="text-purple-400">50+ artikel teknis</strong>,{" "}
+                Akses <strong className="text-purple-400">artikel teknis pilihan</strong>,{" "}
                 <strong className="text-purple-400">video tutorial</strong>, dan{" "}
                 <strong className="text-purple-400">template dokumen</strong> profesional untuk bidang konstruksi, energi, dan migas.
               </p>
@@ -1504,15 +1444,15 @@ export default function Home() {
             </h2>
 
             <p className="text-orange-100 text-xl mb-6 max-w-3xl mx-auto">
-              Bergabunglah dengan 5000+ profesional konstruksi yang sudah berhasil mentransformasi bisnis mereka dengan KonstruksiAI.
+              Mulai rapikan cara tim Anda menelusuri tender, dokumen, kompetensi, dan update industri dengan KonstruksiAI.
             </p>
 
             {/* Urgency Elements */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-3xl mx-auto">
               {[
                 { icon: "🚀", title: "Gratis Selamanya", desc: "Tidak ada biaya tersembunyi" },
-                { icon: "⚡", title: "Siap Pakai 5 Menit", desc: "Daftar dan langsung gunakan" },
-                { icon: "🛡️", title: "Garansi Uang Kembali", desc: "30 hari tanpa syarat" }
+                { icon: "⚡", title: "Mulai dengan Panduan", desc: "Pilih fitur sesuai kebutuhan kerja" },
+                { icon: "🛡️", title: "Gunakan dengan Bijak", desc: "Verifikasi rujukan untuk keputusan penting" }
               ].map((item, i) => (
                 <div key={item.title} className="bg-white/10 border border-white/20 rounded-xl p-4">
                   <div className="text-2xl mb-2">{item.icon}</div>

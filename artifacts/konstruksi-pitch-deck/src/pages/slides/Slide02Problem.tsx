@@ -99,7 +99,7 @@ export default function Slide02Problem() {
         </h2>
       </div>
 
-      {/* 4-stat grid */}
+      {/* 4-priority grid */}
       <div
         style={{
           display: "grid",
@@ -110,18 +110,17 @@ export default function Slide02Problem() {
           alignItems: "center",
         }}
       >
-        {/* Stat 1 */}
+        {/* Priority 1 */}
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div
             style={{
-              fontSize: "6vw",
+              fontSize: "4.5vw",
               fontFamily: "'Playfair Display', serif",
               color: "#2C2C2C",
               lineHeight: 1,
             }}
           >
-            87
-            <span style={{ color: "#C45B28", fontSize: "4vw" }}>%</span>
+            Izin
           </div>
           <div
             style={{
@@ -134,7 +133,7 @@ export default function Slide02Problem() {
               paddingTop: "1.5vh",
             }}
           >
-            Proyek Tertunda
+            Perizinan dan Kepatuhan
           </div>
           <p
             style={{
@@ -144,22 +143,21 @@ export default function Slide02Problem() {
               lineHeight: 1.6,
             }}
           >
-            Karena proses perijinan yang kompleks dan berbelit
+            Tahapan, dokumen, dan rujukan instansi perlu ditelusuri dengan cermat.
           </p>
         </div>
 
-        {/* Stat 2 */}
+        {/* Priority 2 */}
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div
             style={{
-              fontSize: "6vw",
+              fontSize: "4.5vw",
               fontFamily: "'Playfair Display', serif",
               color: "#2C2C2C",
               lineHeight: 1,
             }}
           >
-            1.2
-            <span style={{ color: "#C45B28", fontSize: "4vw" }}>T</span>
+            Tender
           </div>
           <div
             style={{
@@ -172,7 +170,7 @@ export default function Slide02Problem() {
               paddingTop: "1.5vh",
             }}
           >
-            Kerugian Tahunan (IDR)
+            Kesiapan Penawaran
           </div>
           <p
             style={{
@@ -182,22 +180,21 @@ export default function Slide02Problem() {
               lineHeight: 1.6,
             }}
           >
-            Dari tender yang gagal dan dokumen tidak lengkap
+            Persaingan menuntut dokumen, strategi, dan evaluasi internal yang rapi.
           </p>
         </div>
 
-        {/* Stat 3 */}
+        {/* Priority 3 */}
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div
             style={{
-              fontSize: "6vw",
+              fontSize: "4.5vw",
               fontFamily: "'Playfair Display', serif",
               color: "#2C2C2C",
               lineHeight: 1,
             }}
           >
-            65
-            <span style={{ color: "#C45B28", fontSize: "4vw" }}>%</span>
+            Tim
           </div>
           <div
             style={{
@@ -210,7 +207,7 @@ export default function Slide02Problem() {
               paddingTop: "1.5vh",
             }}
           >
-            Kontraktor Gulung Tikar
+            Kompetensi dan Sertifikasi
           </div>
           <p
             style={{
@@ -220,22 +217,21 @@ export default function Slide02Problem() {
               lineHeight: 1.6,
             }}
           >
-            Dalam 3 tahun pertama tanpa panduan bisnis yang memadai
+            Kebutuhan keahlian perlu dipetakan sejak perencanaan hingga pelaksanaan.
           </p>
         </div>
 
-        {/* Stat 4 */}
+        {/* Priority 4 */}
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div
             style={{
-              fontSize: "6vw",
+              fontSize: "4.5vw",
               fontFamily: "'Playfair Display', serif",
               color: "#2C2C2C",
               lineHeight: 1,
             }}
           >
-            89
-            <span style={{ color: "#C45B28", fontSize: "4vw" }}>%</span>
+            Risiko
           </div>
           <div
             style={{
@@ -248,7 +244,7 @@ export default function Slide02Problem() {
               paddingTop: "1.5vh",
             }}
           >
-            Kekurangan Tenaga Ahli
+            Biaya, Waktu, dan Mutu
           </div>
           <p
             style={{
@@ -258,7 +254,7 @@ export default function Slide02Problem() {
               lineHeight: 1.6,
             }}
           >
-            Perusahaan kesulitan memenuhi sertifikasi SKK yang wajib
+            Perubahan lapangan perlu dikelola dengan asumsi yang jelas dan dapat ditinjau.
           </p>
         </div>
       </div>
