@@ -13,7 +13,9 @@ import {
   ShieldCheck, 
   Landmark,
   MessageSquare,
-  AlertCircle
+  AlertCircle,
+  Send,
+  Loader2
 } from "lucide-react";
 
 type RadarCategory = "kementerian" | "lpjk-regulasi" | "infrastruktur" | "tender-pengadaan";
@@ -30,6 +32,14 @@ type RadarArticle = {
   fetchedAt: string;
   importance: "normal" | "penting";
 };
+
+type FloatingChatMessage = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+};
+
+type AuthState = "checking" | "authenticated" | "guest";
 
 type FilterOption = {
   id: string;
@@ -83,6 +93,33 @@ const GUIDED_QUESTIONS = [
   }
 ];
 
+function getHelpDeskReply(question: string): string {
+  const normalizedQuestion = question.toLowerCase();
+  const matchedQuestion = GUIDED_QUESTIONS.find((item) => {
+    const keywords = item.q.toLowerCase().split(/\s+/).filter((word) => word.length > 4);
+    return keywords.some((keyword) => normalizedQuestion.includes(keyword));
+  });
+
+  if (matchedQuestion) {
+    const featureLinks = matchedQuestion.links.map((link) => link.label).join(" dan ");
+    return `${matchedQuestion.a}\n\nFitur yang bisa Anda buka: ${featureLinks}.`;
+  }
+
+  if (/(radar|update|berita|informasi resmi)/.test(normalizedQuestion)) {
+    return "Untuk pembaruan resmi, buka Radar Harian. Anda dapat memilih kategori, membaca ringkasan, membuka sumber asli, lalu memakai tombol “Elaborasi” pada update yang ingin dipahami lebih lanjut.";
+  }
+
+  if (/(chat|ai|agen|asisten)/.test(normalizedQuestion)) {
+    return "Untuk konsultasi teknis, buka Chat AI dari navigasi atau tombol Mulai Chat. Pilih agen yang paling sesuai dengan kebutuhan, misalnya Tender Expert, Estimator RAB, atau Ahli K3.";
+  }
+
+  if (/(akun|daftar|register|masuk|login|profil)/.test(normalizedQuestion)) {
+    return "Anda dapat membuat akun melalui tombol Daftar, lalu masuk untuk menyimpan percakapan dan menggunakan elaborasi AI. Pengaturan nama dan profil tersedia di halaman Profil.";
+  }
+
+  return "Saya bisa membantu menjelaskan cara menggunakan KonstruksiAI. Coba tanyakan tentang Radar Harian, tender, simulasi biaya, Chat AI, akun, atau fitur aplikasi yang ingin Anda buka.";
+}
+
 function formatDate(value: string | null): string {
   if (!value) return "Tanggal tidak tersedia";
   const date = new Date(value);
@@ -92,6 +129,189 @@ function formatDate(value: string | null): string {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+async function streamFloatingChatReply(
+  messages: Array<{ role: "user" | "assistant"; content: string }>,
+  onDelta: (content: string) => void,
+): Promise<void> {
+  const response = await fetch("/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ messages, agentId: "general", stream: true }),
+  });
+
+  if (response.status === 401) {
+    throw new Error("Silakan masuk terlebih dahulu untuk menggunakan chat AI.");
+  }
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({})) as { error?: string };
+    throw new Error(data.error || "Chat AI belum dapat digunakan saat ini.");
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("Respons chat tidak dapat dibaca.");
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  const processLine = (line: string) => {
+    if (!line.startsWith("data:")) return;
+    const rawPayload = line.slice(5).trim();
+    if (!rawPayload) return;
+
+    const payload = JSON.parse(rawPayload) as {
+      content?: string;
+      error?: string;
+    };
+    if (payload.error) throw new Error(payload.error);
+    if (payload.content) onDelta(payload.content);
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    lines.forEach(processLine);
+    if (done) break;
+  }
+
+  if (buffer.trim()) processLine(buffer.trim());
+}
+
+function ChatThread({ messages }: { messages: FloatingChatMessage[] }) {
+  if (messages.length === 0) return null;
+
+  return (
+    <div className="mt-5 space-y-3 border-t border-slate-800 pt-4" aria-label="Riwayat elaborasi">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Elaborasi Anda</p>
+      {messages.map((message) => (
+        <div
+          key={message.id}
+          className={`flex gap-2.5 ${message.role === "user" ? "justify-end" : "justify-start"}`}
+        >
+          {message.role === "assistant" && (
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-500/10 text-orange-400">
+              <Bot className="h-3.5 w-3.5" />
+            </div>
+          )}
+          <div
+            className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+              message.role === "user"
+                ? "rounded-br-md bg-cyan-500/15 text-cyan-100"
+                : "rounded-bl-md bg-slate-800 text-slate-200"
+            }`}
+          >
+            {message.content || <span className="inline-block h-3 w-12 animate-pulse rounded bg-slate-600" />}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ChatComposer({
+  authState,
+  requiresAuth = true,
+  chatEnabled = true,
+  input,
+  loading,
+  error,
+  context,
+  onInputChange,
+  onSubmit,
+  onClearContext,
+  onClose,
+}: {
+  authState: AuthState;
+  requiresAuth?: boolean;
+  chatEnabled?: boolean;
+  input: string;
+  loading: boolean;
+  error: string | null;
+  context?: RadarArticle | null;
+  onInputChange: (value: string) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onClearContext?: () => void;
+  onClose: () => void;
+}) {
+  const canChat = !requiresAuth || authState === "authenticated";
+
+  return (
+    <div className="shrink-0 border-t border-slate-800 bg-slate-950/40 p-3">
+      {context && (
+        <div className="mb-2 flex items-start gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5 px-2.5 py-2 text-[11px] text-cyan-200">
+          <span className="min-w-0 flex-1 line-clamp-2">
+            Konteks: <strong>{context.title}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={onClearContext}
+            className="shrink-0 text-cyan-400 hover:text-cyan-200"
+            aria-label="Hapus konteks artikel"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {!chatEnabled ? (
+        <div className="rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2.5 text-xs leading-relaxed text-slate-400">
+          Konteks Radar sudah siap. Elaborasi AI untuk artikel ini ditunda sampai sumber AI diaktifkan kembali.
+        </div>
+      ) : requiresAuth && authState === "checking" ? (
+        <div className="rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2.5 text-xs text-slate-400">
+          Memeriksa akses chat...
+        </div>
+      ) : requiresAuth && authState === "guest" ? (
+        <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 px-3 py-2.5 text-xs leading-relaxed text-slate-300">
+          Masuk untuk mengelaborasi informasi bersama AI.{" "}
+          <Link href="/login" onClick={onClose} className="font-semibold text-orange-300 hover:text-orange-200">
+            Masuk
+          </Link>
+          {" atau "}
+          <Link href="/register" onClick={onClose} className="font-semibold text-orange-300 hover:text-orange-200">
+            daftar gratis
+          </Link>
+          .
+        </div>
+      ) : (
+        <>
+          {error && (
+            <div className="mb-2 rounded-lg border border-orange-500/20 bg-orange-500/5 px-3 py-2 text-xs text-orange-200" role="alert">
+              {error}
+            </div>
+          )}
+          <form onSubmit={onSubmit} className="flex items-end gap-2">
+            <label htmlFor="floating-chat-input" className="sr-only">Pertanyaan elaborasi</label>
+            <textarea
+              id="floating-chat-input"
+              value={input}
+              onChange={(event) => onInputChange(event.target.value)}
+              placeholder={context ? "Tanyakan dampak, konteks, atau langkah berikutnya..." : "Tanyakan untuk memperdalam pengetahuan..."}
+              rows={1}
+              maxLength={6000}
+              disabled={loading || !canChat}
+              className="max-h-24 min-h-[42px] flex-1 resize-none rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-xs leading-relaxed text-white outline-none placeholder:text-slate-500 focus:border-cyan-400"
+            />
+            <button
+              type="submit"
+              disabled={loading || !canChat || !input.trim()}
+              aria-label="Kirim pertanyaan"
+              className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white transition-colors hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </button>
+          </form>
+          <p className="mt-1.5 text-[10px] text-slate-600">
+            {requiresAuth ? "Jawaban AI membantu elaborasi; tetap verifikasi sumber resmi." : "Tanyakan cara memakai fitur apa pun di aplikasi."}
+          </p>
+        </>
+      )}
+    </div>
+  );
 }
 
 export function FloatingChatbots() {
@@ -109,6 +329,13 @@ export function FloatingChatbots() {
 
   // Guided State
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
+  const [authState, setAuthState] = useState<AuthState>("checking");
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [radarMessages, setRadarMessages] = useState<FloatingChatMessage[]>([]);
+  const [guidedMessages, setGuidedMessages] = useState<FloatingChatMessage[]>([]);
+  const [radarContext, setRadarContext] = useState<RadarArticle | null>(null);
 
   const closePanel = () => {
     setActivePanel("none");
@@ -165,6 +392,111 @@ export function FloatingChatbots() {
     };
   }, [activePanel]);
 
+  useEffect(() => {
+    if (activePanel === "none") return;
+
+    let mounted = true;
+    setAuthState("checking");
+    fetch("/api/auth/me", { credentials: "include" })
+      .then((response) => response.ok ? response.json() : { user: null })
+      .then((data: { user?: unknown }) => {
+        if (mounted) setAuthState(data.user ? "authenticated" : "guest");
+      })
+      .catch(() => {
+        if (mounted) setAuthState("guest");
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [activePanel]);
+
+  const updateChatMessages = (
+    panel: "radar" | "guided",
+    updater: (messages: FloatingChatMessage[]) => FloatingChatMessage[],
+  ) => {
+    if (panel === "radar") {
+      setRadarMessages(updater);
+    } else {
+      setGuidedMessages(updater);
+    }
+  };
+
+  const sendFollowUp = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const panel = activePanel === "radar" ? "radar" : "guided";
+    const question = chatInput.trim();
+    if (!question || chatLoading || (panel === "radar" && authState !== "authenticated")) return;
+
+    const userMessage: FloatingChatMessage = {
+      id: `floating-user-${Date.now()}`,
+      role: "user",
+      content: question,
+    };
+    const assistantId = `floating-assistant-${Date.now()}`;
+    const assistantMessage: FloatingChatMessage = {
+      id: assistantId,
+      role: "assistant",
+      content: "",
+    };
+    const currentMessages = panel === "radar" ? radarMessages : guidedMessages;
+    const contextualQuestion = panel === "radar" && radarContext
+      ? [
+          "Bantu pengguna mengelaborasi informasi Radar resmi berikut.",
+          `Judul: ${radarContext.title}`,
+          `Ringkasan: ${radarContext.summary}`,
+          `Sumber: ${radarContext.sourceName}`,
+          `URL sumber: ${radarContext.articleUrl}`,
+          `Pertanyaan pengguna: ${question}`,
+          "Jawab dengan membedakan fakta dari interpretasi dan sarankan langkah verifikasi bila relevan.",
+        ].join("\n")
+      : question;
+
+    setChatInput("");
+    setChatError(null);
+    setChatLoading(true);
+    updateChatMessages(panel, (messages) => [
+      ...messages,
+      userMessage,
+      assistantMessage,
+    ]);
+
+    try {
+      if (panel === "guided") {
+        const localReply = getHelpDeskReply(question);
+        updateChatMessages(panel, (messages) =>
+          messages.map((message) =>
+            message.id === assistantId ? { ...message, content: localReply } : message,
+          ),
+        );
+      } else {
+        await streamFloatingChatReply(
+          [
+            ...currentMessages.map(({ role, content }) => ({ role, content })),
+            { role: "user", content: contextualQuestion },
+          ],
+          (content) => {
+            updateChatMessages(panel, (messages) =>
+              messages.map((message) =>
+                message.id === assistantId
+                  ? { ...message, content: message.content + content }
+                  : message,
+              ),
+            );
+          },
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Chat AI gagal memproses pertanyaan.";
+      setChatError(message);
+      updateChatMessages(panel, (messages) =>
+        messages.filter((item) => item.id !== assistantId || item.content),
+      );
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
   const loadArticles = async (filter: FilterOption, signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
@@ -212,6 +544,11 @@ export function FloatingChatbots() {
     : articles;
   const hasSourceIssue = sources.some((source) => source.status === "error");
 
+  const handleArticleElaboration = (article: RadarArticle) => {
+    setRadarContext(article);
+    setChatError(null);
+  };
+
   // Hide the inactive launcher on mobile when a panel is open
   const leftLauncherClass = `pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-cyan-950/40 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 transition-opacity duration-300 md:opacity-100 md:pointer-events-auto ${isRadarOpen ? "bg-slate-800 text-cyan-400 border border-cyan-400/30" : "bg-cyan-500 text-slate-950 hover:bg-cyan-400"} ${isGuidedOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`;
 
@@ -235,7 +572,8 @@ export function FloatingChatbots() {
         <button
           type="button"
           onClick={(event) => isGuidedOpen ? closePanel() : openPanel("guided", event.currentTarget)}
-          aria-label={isGuidedOpen ? "Tutup Asisten Panduan" : "Buka Asisten Panduan"}
+           aria-label={isGuidedOpen ? "Tutup Help Desk Aplikasi" : "Buka Help Desk Aplikasi"}
+           title="Help Desk Aplikasi"
           aria-expanded={isGuidedOpen}
           className={rightLauncherClass}
         >
@@ -369,12 +707,33 @@ export function FloatingChatbots() {
                       Buka Sumber
                       <ExternalLink className="h-3 w-3" />
                     </a>
+                     <button
+                       type="button"
+                       onClick={() => handleArticleElaboration(article)}
+                       className="inline-flex items-center gap-1 text-[11px] font-medium text-orange-300 hover:text-orange-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-orange-400"
+                     >
+                       Elaborasi
+                       <MessageSquare className="h-3 w-3" />
+                     </button>
                   </div>
                 </div>
               ))}
             </div>
           )}
+           <ChatThread messages={radarMessages} />
         </div>
+         <ChatComposer
+           authState={authState}
+           chatEnabled={false}
+           input={chatInput}
+           loading={chatLoading}
+           error={chatError}
+           context={radarContext}
+           onInputChange={setChatInput}
+           onSubmit={sendFollowUp}
+           onClearContext={() => setRadarContext(null)}
+           onClose={closePanel}
+         />
       </div>
       )}
 
@@ -382,7 +741,7 @@ export function FloatingChatbots() {
       {isGuidedOpen && (
       <div 
         role="dialog"
-        aria-label="Asisten Panduan"
+         aria-label="Help Desk Aplikasi"
         aria-modal="true"
         tabIndex={-1}
         ref={isGuidedOpen ? panelRef : undefined}
@@ -394,8 +753,8 @@ export function FloatingChatbots() {
               <Bot className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-white">Asisten KonstruksiAI</h2>
-              <p className="text-xs text-slate-400">Panduan fitur platform</p>
+               <h2 className="text-sm font-semibold text-white">Help Desk Aplikasi</h2>
+               <p className="text-xs text-slate-400">Tanya cara menggunakan platform</p>
             </div>
           </div>
           <button 
@@ -414,7 +773,7 @@ export function FloatingChatbots() {
               <Bot className="h-4 w-4 text-orange-400" />
             </div>
             <div className="rounded-2xl rounded-tl-none bg-slate-800/80 p-4 text-sm text-slate-200">
-              Halo! Saya Asisten Panduan. Pilih topik di bawah untuk melihat cara kerja sistem kami atau menemukan fitur yang Anda butuhkan.
+               Halo! Saya Help Desk Aplikasi. Anda bisa memilih topik atau langsung mengetik pertanyaan tentang cara menggunakan KonstruksiAI.
             </div>
           </div>
 
@@ -453,7 +812,18 @@ export function FloatingChatbots() {
                             </Link>
                           ))}
                         </div>
+           <ChatThread messages={guidedMessages} />
                       </div>
+         <ChatComposer
+           authState={authState}
+             requiresAuth={false}
+           input={chatInput}
+           loading={chatLoading}
+           error={chatError}
+           onInputChange={setChatInput}
+           onSubmit={sendFollowUp}
+           onClose={closePanel}
+         />
                     </div>
                   )}
                 </div>

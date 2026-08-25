@@ -8,9 +8,10 @@ const router = Router();
 
 router.post("/auth/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email: rawEmail, password } = req.body;
+    const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
 
-    if (!email || !password) {
+    if (!email || typeof password !== "string") {
       res.status(400).json({ error: "Email dan password harus diisi" });
       return;
     }
@@ -46,7 +47,6 @@ router.post("/auth/login", async (req, res) => {
     res.json({
       success: true,
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
-      token,
     });
   } catch (err) {
     req.log.error({ err }, "Login error");

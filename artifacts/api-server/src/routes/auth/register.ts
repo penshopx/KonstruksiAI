@@ -8,10 +8,17 @@ const router = Router();
 
 router.post("/auth/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name: rawName, email: rawEmail, password } = req.body;
+    const name = typeof rawName === "string" ? rawName.trim() : "";
+    const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
 
-    if (!name || !email || !password) {
+    if (!name || !email || typeof password !== "string") {
       res.status(400).json({ error: "Semua field harus diisi" });
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ error: "Format email tidak valid" });
       return;
     }
 
@@ -53,7 +60,6 @@ router.post("/auth/register", async (req, res) => {
     res.json({
       success: true,
       user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
-      token,
     });
   } catch (err) {
     req.log.error({ err }, "Register error");

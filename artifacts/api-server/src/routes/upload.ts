@@ -65,7 +65,7 @@ router.post("/upload", async (req, res) => {
         content = "[Gagal membaca dokumen Word]";
       }
     } else if (type === "application/pdf") {
-      return res.json({
+      res.json({
         filename,
         content: "",
         type,
@@ -73,6 +73,7 @@ router.post("/upload", async (req, res) => {
         needsClientProcessing: true,
         base64Data: data,
       });
+      return;
     } else {
       content = `[File ${filename} diupload - ${buffer.length} bytes]`;
     }

@@ -1633,7 +1633,7 @@ export default function Home() {
           </div>
           <div className="border-t border-slate-800 pt-6 text-center">
             <p className="text-slate-600 text-xs">
-              © 2025 KonstruksiAI — Asisten AI khusus bidang keteknikan Indonesia · Konstruksi · Energi · Migas & Pertambangan
+              © {new Date().getFullYear()} KonstruksiAI — Asisten AI khusus bidang keteknikan Indonesia · Konstruksi · Energi · Migas & Pertambangan
             </p>
           </div>
         </div>

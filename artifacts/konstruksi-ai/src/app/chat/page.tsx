@@ -46,6 +46,18 @@ interface Conversation {
 
 type ConversationLabel = "penting" | "proyek" | "referensi" | "arsip";
 
+function parseServerTimestamp(value: string | number | Date): Date {
+  if (value instanceof Date) return value;
+
+  // SQLite timestamp columns serialize as ISO strings. Keep numeric seconds
+  // support for older persisted records so existing histories remain readable.
+  if (typeof value === "number") {
+    return new Date(value < 10_000_000_000 ? value * 1000 : value);
+  }
+
+  return new Date(value);
+}
+
 interface Agent {
   id: string;
   name: string;
@@ -1372,16 +1384,16 @@ export default function ChatPage() {
                 title: string;
                 agentId: string;
                 label?: string;
-                createdAt: number;
-                updatedAt: number;
+                createdAt: string | number;
+                updatedAt: string | number;
               }) => ({
                 id: c.id,
                 title: c.title,
                 agentId: c.agentId,
                 label: c.label as ConversationLabel | undefined,
                 messages: [], // Messages loaded on demand
-                createdAt: new Date(c.createdAt * 1000),
-                updatedAt: new Date(c.updatedAt * 1000),
+                createdAt: parseServerTimestamp(c.createdAt),
+                updatedAt: parseServerTimestamp(c.updatedAt),
               }));
               setConversations(clientConvs);
               return;
@@ -1549,12 +1561,12 @@ export default function ChatPage() {
               domainFitReason?: string;
               attachmentName?: string;
               attachmentType?: string;
-              createdAt: number;
+              createdAt: string | number;
             }) => ({
               id: m.id,
               role: m.role as "user" | "assistant",
               content: m.content,
-              timestamp: new Date(m.createdAt * 1000),
+              timestamp: parseServerTimestamp(m.createdAt),
               agentId: m.role === "assistant" ? (m.agentId || existing.agentId) : undefined,
               domainFit: m.role === "assistant" && m.domainFitLevel && m.domainFitReason
                 ? { level: m.domainFitLevel, reason: m.domainFitReason }

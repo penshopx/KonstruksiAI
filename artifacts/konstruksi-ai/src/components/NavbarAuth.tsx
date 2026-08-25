@@ -17,8 +17,11 @@ export default function NavbarAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((r) => r.json())
+    fetch("/api/auth/me", { credentials: "include" })
+      .then((r) => {
+        if (!r.ok) throw new Error("Gagal memuat sesi");
+        return r.json();
+      })
       .then((data) => {
         setUser(data.user);
         setLoading(false);
@@ -27,7 +30,7 @@ export default function NavbarAuth() {
   }, []);
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
     setUser(null);
     router.push("/");
     router.refresh();
