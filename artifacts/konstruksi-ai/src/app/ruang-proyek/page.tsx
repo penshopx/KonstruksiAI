@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "@/shims/next-link";
 import NavbarAuth from "@/components/NavbarAuth";
 import {
+  Archive,
   ArrowRight,
+  AlertCircle,
   BookOpen,
   CheckCircle2,
   ClipboardCheck,
@@ -14,12 +16,22 @@ import {
   HardHat,
   LayoutDashboard,
   LineChart,
+  Loader2,
   MessagesSquare,
+  Plus,
+  Save,
   ShieldCheck,
   Target,
   Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import {
+  createProjectWorkspace,
+  listProjectWorkspaces,
+  ProjectWorkspaceApiError,
+  updateProjectWorkspace,
+  type ProjectWorkspace,
+} from "@/lib/project-workspaces";
 
 type Stage = {
   id: string;
@@ -228,9 +240,189 @@ function StageRail({
 export default function ProjectWorkspacePage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [projectName, setProjectName] = useState("");
-  const activeStage = STAGES[activeIndex];
+  const [notes, setNotes] = useState("");
+  const [workspaces, setWorkspaces] = useState<ProjectWorkspace[]>([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [isLoadingWorkspaces, setIsLoadingWorkspaces] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [resumeCandidate, setResumeCandidate] = useState<ProjectWorkspace | null>(null);
+  const [authRequired, setAuthRequired] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const activeStage = STAGES[activeIndex] ?? STAGES[0];
   const ActiveIcon = activeStage.icon;
   const displayName = useMemo(() => projectName.trim() || "Pekerjaan baru", [projectName]);
+  const activeWorkspace = workspaces.find((workspace) => workspace.id === activeWorkspaceId) ?? null;
+  const hasLocalDraftRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    listProjectWorkspaces(true)
+      .then((savedWorkspaces) => {
+        if (!cancelled) {
+          setWorkspaces(savedWorkspaces);
+          const latestActiveWorkspace = savedWorkspaces.find((workspace) => !workspace.archivedAt);
+          if (latestActiveWorkspace && !hasLocalDraftRef.current) {
+            const stageIndex = STAGES.findIndex((stage) => stage.id === latestActiveWorkspace.stageId);
+            setActiveWorkspaceId(latestActiveWorkspace.id);
+            setProjectName(latestActiveWorkspace.name);
+            setNotes(latestActiveWorkspace.notes);
+            setActiveIndex(stageIndex >= 0 ? stageIndex : 0);
+            setIsDirty(false);
+            setResumeCandidate(null);
+          } else if (latestActiveWorkspace) {
+            setResumeCandidate(latestActiveWorkspace);
+          }
+          setAuthRequired(false);
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (cancelled) return;
+        if (requestError instanceof ProjectWorkspaceApiError && requestError.status === 401) {
+          setAuthRequired(true);
+        } else {
+          setError("Daftar ruang proyek belum dapat dimuat. Anda tetap dapat memakai sesi lokal.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingWorkspaces(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const markDirty = () => {
+    hasLocalDraftRef.current = true;
+    setIsDirty(true);
+    setSuccess("");
+  };
+
+  const selectStage = (index: number) => {
+    setActiveIndex(index);
+    markDirty();
+  };
+
+  const confirmDiscardChanges = (nextAction: string): boolean => {
+    if (!isDirty) return true;
+    return window.confirm(`Perubahan pada ruang proyek belum disimpan. Tetap ${nextAction}?`);
+  };
+
+  const loadWorkspace = (workspace: ProjectWorkspace) => {
+    if (!confirmDiscardChanges(activeWorkspaceId === workspace.id ? "memuat ulang ruang ini" : "membuka ruang lain")) return;
+
+    const stageIndex = STAGES.findIndex((stage) => stage.id === workspace.stageId);
+    setActiveWorkspaceId(workspace.id);
+    setProjectName(workspace.name);
+    setNotes(workspace.notes);
+    setActiveIndex(stageIndex >= 0 ? stageIndex : 0);
+    setIsDirty(false);
+    hasLocalDraftRef.current = false;
+    setResumeCandidate(null);
+    setError("");
+    setSuccess("");
+  };
+
+  const startNewWorkspace = () => {
+    if (!confirmDiscardChanges("membuat ruang baru")) return;
+
+    resetWorkspace();
+  };
+
+  const resetWorkspace = () => {
+    setActiveWorkspaceId(null);
+    setProjectName("");
+    setNotes("");
+    setActiveIndex(0);
+    setIsDirty(false);
+    hasLocalDraftRef.current = false;
+    setResumeCandidate(null);
+    setError("");
+    setSuccess("");
+  };
+
+  const saveWorkspace = async () => {
+    const name = projectName.trim();
+    if (!name) {
+      setError("Isi nama pekerjaan sebelum menyimpan ruang proyek.");
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const payload = { name, stageId: activeStage.id, notes: notes.trim() };
+      const savedWorkspace = activeWorkspaceId
+        ? await updateProjectWorkspace(activeWorkspaceId, payload)
+        : await createProjectWorkspace(payload);
+
+      setWorkspaces((current) => {
+        const withoutSaved = current.filter((workspace) => workspace.id !== savedWorkspace.id);
+        return [savedWorkspace, ...withoutSaved];
+      });
+      setActiveWorkspaceId(savedWorkspace.id);
+      setProjectName(savedWorkspace.name);
+      setNotes(savedWorkspace.notes);
+      setIsDirty(false);
+      hasLocalDraftRef.current = false;
+      setResumeCandidate(null);
+      setAuthRequired(false);
+      setSuccess(activeWorkspaceId ? "Perubahan ruang proyek tersimpan." : "Ruang proyek tersimpan.");
+    } catch (requestError: unknown) {
+      if (requestError instanceof ProjectWorkspaceApiError && requestError.status === 401) {
+        setAuthRequired(true);
+        setError("Masuk terlebih dahulu untuk menyimpan ruang proyek.");
+      } else {
+        setError(requestError instanceof Error ? requestError.message : "Ruang proyek gagal disimpan.");
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const archiveWorkspace = async (workspace: ProjectWorkspace) => {
+    if (activeWorkspaceId === workspace.id && !confirmDiscardChanges("mengarsipkan ruang ini")) return;
+    if (!window.confirm(`Arsipkan ruang proyek "${workspace.name}"?`)) return;
+
+    setIsSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const archivedWorkspace = await updateProjectWorkspace(workspace.id, { archived: true });
+      setWorkspaces((current) => current.map((item) => item.id === archivedWorkspace.id ? archivedWorkspace : item));
+      if (activeWorkspaceId === workspace.id) resetWorkspace();
+      setSuccess("Ruang proyek diarsipkan.");
+    } catch (requestError: unknown) {
+      setError(requestError instanceof Error ? requestError.message : "Ruang proyek gagal diarsipkan.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const restoreWorkspace = async (workspace: ProjectWorkspace) => {
+    if (!confirmDiscardChanges("memulihkan ruang dari arsip")) return;
+
+    setIsSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const restoredWorkspace = await updateProjectWorkspace(workspace.id, { archived: false });
+      setWorkspaces((current) => current.map((item) => item.id === restoredWorkspace.id ? restoredWorkspace : item));
+      loadWorkspace(restoredWorkspace);
+      setSuccess("Ruang proyek dipulihkan dan siap dilanjutkan.");
+    } catch (requestError: unknown) {
+      setError(requestError instanceof Error ? requestError.message : "Ruang proyek gagal dipulihkan.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const activeWorkspaces = workspaces.filter((workspace) => !workspace.archivedAt);
+  const archivedWorkspaces = workspaces.filter((workspace) => workspace.archivedAt);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
@@ -293,13 +485,70 @@ export default function ProjectWorkspacePage() {
             <input
               id="project-name"
               value={projectName}
-              onChange={(event) => setProjectName(event.target.value)}
+              maxLength={160}
+              onChange={(event) => {
+                setProjectName(event.target.value);
+                markDirty();
+              }}
               placeholder="Contoh: Rehabilitasi Gedung Sekolah"
+              onFocus={() => {
+                setError("");
+                setSuccess("");
+              }}
               className="w-full rounded-xl border border-slate-700 bg-slate-950/80 px-3.5 py-3 text-sm text-white outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/10"
             />
-            <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-600">
+            <label htmlFor="project-notes" className="sr-only">Catatan pekerjaan</label>
+            <textarea
+              id="project-notes"
+              value={notes}
+              maxLength={2000}
+              onChange={(event) => {
+                setNotes(event.target.value);
+                markDirty();
+              }}
+              placeholder="Catatan fokus atau keputusan awal (opsional)"
+              rows={2}
+              className="mt-3 w-full resize-none rounded-xl border border-slate-700 bg-slate-950/80 px-3.5 py-3 text-sm text-white outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/10"
+            />
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-[11px] text-slate-600">
               <Wrench className="h-3 w-3" />
-              Nama ini belum disimpan sebagai proyek permanen.
+                {activeWorkspace
+                  ? isDirty
+                    ? "Perubahan belum tersimpan."
+                    : "Ruang proyek tersimpan di akun Anda."
+                  : isDirty
+                    ? "Draf belum tersimpan."
+                    : "Simpan agar dapat dilanjutkan setelah masuk kembali."}
+              </p>
+              <div className="flex items-center gap-2">
+                {activeWorkspace && (
+                  <button
+                    type="button"
+                    onClick={startNewWorkspace}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-3 py-2 text-xs font-semibold text-slate-400 transition-colors hover:border-slate-500 hover:text-white"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Baru
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={saveWorkspace}
+                  disabled={isSaving || (Boolean(activeWorkspace) && !isDirty)}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500 px-3 py-2 text-xs font-semibold text-slate-950 transition-colors hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  {activeWorkspace ? "Simpan perubahan" : "Simpan ruang proyek"}
+                </button>
+              </div>
+            </div>
+            <p className="mt-2 text-[11px] text-slate-600">
+              {authRequired ? (
+                <>Belum masuk? <Link href="/login" className="text-cyan-400 hover:text-cyan-300">Masuk untuk menyimpan permanen.</Link></>
+              ) : (
+                "Nama dan catatan akan tersimpan di akun Anda setelah disimpan."
+              )}
             </p>
           </div>
         </section>
@@ -310,11 +559,102 @@ export default function ProjectWorkspacePage() {
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Alur pekerjaan</p>
               <span className="text-[11px] text-slate-600">5 tahap</span>
             </div>
-            <StageRail activeIndex={activeIndex} onSelect={setActiveIndex} />
+            <StageRail activeIndex={activeIndex} onSelect={selectStage} />
+            {error && (
+              <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-xs leading-relaxed text-red-200">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
+                <span>{error}</span>
+              </div>
+            )}
+            {success && (
+              <div role="status" className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-3 text-xs leading-relaxed text-emerald-200">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                <span>{success}</span>
+              </div>
+            )}
+            {resumeCandidate && (
+              <div className="mt-4 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.06] p-3">
+                <p className="text-xs leading-relaxed text-slate-300">
+                  Ada ruang tersimpan yang dapat dilanjutkan: <strong className="font-semibold text-white">{resumeCandidate.name}</strong>.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => loadWorkspace(resumeCandidate)}
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-cyan-300 transition-colors hover:text-cyan-200"
+                >
+                  Lanjutkan ruang tersimpan
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+            {!isLoadingWorkspaces && !authRequired && activeWorkspaces.length > 0 && (
+              <div className="mt-6">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Ruang tersimpan</p>
+                  <span className="text-[11px] text-slate-600">{activeWorkspaces.length}</span>
+                </div>
+                <div className="space-y-2">
+                  {activeWorkspaces.map((workspace) => (
+                    <div
+                      key={workspace.id}
+                      className={`rounded-xl border p-3 transition-colors ${
+                        activeWorkspaceId === workspace.id
+                          ? "border-cyan-400/30 bg-cyan-400/[0.06]"
+                          : "border-slate-800 bg-slate-950/30"
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => loadWorkspace(workspace)}
+                        className="w-full text-left"
+                      >
+                        <span className="block truncate text-sm font-semibold text-slate-200">{workspace.name}</span>
+                        <span className="mt-1 block text-[11px] text-slate-600">
+                          {STAGES.find((stage) => stage.id === workspace.stageId)?.title ?? "Tahap awal"}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => archiveWorkspace(workspace)}
+                        disabled={isSaving}
+                        className="mt-2 inline-flex items-center gap-1 text-[11px] text-slate-600 transition-colors hover:text-red-300 disabled:opacity-50"
+                      >
+                        <Archive className="h-3 w-3" />
+                        Arsipkan
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!isLoadingWorkspaces && !authRequired && archivedWorkspaces.length > 0 && (
+              <div className="mt-5">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-600">Arsip</p>
+                  <span className="text-[11px] text-slate-700">{archivedWorkspaces.length}</span>
+                </div>
+                <div className="space-y-2">
+                  {archivedWorkspaces.map((workspace) => (
+                    <div key={workspace.id} className="rounded-xl border border-slate-800/80 bg-slate-950/20 p-3">
+                      <span className="block truncate text-sm font-semibold text-slate-500">{workspace.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => restoreWorkspace(workspace)}
+                        disabled={isSaving}
+                        className="mt-2 inline-flex items-center gap-1 text-[11px] text-cyan-400 transition-colors hover:text-cyan-300 disabled:opacity-50"
+                      >
+                        <Archive className="h-3 w-3 rotate-180" />
+                        Pulihkan
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="mt-4 rounded-xl border border-slate-800/80 bg-slate-950/40 p-4">
               <p className="text-xs font-semibold text-slate-300">Cara memakai ruang ini</p>
               <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                Pilih tahap yang sedang Anda hadapi. Gunakan tindakan yang tersedia untuk masuk ke fitur existing tanpa membuat status proyek fiktif.
+                Pilih tahap yang sedang Anda hadapi. Gunakan tindakan yang tersedia untuk masuk ke fitur existing tanpa membuat status proyek fiktif. Simpan ruang jika ingin melanjutkannya nanti.
               </p>
             </div>
           </aside>
@@ -394,7 +734,7 @@ export default function ProjectWorkspacePage() {
               {activeIndex < STAGES.length - 1 ? (
                 <button
                   type="button"
-                  onClick={() => setActiveIndex((index) => index + 1)}
+                  onClick={() => selectStage(activeIndex + 1)}
                   className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 px-3.5 py-2 text-xs font-semibold text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
                 >
                   Lihat tahap berikutnya

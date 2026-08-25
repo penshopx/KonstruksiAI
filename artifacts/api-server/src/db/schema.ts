@@ -31,6 +31,24 @@ export const conversations = sqliteTable("conversations", {
 export type Conversation = typeof conversations.$inferSelect;
 export type NewConversation = typeof conversations.$inferInsert;
 
+export const projectWorkspaces = sqliteTable("project_workspaces", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  stageId: text("stage_id").notNull().default("tender"),
+  notes: text("notes").notNull().default(""),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .$defaultFn(() => new Date())
+    .notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .$defaultFn(() => new Date())
+    .notNull(),
+  archivedAt: integer("archived_at", { mode: "timestamp" }),
+});
+
+export type ProjectWorkspace = typeof projectWorkspaces.$inferSelect;
+export type NewProjectWorkspace = typeof projectWorkspaces.$inferInsert;
+
 export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(),
   conversationId: text("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),

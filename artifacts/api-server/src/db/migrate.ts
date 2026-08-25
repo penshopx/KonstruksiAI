@@ -23,6 +23,17 @@ export function initializeDatabase() {
       updated_at INTEGER NOT NULL
     )`);
 
+    db.run(sql`CREATE TABLE IF NOT EXISTS project_workspaces (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      stage_id TEXT NOT NULL DEFAULT 'tender',
+      notes TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      archived_at INTEGER
+    )`);
+
     db.run(sql`CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,
       conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
