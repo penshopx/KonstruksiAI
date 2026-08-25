@@ -481,7 +481,7 @@ function ExpandableSection({
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header / Navbar */}
       <header className="border-b border-slate-700 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -575,22 +575,37 @@ export default function Home() {
           </div>
         </div>
 
-      </section>
-
-      {/* Promo Video - full-width breakout */}
-      <div className="w-full px-4 sm:px-6 lg:px-8 mb-12">
-        <div className="relative w-full rounded-2xl overflow-hidden border border-slate-700 shadow-2xl shadow-orange-500/10" style={{ aspectRatio: '16/9' }}>
-          <iframe
-            src="/konstruksi-promo-video/"
-            className="absolute inset-0 w-full h-full"
-            allow="autoplay"
-            title="KonstruksiAI – Demo Video"
-          />
+        {/* Promo Video - autoplay preview */}
+        <div className="max-w-5xl mx-auto">
+          <div
+            className="relative w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-950 shadow-2xl shadow-orange-500/10"
+            style={{ aspectRatio: "16 / 9" }}
+          >
+            <iframe
+              src="/konstruksi-promo-video/"
+              className="absolute inset-0 h-full w-full"
+              allow="autoplay"
+              loading="eager"
+              title="KonstruksiAI – Demo Video"
+            />
+          </div>
+          <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <p className="text-center text-sm text-slate-500 sm:text-left">
+              ▶ Lihat bagaimana KonstruksiAI membantu profesional konstruksi Indonesia
+            </p>
+            <a
+              href="/konstruksi-promo-video/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-4 py-2 text-sm font-semibold text-orange-400 transition-colors hover:border-orange-400 hover:bg-orange-500/20 hover:text-orange-300"
+            >
+              Watch full video
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
         </div>
-        <p className="text-center text-slate-500 text-sm mt-3">
-          ▶ Lihat bagaimana KonstruksiAI membantu profesional konstruksi Indonesia
-        </p>
-      </div>
+
+      </section>
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {/* CTA - Primary Action */}
