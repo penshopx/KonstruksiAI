@@ -526,12 +526,17 @@ function BrandMark() {
     <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-orange-300 via-orange-500 to-amber-600 shadow-lg shadow-orange-500/25 ring-1 ring-orange-200/30">
       <div className="absolute inset-1 rounded-[0.8rem] border border-white/20" />
       <svg viewBox="0 0 48 48" aria-hidden="true" className="relative h-8 w-8">
-        <path d="M12 8v32M36 8 12 24l24 16" fill="none" stroke="white" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M12 24h9" fill="none" stroke="#172033" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="12" cy="8" r="2.5" fill="#172033" />
-        <circle cx="12" cy="40" r="2.5" fill="#172033" />
-        <circle cx="36" cy="8" r="2.5" fill="#172033" />
-        <circle cx="36" cy="40" r="2.5" fill="#172033" />
+        {/* Structural K brace */}
+        <path d="M9 39V9M9 24 29 9M9 24l20 15" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Architectural A-frame, creating a subtle KA monogram */}
+        <path d="m27 39 8-30 8 30M30 28h10" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Dark joints and foundation beam */}
+        <path d="M8 40h36M9 24h8" fill="none" stroke="#172033" strokeWidth="2.2" strokeLinecap="round" />
+        <circle cx="9" cy="9" r="2.3" fill="#172033" />
+        <circle cx="9" cy="24" r="2.3" fill="#172033" />
+        <circle cx="9" cy="39" r="2.3" fill="#172033" />
+        <circle cx="35" cy="9" r="2.1" fill="#172033" />
+        <circle cx="35" cy="39" r="2.1" fill="#172033" />
       </svg>
     </div>
   );
