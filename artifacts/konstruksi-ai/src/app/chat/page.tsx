@@ -1717,7 +1717,7 @@ export default function ChatPage() {
     try {
       // Build history from the updated conversation (not stale state)
       const historyMessages = currentConv
-        ? currentConv.messages.filter(m => !m.isStreaming).slice(-10).map(m => ({
+        ? currentConv.messages.filter(m => !m.isStreaming).slice(0, -1).map(m => ({
             role: m.role as "user" | "assistant",
             content: m.content,
           }))

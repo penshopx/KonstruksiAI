@@ -1,2 +1,3 @@
 - [KonstruksiAI migration](konstruksi-ai-migration.md) — Vercel/Next.js → Replit pnpm workspace; auth uses SESSION_SECRET as JWT_SECRET fallback
 - [Multi-artifact preview](multi-artifact-preview.md) — iframe routes need their target artifact workflow running locally and static build output for deployment
+- [Conversation context budgeting](conversation-context-budgeting.md) — retain a single exact message suffix and treat any AI summary as untrusted reference data.
