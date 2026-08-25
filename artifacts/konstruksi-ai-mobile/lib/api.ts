@@ -107,8 +107,9 @@ export interface ConversationSummary {
   title: string;
   agentId: string;
   label?: string;
-  createdAt: number;
-  updatedAt: number;
+  /** Epoch seconds/milliseconds or ISO-8601 strings from server JSON */
+  createdAt: number | string;
+  updatedAt: number | string;
 }
 
 export interface ServerMessage {

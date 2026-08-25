@@ -12,6 +12,8 @@ import {
   apiCreateConversation,
   apiGetConversationMessages,
   apiAddMessage,
+  apiDeleteConversation,
+  type ConversationSummary,
 } from '@/lib/api';
 
 export interface Agent {
@@ -52,18 +54,45 @@ interface ChatContextValue {
   addLoadingMessage: () => string;
   clearMessages: () => void;
   isSyncing: boolean;
+  conversations: ConversationSummary[];
+  activeConversationId: string | null;
+  selectConversation: (conversationId: string) => Promise<void>;
+  deleteConversation: (conversationId: string) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
+
+/** Parse a server timestamp that may be epoch seconds, epoch milliseconds, or ISO. */
+function parseServerDate(val: number | string): Date {
+  if (typeof val === 'number') {
+    return new Date(val < 1_000_000_000_000 ? val * 1000 : val);
+  }
+  return new Date(val);
+}
+
+function getServerTimestamp(val: number | string): number {
+  const timestamp = parseServerDate(val).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function sortConversations(items: ConversationSummary[]): ConversationSummary[] {
+  return [...items].sort(
+    (a, b) => getServerTimestamp(b.updatedAt) - getServerTimestamp(a.updatedAt),
+  );
+}
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [selectedAgent, setSelectedAgentState] = useState<Agent>(AGENTS[0]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   // Tracks the current server-side conversation ID (null = no conversation yet)
   const conversationIdRef = useRef<string | null>(null);
+  // Prevents an older conversation request from replacing a newer selection.
+  const conversationRequestRef = useRef(0);
   // Tracks the in-flight conversation-creation promise so addAssistantMessage
   // can wait for it before persisting the AI reply.
   const pendingConvRef = useRef<Promise<string | null>>(Promise.resolve(null));
@@ -74,12 +103,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     selectedAgentRef.current = selectedAgent;
   }, [selectedAgent]);
 
-  /** Parse a server timestamp that may be epoch seconds (number) or ISO string */
-  function parseServerDate(val: number | string): Date {
-    if (typeof val === 'number') return new Date(val * 1000);
-    return new Date(val); // ISO-8601 string from JSON serialization of Date
-  }
-
   // ── Clear all state on logout ───────────────────────────────────────────────
   useEffect(() => {
     if (!isAuthenticated && !authLoading) {
@@ -87,6 +110,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       setSelectedAgentState(AGENTS[0]);
       selectedAgentRef.current = AGENTS[0];
       conversationIdRef.current = null;
+      conversationRequestRef.current += 1;
+      setActiveConversationId(null);
+      setConversations([]);
       pendingConvRef.current = Promise.resolve(null);
     }
   }, [isAuthenticated, authLoading]);
@@ -96,22 +122,28 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     if (authLoading || !isAuthenticated) return;
 
     let cancelled = false;
+    const requestId = conversationRequestRef.current + 1;
+    conversationRequestRef.current = requestId;
     setIsSyncing(true);
 
     (async () => {
       try {
-        const { conversations } = await apiGetConversations();
-        if (cancelled || conversations.length === 0) return;
+        const { conversations: serverConversations } = await apiGetConversations();
+        const sortedConversations = sortConversations(serverConversations);
+        if (cancelled || conversationRequestRef.current !== requestId) return;
+        setConversations(sortedConversations);
+        if (sortedConversations.length === 0) return;
 
-        const latest = conversations[0];
+        const latest = sortedConversations[0];
         const { messages: serverMsgs } = await apiGetConversationMessages(latest.id);
-        if (cancelled) return;
+        if (cancelled || conversationRequestRef.current !== requestId) return;
 
         // Restore agent
         const agent = AGENTS.find(a => a.id === latest.agentId) ?? AGENTS[0];
         setSelectedAgentState(agent);
         selectedAgentRef.current = agent;
         conversationIdRef.current = latest.id;
+        setActiveConversationId(latest.id);
         pendingConvRef.current = Promise.resolve(latest.id);
 
         const clientMsgs: Message[] = serverMsgs.map(m => ({
@@ -119,12 +151,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           role: m.role as 'user' | 'assistant',
           content: m.content,
           timestamp: parseServerDate(m.createdAt),
+          attachmentName: m.attachmentName,
         }));
         setMessages(clientMsgs);
       } catch {
         // Ignore — start fresh if server unreachable
       } finally {
-        if (!cancelled) setIsSyncing(false);
+        if (!cancelled && conversationRequestRef.current === requestId) setIsSyncing(false);
       }
     })();
 
@@ -147,6 +180,20 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       const promise = apiCreateConversation(title, selectedAgentRef.current.id)
         .then(({ id }) => {
           conversationIdRef.current = id;
+          setActiveConversationId(id);
+          const now = Math.floor(Date.now() / 1000);
+          setConversations(prev =>
+            sortConversations([
+              ...prev.filter(conversation => conversation.id !== id),
+              {
+                id,
+                title,
+                agentId: selectedAgentRef.current.id,
+                createdAt: now,
+                updatedAt: now,
+              },
+            ]),
+          );
           return id as string | null;
         })
         .catch(() => null as string | null);
@@ -155,12 +202,25 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     [isAuthenticated],
   );
 
+  const touchConversation = useCallback((conversationId: string) => {
+    setConversations(prev =>
+      sortConversations(
+        prev.map(conversation =>
+          conversation.id === conversationId
+            ? { ...conversation, updatedAt: Math.floor(Date.now() / 1000) }
+            : conversation,
+        ),
+      ),
+    );
+  }, []);
+
   // ── Agent selector ──────────────────────────────────────────────────────────
   const setSelectedAgent = useCallback((agent: Agent) => {
     setSelectedAgentState(agent);
     selectedAgentRef.current = agent;
     setMessages([]);
     conversationIdRef.current = null;
+    setActiveConversationId(null);
     pendingConvRef.current = Promise.resolve(null);
   }, []);
 
@@ -182,13 +242,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         const convId = await ensureConversation(content);
         if (convId) {
           await apiAddMessage(convId, 'user', content).catch(() => {});
+          touchConversation(convId);
         }
         return convId;
       })();
 
       return msg;
     },
-    [ensureConversation],
+    [ensureConversation, touchConversation],
   );
 
   const addLoadingMessage = useCallback((): string => {
@@ -224,16 +285,65 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         const convId = await pendingConvRef.current;
         if (convId) {
           await apiAddMessage(convId, 'assistant', content).catch(() => {});
+          touchConversation(convId);
         }
       })();
     },
-    [],
+    [touchConversation],
   );
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     conversationIdRef.current = null;
+    setActiveConversationId(null);
     pendingConvRef.current = Promise.resolve(null);
+  }, []);
+
+  const selectConversation = useCallback(async (conversationId: string) => {
+    const requestId = conversationRequestRef.current + 1;
+    conversationRequestRef.current = requestId;
+    setIsSyncing(true);
+
+    try {
+      const { messages: serverMsgs } = await apiGetConversationMessages(conversationId);
+      if (conversationRequestRef.current !== requestId) return;
+
+      const summary = conversations.find(conversation => conversation.id === conversationId);
+      const agent = AGENTS.find(a => a.id === summary?.agentId) ?? AGENTS[0];
+      setSelectedAgentState(agent);
+      selectedAgentRef.current = agent;
+      conversationIdRef.current = conversationId;
+      setActiveConversationId(conversationId);
+      pendingConvRef.current = Promise.resolve(conversationId);
+      setMessages(
+        serverMsgs.map(m => ({
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          timestamp: parseServerDate(m.createdAt),
+          attachmentName: m.attachmentName,
+        })),
+      );
+    } finally {
+      if (conversationRequestRef.current === requestId) {
+        setIsSyncing(false);
+      }
+    }
+  }, [conversations]);
+
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    await apiDeleteConversation(conversationId);
+    setConversations(prev => prev.filter(conversation => conversation.id !== conversationId));
+
+    if (conversationIdRef.current === conversationId) {
+      conversationRequestRef.current += 1;
+      conversationIdRef.current = null;
+      setActiveConversationId(null);
+      setMessages([]);
+      setSelectedAgentState(AGENTS[0]);
+      selectedAgentRef.current = AGENTS[0];
+      pendingConvRef.current = Promise.resolve(null);
+    }
   }, []);
 
   return (
@@ -247,6 +357,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         addLoadingMessage,
         clearMessages,
         isSyncing,
+        conversations,
+        activeConversationId,
+        selectConversation,
+        deleteConversation,
       }}
     >
       {children}

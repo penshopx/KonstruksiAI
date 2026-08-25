@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,7 +21,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useColors } from '@/hooks/useColors';
 import { useChat, AGENTS, type Message } from '@/context/ChatContext';
-import { apiChat, type ChatAttachment } from '@/lib/api';
+import { apiChat, type ChatAttachment, type ConversationSummary } from '@/lib/api';
 
 // ─── Agent selector chip ─────────────────────────────────────────────────────
 
@@ -280,6 +282,302 @@ const attachStyles = StyleSheet.create({
   },
 });
 
+// ─── Conversation history sheet ───────────────────────────────────────────────
+
+function formatConversationDate(timestamp: number | string): string {
+  const date =
+    typeof timestamp === 'number'
+      ? new Date(timestamp < 1_000_000_000_000 ? timestamp * 1000 : timestamp)
+      : new Date(timestamp);
+
+  if (Number.isNaN(date.getTime())) return 'Baru saja';
+  const today = new Date();
+  const isToday =
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear();
+
+  if (isToday) {
+    return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+}
+
+function HistorySheet({
+  visible,
+  conversations,
+  activeConversationId,
+  selectingId,
+  deletingId,
+  confirmingDeleteId,
+  disabled,
+  onClose,
+  onSelect,
+  onRequestDelete,
+  onCancelDelete,
+  onConfirmDelete,
+}: {
+  visible: boolean;
+  conversations: ConversationSummary[];
+  activeConversationId: string | null;
+  selectingId: string | null;
+  deletingId: string | null;
+  confirmingDeleteId: string | null;
+  disabled: boolean;
+  onClose: () => void;
+  onSelect: (conversationId: string) => void;
+  onRequestDelete: (conversation: ConversationSummary) => void;
+  onCancelDelete: () => void;
+  onConfirmDelete: (conversationId: string) => void;
+}) {
+  const colors = useColors();
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <View style={[historyStyles.backdrop, { backgroundColor: `${colors.foreground}73` }]}>
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+        <View style={[historyStyles.sheet, { backgroundColor: colors.background }]}>
+          <View style={[historyStyles.grabber, { backgroundColor: colors.border }]} />
+          <View style={historyStyles.header}>
+            <View style={historyStyles.headerCopy}>
+              <Text style={[historyStyles.title, { color: colors.foreground }]}>Riwayat Percakapan</Text>
+              <Text style={[historyStyles.subtitle, { color: colors.mutedForeground }]}>
+                {conversations.length === 0
+                  ? 'Belum ada percakapan tersimpan'
+                  : `${conversations.length} percakapan tersimpan`}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={onClose}
+              style={historyStyles.closeButton}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityLabel="Tutup riwayat percakapan"
+            >
+              <Ionicons name="close" size={22} color={colors.mutedForeground} />
+            </TouchableOpacity>
+          </View>
+
+          {conversations.length === 0 ? (
+            <View style={historyStyles.empty}>
+              <View style={[historyStyles.emptyIcon, { backgroundColor: `${colors.primary}18` }]}>
+                <Ionicons name="time-outline" size={28} color={colors.primary} />
+              </View>
+              <Text style={[historyStyles.emptyTitle, { color: colors.foreground }]}>
+                Belum ada riwayat
+              </Text>
+              <Text style={[historyStyles.emptyText, { color: colors.mutedForeground }]}>
+                Percakapan baru akan muncul di sini setelah Anda mengirim pesan.
+              </Text>
+            </View>
+          ) : (
+            <FlatList
+              data={conversations}
+              keyExtractor={conversation => conversation.id}
+              contentContainerStyle={historyStyles.listContent}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => {
+                const isActive = item.id === activeConversationId;
+                const agent = AGENTS.find(candidate => candidate.id === item.agentId) ?? AGENTS[0];
+                const isSelecting = item.id === selectingId;
+                const isDeleting = item.id === deletingId;
+                const isConfirmingDelete = item.id === confirmingDeleteId;
+
+                return (
+                  <View>
+                    <TouchableOpacity
+                      testID={`conversation-${item.id}`}
+                      style={[
+                        historyStyles.row,
+                        {
+                          backgroundColor: isActive ? `${colors.primary}12` : colors.card,
+                          borderColor: isActive ? colors.primary : colors.border,
+                          opacity: disabled && !isSelecting && !isDeleting ? 0.65 : 1,
+                        },
+                      ]}
+                      onPress={() => onSelect(item.id)}
+                      disabled={disabled || isSelecting || isDeleting || isConfirmingDelete}
+                      activeOpacity={0.75}
+                    >
+                      <View style={[historyStyles.agentIcon, { backgroundColor: `${agent.color}20` }]}>
+                        <Ionicons
+                          name={agent.icon as keyof typeof Ionicons.glyphMap}
+                          size={18}
+                          color={agent.color}
+                        />
+                      </View>
+                      <View style={historyStyles.rowCopy}>
+                        <Text
+                          numberOfLines={1}
+                          style={[historyStyles.rowTitle, { color: colors.foreground }]}
+                        >
+                          {item.title || 'Percakapan Baru'}
+                        </Text>
+                        <Text
+                          numberOfLines={1}
+                          style={[historyStyles.rowMeta, { color: colors.mutedForeground }]}
+                        >
+                          {agent.name} · {formatConversationDate(item.updatedAt)}
+                        </Text>
+                      </View>
+                      {isSelecting || isDeleting ? (
+                        <ActivityIndicator size="small" color={colors.primary} />
+                      ) : (
+                        <>
+                          {isActive && (
+                            <Ionicons name="checkmark-circle" size={19} color={colors.primary} />
+                          )}
+                          <TouchableOpacity
+                            testID={`delete-conversation-${item.id}`}
+                            onPress={event => {
+                              event.stopPropagation();
+                              onRequestDelete(item);
+                            }}
+                            disabled={disabled}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            accessibilityLabel={`Hapus ${item.title || 'percakapan'}`}
+                            style={historyStyles.deleteButton}
+                          >
+                            <Ionicons name="trash-outline" size={18} color={colors.mutedForeground} />
+                          </TouchableOpacity>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                    {isConfirmingDelete && (
+                      <View
+                        style={[
+                          historyStyles.confirmation,
+                          { backgroundColor: colors.secondary, borderColor: colors.border },
+                        ]}
+                      >
+                        <Text style={[historyStyles.confirmationText, { color: colors.foreground }]}>
+                          Hapus percakapan ini?
+                        </Text>
+                        <View style={historyStyles.confirmationActions}>
+                          <TouchableOpacity
+                            onPress={onCancelDelete}
+                            style={historyStyles.confirmationAction}
+                            accessibilityLabel="Batal menghapus percakapan"
+                          >
+                            <Text style={[historyStyles.cancelText, { color: colors.mutedForeground }]}>Batal</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            testID={`confirm-delete-conversation-${item.id}`}
+                            onPress={() => onConfirmDelete(item.id)}
+                            style={historyStyles.confirmationAction}
+                            accessibilityLabel="Konfirmasi hapus percakapan"
+                          >
+                            <Text style={[historyStyles.deleteText, { color: colors.destructive }]}>Hapus</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                );
+              }}
+            />
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const historyStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    maxHeight: '82%',
+    minHeight: 260,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 10,
+    paddingHorizontal: 16,
+  },
+  grabber: {
+    width: 38,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 18,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingBottom: 14,
+  },
+  headerCopy: { flex: 1, paddingRight: 12 },
+  title: { fontSize: 19, fontFamily: 'Inter_600SemiBold', fontWeight: '600' },
+  subtitle: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 4 },
+  closeButton: { padding: 2 },
+  listContent: { paddingBottom: 24 },
+  row: {
+    minHeight: 68,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  agentIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowCopy: { flex: 1, minWidth: 0 },
+  rowTitle: { fontSize: 14, fontFamily: 'Inter_500Medium', fontWeight: '500' },
+  rowMeta: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 4 },
+  deleteButton: { padding: 2, marginLeft: 2 },
+  confirmation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: -2,
+    marginBottom: 8,
+  },
+  confirmationText: { fontSize: 12, fontFamily: 'Inter_500Medium', fontWeight: '500' },
+  confirmationActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  confirmationAction: { paddingVertical: 3 },
+  cancelText: { fontSize: 12, fontFamily: 'Inter_500Medium', fontWeight: '500' },
+  deleteText: { fontSize: 12, fontFamily: 'Inter_600SemiBold', fontWeight: '600' },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 },
+  emptyIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  emptyTitle: { fontSize: 16, fontFamily: 'Inter_600SemiBold', fontWeight: '600' },
+  emptyText: {
+    maxWidth: 280,
+    fontSize: 13,
+    lineHeight: 19,
+    fontFamily: 'Inter_400Regular',
+    textAlign: 'center',
+    marginTop: 6,
+  },
+});
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 const ALLOWED_MIME_TYPES = [
@@ -295,12 +593,29 @@ export default function ChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ initialPrompt?: string }>();
-  const { selectedAgent, setSelectedAgent, messages, addUserMessage, addLoadingMessage, addAssistantMessage, clearMessages, isSyncing } = useChat();
+  const {
+    selectedAgent,
+    setSelectedAgent,
+    messages,
+    addUserMessage,
+    addLoadingMessage,
+    addAssistantMessage,
+    clearMessages,
+    isSyncing,
+    conversations,
+    activeConversationId,
+    selectConversation,
+    deleteConversation,
+  } = useChat();
 
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<ChatAttachment | null>(null);
   const [pickingDoc, setPickingDoc] = useState(false);
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [selectingConversationId, setSelectingConversationId] = useState<string | null>(null);
+  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
+  const [confirmingDeleteConversationId, setConfirmingDeleteConversationId] = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -377,6 +692,36 @@ export default function ChatScreen() {
 
   const handleSend = () => sendMessage(input);
 
+  const handleSelectConversation = useCallback(async (conversationId: string) => {
+    if (sending || isSyncing || selectingConversationId) return;
+    setSelectingConversationId(conversationId);
+    setInput('');
+    setPendingAttachment(null);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      await selectConversation(conversationId);
+      setHistoryVisible(false);
+    } catch {
+      Alert.alert('Gagal memuat', 'Percakapan tidak dapat dimuat. Coba lagi.');
+    } finally {
+      setSelectingConversationId(null);
+    }
+  }, [sending, isSyncing, selectingConversationId, selectConversation]);
+
+  const handleConfirmDeleteConversation = useCallback(async (conversationId: string) => {
+    setDeletingConversationId(conversationId);
+    try {
+      await deleteConversation(conversationId);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setConfirmingDeleteConversationId(null);
+    } catch {
+      Alert.alert('Gagal menghapus', 'Percakapan tidak dapat dihapus. Coba lagi.');
+    } finally {
+      setDeletingConversationId(null);
+    }
+  }, [deleteConversation]);
+
   const s = styles(colors, insets);
 
   // Inverted list — messages are shown newest at bottom
@@ -386,6 +731,39 @@ export default function ChatScreen() {
     <View style={s.root}>
       {/* Agent selector */}
       <View style={[s.agentBar, { paddingTop: Platform.OS === 'web' ? 67 : insets.top }]}>
+        <View style={s.toolbar}>
+          <View style={s.toolbarCopy}>
+            <Text style={[s.screenTitle, { color: colors.foreground }]}>Chat</Text>
+            <Text style={[s.screenSubtitle, { color: colors.mutedForeground }]}>
+              Pilih agen untuk mulai berdiskusi
+            </Text>
+          </View>
+          <TouchableOpacity
+            testID="conversation-history-button"
+            style={[
+              s.historyButton,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                opacity: sending || isSyncing ? 0.55 : 1,
+              },
+            ]}
+            onPress={() => setHistoryVisible(true)}
+            disabled={sending || isSyncing}
+            activeOpacity={0.75}
+            accessibilityLabel="Buka riwayat percakapan"
+          >
+            <Ionicons name="time-outline" size={17} color={colors.primary} />
+            <Text style={[s.historyButtonText, { color: colors.foreground }]}>Riwayat</Text>
+            {conversations.length > 0 && (
+              <View style={[s.historyCount, { backgroundColor: `${colors.primary}20` }]}>
+                <Text style={[s.historyCountText, { color: colors.primary }]}>
+                  {conversations.length > 99 ? '99+' : conversations.length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
         <FlatList
           horizontal
           data={AGENTS}
@@ -487,6 +865,23 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+      <HistorySheet
+        visible={historyVisible}
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        selectingId={selectingConversationId}
+        deletingId={deletingConversationId}
+        confirmingDeleteId={confirmingDeleteConversationId}
+        disabled={sending || isSyncing || !!selectingConversationId || !!deletingConversationId}
+        onClose={() => {
+          setHistoryVisible(false);
+          setConfirmingDeleteConversationId(null);
+        }}
+        onSelect={handleSelectConversation}
+        onRequestDelete={conversation => setConfirmingDeleteConversationId(conversation.id)}
+        onCancelDelete={() => setConfirmingDeleteConversationId(null)}
+        onConfirmDelete={handleConfirmDeleteConversation}
+      />
     </View>
   );
 }
@@ -499,6 +894,37 @@ const styles = (colors: ReturnType<typeof useColors>, insets: ReturnType<typeof 
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
     },
+    toolbar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      paddingBottom: 2,
+    },
+    toolbarCopy: { flex: 1 },
+    screenTitle: { fontSize: 20, fontFamily: 'Inter_600SemiBold', fontWeight: '600' },
+    screenSubtitle: { fontSize: 11, fontFamily: 'Inter_400Regular', marginTop: 3 },
+    historyButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      borderWidth: 1,
+      borderRadius: 18,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    historyButtonText: { fontSize: 12, fontFamily: 'Inter_500Medium', fontWeight: '500' },
+    historyCount: {
+      minWidth: 18,
+      height: 18,
+      borderRadius: 9,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 4,
+    },
+    historyCountText: { fontSize: 10, fontFamily: 'Inter_600SemiBold', fontWeight: '600' },
     agentBarInner: {
       paddingHorizontal: 16,
       paddingVertical: 10,
