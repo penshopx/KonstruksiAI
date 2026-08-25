@@ -9,6 +9,7 @@ import profileRouter from "./profile";
 import chatRouter from "./chat";
 import uploadRouter from "./upload";
 import assessmentRouter from "./assessment";
+import radarRouter from "./radar";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(profileRouter);
 router.use(chatRouter);
 router.use(uploadRouter);
 router.use(assessmentRouter);
+router.use(radarRouter);
 
 export default router;

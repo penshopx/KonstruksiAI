@@ -84,6 +84,12 @@ export default function TenderPage() {
               Panduan lengkap mengikuti tender pemerintah dan swasta — dari registrasi LPSE, 
               penyusunan dokumen penawaran, hingga strategi memenangkan tender konstruksi.
             </p>
+            <Link
+              href="/radar-konstruksi"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 transition-colors hover:text-cyan-200"
+            >
+              Lihat update tender terbaru di Radar Konstruksi <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </div>
 

@@ -45,3 +45,21 @@ export const messages = sqliteTable("messages", {
 
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
+
+export const radarArticles = sqliteTable("radar_articles", {
+  id: text("id").primaryKey(),
+  fingerprint: text("fingerprint").notNull().unique(),
+  title: text("title").notNull(),
+  summary: text("summary").notNull(),
+  category: text("category").notNull(),
+  sourceName: text("source_name").notNull(),
+  sourceUrl: text("source_url").notNull(),
+  articleUrl: text("article_url").notNull(),
+  publishedAt: integer("published_at", { mode: "timestamp" }),
+  fetchedAt: integer("fetched_at", { mode: "timestamp" }).notNull(),
+  importance: text("importance").notNull().default("normal"),
+  status: text("status").notNull().default("published"),
+});
+
+export type RadarArticle = typeof radarArticles.$inferSelect;
+export type NewRadarArticle = typeof radarArticles.$inferInsert;

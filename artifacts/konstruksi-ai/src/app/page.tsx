@@ -505,6 +505,8 @@ const learningNav = [
 ];
 
 const dailyInfoNav = [
+  { href: "/radar-konstruksi", label: "Update Terbaru", icon: Radar, tone: "text-cyan-300" },
+  { href: "/tender", label: "Tender & Pengadaan", icon: ClipboardCheck, tone: "text-orange-300" },
   { href: "/tender-intelligence", label: "Tender Intelligence", icon: Radar, tone: "text-emerald-300" },
   { href: "/tender-eligibility", label: "Tender Eligibility", icon: ClipboardCheck, tone: "text-cyan-300" },
   { href: "/evidence-mapping", label: "Evidence Mapping", icon: Link2, tone: "text-purple-300" },
@@ -577,10 +579,6 @@ export default function Home() {
 
           <div className="border-t border-white/[0.06]">
             <nav className="nav-scrollbar flex items-center gap-1 overflow-x-auto py-2" aria-label="Navigasi platform">
-              <span className="mr-1 flex shrink-0 items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
-                <BookOpen className="h-3 w-3 text-violet-400" />
-                LMS Pembelajaran
-              </span>
               <Link
                 href="/chat"
                 className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-orange-500/10 px-3 py-2 text-xs font-semibold text-orange-300 transition-colors hover:bg-orange-500/20 hover:text-orange-200 sm:hidden"
@@ -592,7 +590,7 @@ export default function Home() {
               <span className="mx-2 h-5 w-px shrink-0 bg-white/[0.08]" />
               <span className="mr-1 flex shrink-0 items-center gap-1.5 px-2 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-500">
                 <Radar className="h-3 w-3 text-cyan-400" />
-                Info Harian
+                Radar Konstruksi
               </span>
               {dailyInfoNav.map((item) => <HeaderNavItem key={item.href} item={item} />)}
               <span className="mx-2 h-5 w-px shrink-0 bg-white/[0.08]" />

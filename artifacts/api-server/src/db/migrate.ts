@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { users, conversations, messages } from "./schema";
+import { users, conversations, messages, radarArticles } from "./schema";
 import { sql } from "drizzle-orm";
 
 export function initializeDatabase() {
@@ -32,6 +32,22 @@ export function initializeDatabase() {
       attachment_type TEXT,
       created_at INTEGER NOT NULL
     )`);
+
+    db.run(sql`CREATE TABLE IF NOT EXISTS radar_articles (
+      id TEXT PRIMARY KEY,
+      fingerprint TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      category TEXT NOT NULL,
+      source_name TEXT NOT NULL,
+      source_url TEXT NOT NULL,
+      article_url TEXT NOT NULL,
+      published_at INTEGER,
+      fetched_at INTEGER NOT NULL,
+      importance TEXT NOT NULL DEFAULT 'normal',
+      status TEXT NOT NULL DEFAULT 'published'
+    )`);
+    db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS radar_articles_fingerprint_unique ON radar_articles(fingerprint)`);
 
     console.log("[DB] Database initialized");
   } catch (err) {

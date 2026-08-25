@@ -38,6 +38,7 @@ import TenderEligibilityPage from "@/app/tender-eligibility/page";
 import TenderIntelligencePage from "@/app/tender-intelligence/page";
 import WorkforceAssignmentPage from "@/app/workforce-assignment/page";
 import AgentPage from "@/app/agent/[businessId]/[columnId]/page";
+import RadarKonstruksiPage from "@/app/radar-konstruksi/page";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ function Router() {
       <Route path="/skk-readiness" component={SkkReadinessPage} />
       <Route path="/tender-eligibility" component={TenderEligibilityPage} />
       <Route path="/tender-intelligence" component={TenderIntelligencePage} />
+      <Route path="/radar-konstruksi" component={RadarKonstruksiPage} />
       <Route path="/workforce-assignment" component={WorkforceAssignmentPage} />
       <Route path="/agent/:businessId/:columnId" component={AgentPage} />
       <Route component={NotFound} />
