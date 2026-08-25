@@ -56,8 +56,16 @@
     "speakerNotes": "Treat these as illustrative testimonials, bukan klaim customer metrics yang sudah diaudit.\n\n- Sorot hasil yang mudah dipahami: penyusunan RAB yang biasanya dua hari menjadi hitungan jam.\n- Tekankan use case keselamatan: K3 dan JSA membantu persiapan dokumen proyek PLTS skala besar.\n- Tunjukkan relevansi lokal melalui feedback tentang tender LPSE dan strategi penawaran.\n- Anticipate: jika diminta bukti lebih lanjut, tawarkan validasi terukur bersama design partners dan jangan overclaim dari testimoni ilustratif.\n- Transition: Agar manfaat ini bisa tumbuh, platform membutuhkan fondasi teknologi yang siap dipakai sekarang dan dikembangkan berikutnya."
   },
   {
-    "id": "b8c9d0e1-f2a3-4567-bcde-678901234508",
+    "id": "e1f2a3b4-c5d6-7890-efab-901234567811",
     "position": 8,
+    "filepath": "src/pages/slides/Slide08Traction.tsx",
+    "title": "Sinyal Awal di Pasar",
+    "description": "Early traction signals — active users, project cadence, measurable impact, and initial use cases",
+    "speakerNotes": "Gunakan slide ini sebagai placeholder traction, bukan bukti terverifikasi.\n\n- Angka 5.000+, 50+, dan +300% berasal dari materi produk internal dan harus diverifikasi bersama sumber, definisi, dan periode pengukuran.\n- Nama organisasi adalah contoh use case dalam materi, bukan customer reference yang sudah disetujui.\n- Sebelum presentasi eksternal, tambahkan baseline cohort atau time series, retensi, dan dokumentasi sumber.\n- Transition: Setelah traction tervalidasi, kita masuk ke fondasi teknologi yang dapat menopang skala."
+  },
+  {
+    "id": "b8c9d0e1-f2a3-4567-bcde-678901234508",
+    "position": 9,
     "filepath": "src/pages/slides/Slide08Tech.tsx",
     "title": "Platform & Teknologi",
     "description": "Technical architecture — web app, mobile, AI engine, and security stack",
@@ -65,7 +73,7 @@
   },
   {
     "id": "c9d0e1f2-a3b4-5678-cdef-789012345609",
-    "position": 9,
+    "position": 10,
     "filepath": "src/pages/slides/Slide09Pricing.tsx",
     "title": "Paket & Harga",
     "description": "Three-tier pricing: Gratis, Pro (coming soon), and Enterprise",
@@ -73,7 +81,7 @@
   },
   {
     "id": "d0e1f2a3-b4c5-6789-defa-890123456710",
-    "position": 10,
+    "position": 11,
     "filepath": "src/pages/slides/Slide10CTA.tsx",
     "title": "Mari Membangun Bersama",
     "description": "Closing slide with call to action and contact details",

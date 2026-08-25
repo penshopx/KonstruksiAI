@@ -76,7 +76,7 @@ export default function Slide08Tech() {
             color: "rgba(245,242,237,0.5)",
           }}
         >
-          07 / Teknologi
+          08 / Teknologi
         </div>
       </div>
 

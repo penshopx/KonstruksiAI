@@ -44,7 +44,7 @@ export default function Slide09Pricing() {
             color: "#8C8C8C",
           }}
         >
-          08 / Harga
+          09 / Harga
         </div>
       </div>
 
