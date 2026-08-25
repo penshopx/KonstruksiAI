@@ -526,11 +526,12 @@ function BrandMark() {
     <div className="relative flex h-11 w-11 shrink-0 items-center justify-center">
       <div className="absolute h-7 w-7 rounded-full bg-orange-400/20 blur-xl" />
       <svg viewBox="0 0 48 48" aria-hidden="true" className="relative h-10 w-10 drop-shadow-[0_0_8px_rgba(249,115,22,0.45)]">
-        {/* K formed from a structural column and diagonal beam */}
-        <rect x="8" y="7" width="7" height="33" rx="1" fill="#f97316" />
-        <path d="M15 24 30 8h10L15 34Z" fill="white" />
-        {/* Building facade that implies the A / base of the monogram */}
-        <path d="m19 34 10-11 11 10v7H19Z" fill="#f97316" />
+        {/* Main column and connected roof: a complete architectural silhouette */}
+        <rect x="8" y="8" width="7" height="32" rx="1" fill="#f97316" />
+        <path d="M15 25 29 11l14 13-4 4-10-9-10 10Z" fill="white" />
+        {/* Building body and its supporting posts */}
+        <path d="M19 31 29 21l11 10v9H19Z" fill="#f97316" />
+        <path d="M21 29v11M37 29v11M19 40h21" fill="none" stroke="white" strokeWidth="2.8" strokeLinecap="round" />
         {/* Four dark windows keep the silhouette architectural */}
         <rect x="26" y="29" width="3" height="3.5" rx=".4" fill="#172033" />
         <rect x="30.5" y="29" width="3" height="3.5" rx=".4" fill="#172033" />
