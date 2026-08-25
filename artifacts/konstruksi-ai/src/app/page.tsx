@@ -526,17 +526,16 @@ function BrandMark() {
     <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-orange-300 via-orange-500 to-amber-600 shadow-lg shadow-orange-500/25 ring-1 ring-orange-200/30">
       <div className="absolute inset-1 rounded-[0.8rem] border border-white/20" />
       <svg viewBox="0 0 48 48" aria-hidden="true" className="relative h-8 w-8">
-        {/* Structural K brace */}
-        <path d="M9 39V9M9 24 29 9M9 24l20 15" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Architectural A-frame, creating a subtle KA monogram */}
-        <path d="m27 39 8-30 8 30M30 28h10" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Dark joints and foundation beam */}
-        <path d="M8 40h36M9 24h8" fill="none" stroke="#172033" strokeWidth="2.2" strokeLinecap="round" />
-        <circle cx="9" cy="9" r="2.3" fill="#172033" />
-        <circle cx="9" cy="24" r="2.3" fill="#172033" />
-        <circle cx="9" cy="39" r="2.3" fill="#172033" />
-        <circle cx="35" cy="9" r="2.1" fill="#172033" />
-        <circle cx="35" cy="39" r="2.1" fill="#172033" />
+        {/* K formed from a structural column and diagonal beam */}
+        <rect x="9" y="8" width="7" height="32" rx="1" fill="white" />
+        <path d="M16 24 30 10h10L16 33Z" fill="white" />
+        {/* Building facade that implies the A / base of the monogram */}
+        <path d="m19 33 10-10 11 10v7H19Z" fill="#172033" />
+        {/* Four small windows keep the silhouette architectural */}
+        <rect x="26" y="29" width="3" height="3.5" rx=".4" fill="white" />
+        <rect x="30.5" y="29" width="3" height="3.5" rx=".4" fill="white" />
+        <rect x="26" y="34" width="3" height="3.5" rx=".4" fill="white" />
+        <rect x="30.5" y="34" width="3" height="3.5" rx=".4" fill="white" />
       </svg>
     </div>
   );
