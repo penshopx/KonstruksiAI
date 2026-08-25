@@ -12,3 +12,45 @@ id = "DkK9TUQtxoy_YlD_zVviY"
 uri = "file://artifacts/konstruksi-promo-video/public/audio/bg_music_2.mp3"
 type = "audio"
 title = "background music"
+
+[[outputs]]
+id = "xQNw0MVrhdmQzMIs2AW6c"
+uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene5.mp3"
+type = "audio"
+title = "voiceover scene5"
+description = "Text-to-speech audio: Bangun lebih cerdas bersama KonstruksiAI."
+
+[[outputs]]
+id = "M5JJhkuQOgs_PbkThHNlZ"
+uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene1.mp3"
+type = "audio"
+title = "voiceover scene1"
+description = "Text-to-speech audio: Proyek terlambat, anggaran membengkak — masalah nyata."
+
+[[outputs]]
+id = "Mz3FKWmIuQ8qxGsnPKt_s"
+uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene3.mp3"
+type = "audio"
+title = "voiceover scene3"
+description = "Text-to-speech audio: Multi-agen, sertifikasi, dan analisis tender."
+
+[[outputs]]
+id = "ZcEWBHapz7bkJgnb5zlk3"
+uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene4.mp3"
+type = "audio"
+title = "voiceover scene4"
+description = "Text-to-speech audio: Unggah dokumen, dapatkan analisis instan."
+
+[[outputs]]
+id = "dV4iUJiWrqMWua7oa5Q_-"
+uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene0.mp3"
+type = "audio"
+title = "voiceover scene0"
+description = "Text-to-speech audio: KonstruksiAI — asisten AI proyek konstruksi."
+
+[[outputs]]
+id = "qE00WdgaTmDcGAEEfMnyh"
+uri = "file://artifacts/konstruksi-promo-video/public/audio/vo_scene2.mp3"
+type = "audio"
+title = "voiceover scene2"
+description = "Text-to-speech audio: Enam domain keahlian, satu platform terintegrasi."
