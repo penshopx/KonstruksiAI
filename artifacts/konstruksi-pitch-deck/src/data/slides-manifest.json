@@ -5,7 +5,7 @@
     "filepath": "src/pages/slides/Slide01Title.tsx",
     "title": "KonstruksiAI",
     "description": "Cover slide — platform overview and tagline",
-    "speakerNotes": ""
+    "speakerNotes": "Opening hook: Di industri yang dibangun dari dokumen, satu detail yang terlewat bisa menunda proyek.\n\n- Tekankan positioning: KonstruksiAI adalah asisten AI untuk industri keteknikan Indonesia, bukan AI generik.\n- Sebut cakupan utama: tender, sertifikasi, dan kebutuhan konstruksi, energi, serta migas.\n- Anticipate: jika ditanya siapa pengguna awal, arahkan ke para profesional konstruksi, energi, dan pertambangan.\n- Transition: Mari mulai dari krisis operasional yang membuat kebutuhan ini mendesak."
   },
   {
     "id": "b2c3d4e5-f6a7-8901-bcde-f12345678902",
@@ -13,7 +13,7 @@
     "filepath": "src/pages/slides/Slide02Problem.tsx",
     "title": "Krisis Tersembunyi di Jantung Industri",
     "description": "Four key statistics illustrating the crisis in Indonesia's construction sector",
-    "speakerNotes": ""
+    "speakerNotes": "Frame the pain with the four numbers di layar; jangan membaca semuanya terlalu cepat.\n\n- Cite 87% proyek tertunda karena proses perijinan yang kompleks.\n- Tekankan potensi kerugian tahunan Rp1,2T dari tender gagal dan dokumen tidak lengkap.\n- Lengkapi gambaran dengan 65% kontraktor gulung tikar dalam tiga tahun pertama dan 89% kekurangan tenaga ahli.\n- Anticipate: jika angka dipertanyakan, jelaskan bahwa angka ini menunjukkan skala pain point dan selalu perlu dibaca bersama konteks sumbernya.\n- Transition: Masalahnya bukan kekurangan data, melainkan tidak adanya panduan yang memahami konteks Indonesia."
   },
   {
     "id": "c3d4e5f6-a7b8-9012-cdef-123456789003",
@@ -21,7 +21,7 @@
     "filepath": "src/pages/slides/Slide03Solution.tsx",
     "title": "Solusinya: AI yang Memahami Konteks Anda",
     "description": "The KonstruksiAI solution — multi-agent AI for Indonesia's engineering sectors",
-    "speakerNotes": ""
+    "speakerNotes": "Hook: Yang dibutuhkan engineer bukan jawaban AI yang umum, tetapi arahan yang berbicara dalam bahasa proyek mereka.\n\n- Tekankan bahwa platform memahami PUPR, LPSE, dan ESDM serta regulasi yang relevan.\n- Jelaskan model multi-agent: 8 agen spesialis dan 126 titik koneksi untuk kebutuhan yang berbeda.\n- Key benefit: bantuan tersedia 24/7 di web maupun mobile, tanpa antrean konsultan.\n- Anticipate: jika ditanya apa bedanya dari chatbot generik, jawab bahwa konteks regulasi dan alur kerja Indonesia menjadi fondasi jawabannya.\n- Transition: Berikut delapan spesialis yang mengubah kebutuhan luas itu menjadi bantuan yang konkret."
   },
   {
     "id": "d4e5f6a7-b8c9-0123-defa-234567890104",
@@ -29,7 +29,7 @@
     "filepath": "src/pages/slides/Slide04Agents.tsx",
     "title": "8 Agen Spesialis, Satu Platform",
     "description": "Overview of all eight specialist AI agents on the platform",
-    "speakerNotes": ""
+    "speakerNotes": "Walk through the platform secara cepat: dari pekerjaan komersial sampai pekerjaan teknis.\n\n- Sorot Tender & Pengadaan, Manajemen Bisnis, serta Perijinan & Sertifikasi sebagai pintu masuk paling dekat dengan pain point.\n- Lanjutkan ke Teknik Konstruksi, Energi Terbarukan, Migas & Pertambangan, lalu dua kemampuan intelligence dan solver.\n- Tekankan breadth tanpa kehilangan konteks: pengguna tetap mengakses satu platform, sementara keahliannya terspesialisasi.\n- Anticipate: jika delapan agen terasa kompleks, jelaskan bahwa pengguna cukup memulai dari pertanyaan atau fungsi yang sedang dikerjakan.\n- Transition: Kekuatan platform ini tidak hanya pada jumlah agen, tetapi pada cara semuanya terhubung."
   },
   {
     "id": "e5f6a7b8-c9d0-1234-efab-345678901205",
@@ -37,7 +37,7 @@
     "filepath": "src/pages/slides/Slide05Matrix.tsx",
     "title": "Matriks Ruang Lingkup: 126 Titik Koneksi",
     "description": "The 21x6 scope matrix — 126 AI connection points across three industry verticals",
-    "speakerNotes": ""
+    "speakerNotes": "Use the 21x6 grid as the product story, bukan sekadar angka besar.\n\n- Jelaskan 21 fungsi teknis yang dipertemukan dengan 6 domain bisnis: total 126 titik koneksi AI.\n- Tekankan tiga sektor vertikal: Konstruksi, Energi Terbarukan, serta Migas & Tambang.\n- Key point: setiap koneksi membawa konteks fungsi dan domain, sehingga bantuan lebih relevan daripada satu ruang chat umum.\n- Anticipate: jika ditanya soal defensibility, tunjukkan bahwa matriks ini adalah struktur pengetahuan dan alur kerja yang dirancang untuk industri lokal.\n- Transition: Struktur yang dalam ini membuka pasar yang luas dan jelas di Indonesia."
   },
   {
     "id": "f6a7b8c9-d0e1-2345-fabc-456789012306",
@@ -45,7 +45,7 @@
     "filepath": "src/pages/slides/Slide06Market.tsx",
     "title": "Siapa yang Kami Layani",
     "description": "Target market segments and total addressable market size in Indonesia",
-    "speakerNotes": ""
+    "speakerNotes": "Hook: Pain yang sama muncul di berbagai titik rantai nilai, dari kontraktor sampai profesional individu.\n\n- Sebut lima segmen: kontraktor dan subkontraktor, konsultan engineering, EPC migas dan tambang, developer atau owner proyek, serta profesional individu.\n- Cite 180 ribu lebih perusahaan konstruksi terdaftar menurut LPJK 2024.\n- Cite 800 ribu lebih tenaga ahli bersertifikat sebagai indikasi besarnya basis pengguna.\n- Anticipate: jika pasar terlihat terlalu luas, jelaskan bahwa beachhead dapat dimulai dari kontraktor dan subkontraktor dengan kebutuhan tender, RAB, serta kepatuhan yang jelas.\n- Transition: Kita tidak hanya melihat market size; mari lihat respons dari orang yang bekerja di dalamnya."
   },
   {
     "id": "a7b8c9d0-e1f2-3456-abcd-567890123407",
@@ -53,7 +53,7 @@
     "filepath": "src/pages/slides/Slide07Testimonials.tsx",
     "title": "Apa Kata Mereka",
     "description": "Three testimonials from Indonesian construction and engineering professionals",
-    "speakerNotes": ""
+    "speakerNotes": "Treat these as illustrative testimonials, bukan klaim customer metrics yang sudah diaudit.\n\n- Sorot hasil yang mudah dipahami: penyusunan RAB yang biasanya dua hari menjadi hitungan jam.\n- Tekankan use case keselamatan: K3 dan JSA membantu persiapan dokumen proyek PLTS skala besar.\n- Tunjukkan relevansi lokal melalui feedback tentang tender LPSE dan strategi penawaran.\n- Anticipate: jika diminta bukti lebih lanjut, tawarkan validasi terukur bersama design partners dan jangan overclaim dari testimoni ilustratif.\n- Transition: Agar manfaat ini bisa tumbuh, platform membutuhkan fondasi teknologi yang siap dipakai sekarang dan dikembangkan berikutnya."
   },
   {
     "id": "b8c9d0e1-f2a3-4567-bcde-678901234508",
@@ -61,7 +61,7 @@
     "filepath": "src/pages/slides/Slide08Tech.tsx",
     "title": "Platform & Teknologi",
     "description": "Technical architecture — web app, mobile, AI engine, and security stack",
-    "speakerNotes": ""
+    "speakerNotes": "Position the architecture clearly: what is available now versus what is on the roadmap.\n\n- Tekankan aplikasi web dan mobile yang sudah berjalan, dengan multi-agent AI berbasis pengetahuan konstruksi Indonesia.\n- Sebut kemampuan saat ini: chat lokal, riwayat percakapan, dan ekspor Markdown.\n- Bedakan roadmap secara eksplisit: koneksi LLM real-time, analisis PDF, cloud sync, data residency Indonesia, SSO, dan custom API belum dipresentasikan sebagai fitur saat ini.\n- Anticipate: jika investor bertanya soal kebutuhan enterprise, jawab bahwa roadmap tersebut menjadi area pengembangan bersama mitra strategis.\n- Transition: Dengan fondasi ini, kami bisa memberi jalur masuk gratis sekaligus opsi komersial untuk skala yang lebih besar."
   },
   {
     "id": "c9d0e1f2-a3b4-5678-cdef-789012345609",
@@ -69,7 +69,7 @@
     "filepath": "src/pages/slides/Slide09Pricing.tsx",
     "title": "Paket & Harga",
     "description": "Three-tier pricing: Gratis, Pro (coming soon), and Enterprise",
-    "speakerNotes": ""
+    "speakerNotes": "Start with the adoption story: siapa pun bisa mencoba tanpa kartu kredit.\n\n- Tekankan paket Gratis: chat AI, 8 agen, matriks 126 koneksi, riwayat lokal, readiness tools, dan ekspor Markdown.\n- Jelaskan Pro sebagai waitlist dengan harga TBA; jangan memberi angka yang belum ditetapkan.\n- Untuk kebutuhan enterprise, sorot deployment privat atau on-premise, API, role-based access, SLA, dan knowledge base kustom.\n- Anticipate: jika ditanya monetisasi, jelaskan bahwa free tier menurunkan hambatan mencoba, sementara Pro dan Enterprise melayani kebutuhan sinkronisasi, dokumen, kontrol, dan support.\n- Transition: Next step-nya sederhana: mulai gratis, daftar Pro waitlist, atau bicara sebagai mitra enterprise."
   },
   {
     "id": "d0e1f2a3-b4c5-6789-defa-890123456710",
@@ -77,6 +77,6 @@
     "filepath": "src/pages/slides/Slide10CTA.tsx",
     "title": "Mari Membangun Bersama",
     "description": "Closing slide with call to action and contact details",
-    "speakerNotes": ""
+    "speakerNotes": "Close with a specific invitation, bukan sekadar ucapan terima kasih.\n\n- Ulangi proposisi dalam satu napas: 3 sektor industri, 26 sub-bidang, dan 126 koneksi AI yang dirancang untuk Indonesia.\n- Arahkan audiens ke tiga pilihan: coba akses gratis, daftar Pro waitlist, atau bahas early access sebagai mitra strategis.\n- Anticipate: jika ditanya komitmen berikutnya, tawarkan demo singkat dan discovery conversation untuk memetakan satu use case nyata.\n- Beri ruang untuk Q&A, lalu kembali ke kebutuhan audiens: tender, perijinan, keselamatan, atau kalkulasi teknis.\n- Transition: Tutup dengan ajakan membangun workflow keteknikan Indonesia yang lebih cepat dan lebih siap."
   }
 ]
