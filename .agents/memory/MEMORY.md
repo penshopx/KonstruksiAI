@@ -7,3 +7,4 @@
 - [Radar chat handoff context](radar-handoff-context.md) — preserve official Radar context across every Chat send path, including attachments.
 - [Stale workflow ports](workflow-stale-port.md) — a failed supervisor can leave an old artifact child process serving the port.
 - [Radar official channels](radar-official-channels.md) — use the verified official alternate feeds when direct agency sites deny automated access.
+- [Pinned URL-fetch DNS](pinned-url-fetch-dns.md) — Node may request DNS lookup results with `all: true`; return only the validated address set.

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getSessionFromRequest } from "../lib/auth";
+import { fetchUrlContent, UrlFetchError } from "../lib/url-fetch";
 
 const router = Router();
 
@@ -15,18 +16,6 @@ const ALLOWED_TYPES = [
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
-
-function isPrivateHost(hostname: string) {
-  const normalized = hostname.toLowerCase();
-  return (
-    normalized === "localhost" ||
-    normalized === "127.0.0.1" ||
-    normalized === "::1" ||
-    normalized.startsWith("10.") ||
-    normalized.startsWith("192.168.") ||
-    /^172\.(1[6-9]|2\d|3[0-1])\./.test(normalized)
-  );
-}
 
 router.post("/upload", async (req, res) => {
   const session = await getSessionFromRequest(req);
@@ -112,22 +101,8 @@ router.post("/fetch-url", async (req, res) => {
       return;
     }
 
-    if (isPrivateHost(parsed.hostname)) {
-      res.status(400).json({ error: "Host tujuan tidak diizinkan" });
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(parsed.toString(), {
-      headers: { "User-Agent": "Mozilla/5.0 KonstruksiAI/1.0" },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    const text = await response.text();
+    const fetched = await fetchUrlContent(parsed);
+    const text = fetched.content;
     const plainText = text
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
@@ -136,8 +111,12 @@ router.post("/fetch-url", async (req, res) => {
       .trim()
       .slice(0, 50000);
 
-    res.json({ content: plainText, url: parsed.toString() });
+    res.json({ content: plainText, url: fetched.url });
   } catch (err) {
+    if (err instanceof UrlFetchError) {
+      res.status(err.statusCode).json({ error: err.message });
+      return;
+    }
     req.log.error({ err }, "POST /fetch-url error");
     res.status(500).json({ error: "Gagal mengambil konten dari URL" });
   }

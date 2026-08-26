@@ -8,7 +8,8 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:radar": "pnpm exec esbuild src/lib/radar.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --outfile=dist/radar.test.mjs && node --test dist/radar.test.mjs"
+    "test:radar": "pnpm exec esbuild src/lib/radar.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --outfile=dist/radar.test.mjs && node --test dist/radar.test.mjs",
+    "test:upload-security": "pnpm exec esbuild src/lib/url-fetch.test.ts --bundle --platform=node --format=esm --outfile=dist/url-fetch.test.mjs && node --test dist/url-fetch.test.mjs"
   },
   "dependencies": {
     "@types/pdf-parse": "^1.1.5",
