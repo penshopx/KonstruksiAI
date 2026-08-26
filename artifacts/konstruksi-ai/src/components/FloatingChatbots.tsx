@@ -550,25 +550,27 @@ export function FloatingChatbots() {
   };
 
   // Hide the inactive launcher on mobile when a panel is open
-  const leftLauncherClass = `pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-cyan-950/40 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 transition-opacity duration-300 md:opacity-100 md:pointer-events-auto ${isRadarOpen ? "bg-slate-800 text-cyan-400 border border-cyan-400/30" : "bg-cyan-500 text-slate-950 hover:bg-cyan-400"} ${isGuidedOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`;
+  const leftLauncherClass = `pointer-events-auto flex h-12 items-center gap-2 rounded-full pl-3.5 pr-4 shadow-lg shadow-cyan-950/40 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 transition-opacity duration-300 md:opacity-100 md:pointer-events-auto ${isRadarOpen ? "bg-slate-800 text-cyan-400 border border-cyan-400/30" : "bg-cyan-500 text-slate-950 hover:bg-cyan-400"} ${isGuidedOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`;
 
-  const rightLauncherClass = `pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-orange-950/40 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 md:ml-auto transition-opacity duration-300 md:opacity-100 md:pointer-events-auto ${isGuidedOpen ? "bg-slate-800 text-orange-400 border border-orange-400/30" : "bg-orange-500 text-slate-950 hover:bg-orange-400"} ${isRadarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`;
+  const rightLauncherClass = `pointer-events-auto flex h-12 items-center gap-2 rounded-full pl-3.5 pr-4 shadow-lg shadow-orange-950/40 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 md:ml-auto transition-opacity duration-300 md:opacity-100 md:pointer-events-auto ${isGuidedOpen ? "bg-slate-800 text-orange-400 border border-orange-400/30" : "bg-orange-500 text-slate-950 hover:bg-orange-400"} ${isRadarOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`;
 
   return (
     <>
       <div className="fixed bottom-6 z-50 flex w-full justify-between gap-4 px-4 pointer-events-none md:pointer-events-auto md:w-auto md:right-6 md:left-6">
-        {/* Left Launcher (Radar) */}
+        {/* Left Launcher (Radar Harian) */}
         <button
           type="button"
           onClick={(event) => isRadarOpen ? closePanel() : openPanel("radar", event.currentTarget)}
           aria-label={isRadarOpen ? "Tutup Radar Harian" : "Buka Radar Harian"}
+          title="Radar Harian"
           aria-expanded={isRadarOpen}
           className={leftLauncherClass}
         >
-          {isRadarOpen ? <X className="h-6 w-6" /> : <Radar className="h-6 w-6" />}
+          {isRadarOpen ? <X className="h-5 w-5 shrink-0" /> : <Radar className="h-5 w-5 shrink-0" />}
+          <span className="text-sm font-semibold whitespace-nowrap">{isRadarOpen ? "Tutup" : "Radar"}</span>
         </button>
 
-        {/* Right Launcher (Guided) */}
+        {/* Right Launcher (Help Desk Aplikasi) */}
         <button
           type="button"
           onClick={(event) => isGuidedOpen ? closePanel() : openPanel("guided", event.currentTarget)}
@@ -577,7 +579,8 @@ export function FloatingChatbots() {
           aria-expanded={isGuidedOpen}
           className={rightLauncherClass}
         >
-          {isGuidedOpen ? <X className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}
+          {isGuidedOpen ? <X className="h-5 w-5 shrink-0" /> : <MessageSquare className="h-5 w-5 shrink-0" />}
+          <span className="text-sm font-semibold whitespace-nowrap">{isGuidedOpen ? "Tutup" : "Bantuan"}</span>
         </button>
       </div>
 

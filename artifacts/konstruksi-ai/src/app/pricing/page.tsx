@@ -20,14 +20,14 @@ const PLANS = [
     cta: "Mulai Gratis",
     ctaStyle: "bg-slate-700 hover:bg-slate-600 text-white",
     features: [
-      { text: "Chat AI tanpa batas (simulated)", included: true },
+      { text: "Chat AI tanpa batas", included: true },
       { text: "8 Agen Spesialis Keteknikan", included: true },
       { text: "6 Kalkulator Teknik", included: true },
       { text: "Engineering Solver (3 domain)", included: true },
       { text: "Matriks 21×10 Agen AI", included: true },
       { text: "Riwayat percakapan lokal", included: true },
       { text: "Export percakapan (.md)", included: true },
-      { text: "Koneksi LLM real-time (GPT-4/Claude)", included: false },
+      { text: "Koneksi LLM real-time (GPT-4o mini)", included: false },
       { text: "Riwayat cloud & sinkronisasi", included: false },
       { text: "Template dokumen premium (50+)", included: false },
       { text: "Analisis dokumen PDF/Word", included: false },
@@ -43,18 +43,18 @@ const PLANS = [
     description: "Untuk profesional & konsultan aktif",
     color: "border-orange-500/60",
     headerColor: "bg-orange-500/10",
-    badge: "Paling Populer",
-    cta: "Mulai Pro — 7 Hari Gratis",
+    badge: "Segera Hadir",
+    cta: "Daftar Gratis — Pro Segera Hadir",
     ctaStyle: "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25",
     features: [
-      { text: "Chat AI tanpa batas (simulated)", included: true },
+      { text: "Chat AI tanpa batas", included: true },
       { text: "8 Agen Spesialis Keteknikan", included: true },
       { text: "6 Kalkulator Teknik", included: true },
       { text: "Engineering Solver (semua domain)", included: true },
       { text: "Matriks 21×10 Agen AI", included: true },
       { text: "Riwayat percakapan lokal", included: true },
       { text: "Export percakapan (.md)", included: true },
-      { text: "Koneksi LLM real-time (GPT-4/Claude)", included: true },
+      { text: "Koneksi LLM real-time (GPT-4o mini)", included: true },
       { text: "Riwayat cloud & sinkronisasi", included: true },
       { text: "Template dokumen premium (50+)", included: true },
       { text: "Analisis dokumen PDF/Word", included: false },
@@ -94,7 +94,7 @@ const PLANS = [
 const COMPARISON_FEATURES = [
   { category: "Chat & AI", features: [
     { name: "Chat AI tanpa batas", free: true, pro: true, enterprise: true },
-    { name: "Koneksi LLM real-time (GPT-4/Claude)", free: false, pro: true, enterprise: true },
+    { name: "Koneksi LLM real-time (GPT-4o mini)", free: false, pro: true, enterprise: true },
     { name: "Streaming response", free: false, pro: true, enterprise: true },
     { name: "Konteks percakapan panjang", free: "5 pesan", pro: "50 pesan", enterprise: "Unlimited" },
   ]},
@@ -126,24 +126,24 @@ const COMPARISON_FEATURES = [
 
 const FAQS = [
   {
-    q: "Apakah ada uji coba gratis untuk paket Pro?",
-    a: "Ya! Paket Pro tersedia dengan uji coba 7 hari gratis tanpa perlu kartu kredit. Anda bisa mengakses semua fitur Pro selama periode uji coba.",
+    q: "Apakah paket Pro sudah bisa dibeli sekarang?",
+    a: "Belum. Paket Pro yang ditampilkan di halaman ini adalah rencana ke depan — belum ada sistem pembayaran yang aktif. Saat ini seluruh pengguna memakai paket Gratis, yang sudah mencakup fitur inti chat AI, agen spesialis, dan solver. Kami akan mengumumkan saat Pro resmi tersedia.",
   },
   {
-    q: "Bagaimana cara pembayaran?",
-    a: "Kami menerima transfer bank, kartu kredit/debit, dan dompet digital (GoPay, OVO, Dana). Untuk Enterprise, tersedia opsi invoice bulanan/tahunan.",
+    q: "Bagaimana cara pembayaran untuk paket Pro atau Enterprise?",
+    a: "Karena paket berbayar belum diluncurkan, metode pembayaran belum tersedia. Untuk kebutuhan Enterprise, hubungi tim kami untuk mendiskusikan opsi kontrak dan invoice secara langsung.",
   },
   {
     q: "Apakah bisa upgrade/downgrade paket kapan saja?",
-    a: "Ya, Anda bisa upgrade atau downgrade paket kapan saja. Perubahan akan berlaku di siklus billing berikutnya.",
+    a: "Setelah paket berbayar resmi diluncurkan, Anda akan bisa upgrade atau downgrade kapan saja. Untuk saat ini, seluruh akun berjalan di paket Gratis.",
   },
   {
     q: "Apa yang dimaksud dengan 'Koneksi LLM real-time'?",
-    a: "Fitur ini menghubungkan KonstruksiAI dengan model AI terkini seperti GPT-4 atau Claude untuk respons yang lebih akurat, kontekstual, dan up-to-date dibanding mode simulasi.",
+    a: "Fitur ini menghubungkan KonstruksiAI dengan model AI GPT-4o mini untuk respons yang akurat dan kontekstual berdasarkan pertanyaan Anda.",
   },
   {
     q: "Apakah data percakapan saya aman?",
-    a: "Ya. Data Anda dienkripsi end-to-end dan tidak digunakan untuk melatih model AI. Untuk Enterprise, tersedia opsi data residency di Indonesia.",
+    a: "Data Anda dikirim melalui koneksi terenkripsi dan tidak digunakan untuk melatih model AI pihak ketiga. Untuk Enterprise, opsi data residency dapat didiskusikan langsung dengan tim kami.",
   },
   {
     q: "Berapa pengguna yang bisa menggunakan satu akun Enterprise?",
@@ -158,10 +158,7 @@ function CheckIcon({ included }: { included: boolean | string }) {
 }
 
 export default function PricingPage() {
-  const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-
-  const yearlyDiscount = 0.20; // 20% off
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -190,39 +187,14 @@ export default function PricingPage() {
             <span className="text-orange-400"> Transparan</span>
           </h1>
           <p className="text-slate-400 text-xl max-w-2xl mx-auto mb-8">
-            Mulai gratis, upgrade saat Anda siap. Tidak ada biaya tersembunyi.
+            Paket Gratis aktif dan bisa dipakai sekarang. Paket Pro & Enterprise di bawah menunjukkan rencana ke depan — belum bisa dibeli hari ini.
           </p>
-
-          {/* Billing Toggle */}
-          <div className="inline-flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-xl p-1">
-            <button
-              onClick={() => setBillingPeriod("monthly")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                billingPeriod === "monthly" ? "bg-orange-500 text-white" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Bulanan
-            </button>
-            <button
-              onClick={() => setBillingPeriod("yearly")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                billingPeriod === "yearly" ? "bg-orange-500 text-white" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              Tahunan
-              <span className="bg-green-500/20 text-green-400 text-xs px-1.5 py-0.5 rounded-full">Hemat 20%</span>
-            </button>
-          </div>
         </div>
 
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {PLANS.map(plan => {
-            const displayPrice = plan.price === null
-              ? null
-              : billingPeriod === "yearly"
-              ? Math.round(plan.price * (1 - yearlyDiscount))
-              : plan.price;
+            const displayPrice = plan.price;
 
             return (
               <div
@@ -260,10 +232,10 @@ export default function PricingPage() {
                       <span className="text-white font-bold text-3xl">
                         Rp {displayPrice.toLocaleString("id-ID")}
                       </span>
-                      <span className="text-slate-400 text-sm ml-2">/{billingPeriod === "yearly" ? "bulan (tagihan tahunan)" : "bulan"}</span>
-                      {billingPeriod === "yearly" && (
-                        <div className="text-green-400 text-xs mt-1">
-                          Hemat Rp {((plan.price! - displayPrice) * 12).toLocaleString("id-ID")}/tahun
+                      <span className="text-slate-400 text-sm ml-2">/bulan</span>
+                      {plan.id === "pro" && (
+                        <div className="text-orange-300 text-xs mt-1">
+                          Harga rencana — pembayaran belum tersedia
                         </div>
                       )}
                     </div>
@@ -309,7 +281,7 @@ export default function PricingPage() {
               </div>
               <div className="px-4 py-4 text-center border-l border-slate-700 bg-orange-500/5">
                 <div className="text-orange-400 font-bold text-sm">Pro</div>
-                <div className="text-slate-500 text-xs">Rp 299rb/bln</div>
+                <div className="text-slate-500 text-xs">Rp 299rb/bln · Segera hadir</div>
               </div>
               <div className="px-4 py-4 text-center border-l border-slate-700">
                 <div className="text-blue-400 font-bold text-sm">Enterprise</div>

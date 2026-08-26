@@ -13,3 +13,5 @@
 - [Attachment size boundary precision](attachment-size-boundary.md) — exact decoded-base64-size math and a file-picker size fallback keep client/server upload limits agreeing at the byte.
 - [Promo video audio sync recipe](promo-audio-sync-recipe.md) — generate/validate a composite music+VO+SFX mix from scene-duration config, don't hand-mix a static file.
 - [Headless browser checks in this workspace](headless-browser-checks.md) — `REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE` gives a ready Chromium for `playwright-core` scripts; no browser download needed.
+- [Duplicate artifact detection](duplicate-artifact-detection.md) — grep for an artifact's slug/path across the codebase before assuming which of two similar artifacts is canonical.
+- [Honest coming-soon CTA pattern](honest-coming-soon-cta.md) — never let pricing copy imply an active purchase/trial flow for a tier with no real billing; label it consistently everywhere instead.

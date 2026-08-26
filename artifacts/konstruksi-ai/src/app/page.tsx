@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Link from "@/shims/next-link";
 import NavbarAuth from "@/components/NavbarAuth";
 import {
@@ -165,38 +165,7 @@ const PLAN_FEATURES = [
   { feature: "Koneksi LLM real-time", free: false, pro: true },
   { feature: "Riwayat cloud (sync)", free: false, pro: true },
   { feature: "Template dokumen premium", free: false, pro: true },
-  { feature: "Analisis dokumen PDF", free: false, pro: true },
   { feature: "Prioritas dukungan", free: false, pro: true },
-];
-
-const TESTIMONIALS = [
-  {
-    initials: "BS",
-    name: "Budi Santoso",
-    title: "Direktur PT Maju Konstruksi",
-    company: "Jakarta",
-    quote:
-      "KonstruksiAI sangat membantu tim kami dalam menyusun RAB dengan cepat dan akurat. Proses yang biasanya butuh 2 hari kerja sekarang bisa selesai dalam hitungan jam.",
-    color: "bg-orange-500",
-  },
-  {
-    initials: "RH",
-    name: "Ratih Handayani",
-    title: "Manajer K3 – PT EBT Nusantara",
-    company: "Surabaya",
-    quote:
-      "Fitur K3 dan JSA-nya luar biasa detail. Sangat membantu kami mempersiapkan dokumen keselamatan untuk proyek PLTS berskala besar di Jawa Timur.",
-    color: "bg-blue-500",
-  },
-  {
-    initials: "AF",
-    name: "Ahmad Fauzi",
-    title: "Konsultan Tender Senior",
-    company: "Bandung",
-    quote:
-      "Platform terbaik untuk profesional konstruksi Indonesia. Panduan tender LPSE dan strategi penawarannya sangat relevan dengan kondisi pasar saat ini.",
-    color: "bg-green-600",
-  },
 ];
 
 // ============================================================
@@ -216,76 +185,6 @@ function StatsSection() {
             </div>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
-
-// ============================================================
-// TESTIMONIALS SECTION
-// ============================================================
-
-function TestimonialsSection() {
-  const [visibleIndexes, setVisibleIndexes] = useState<number[]>([]);
-  const refs = useRef<(HTMLDivElement | null)[]>([]);
-
-  useEffect(() => {
-    const observers: IntersectionObserver[] = [];
-    refs.current.forEach((el, i) => {
-      if (!el) return;
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries[0]?.isIntersecting) {
-            setVisibleIndexes(prev => [...prev, i]);
-            observer.disconnect();
-          }
-        },
-        { threshold: 0.2 }
-      );
-      observer.observe(el);
-      observers.push(observer);
-    });
-    return () => observers.forEach(o => o.disconnect());
-  }, []);
-
-  return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold text-white mb-4">Apa Kata Mereka</h2>
-        <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-          Dipercaya oleh profesional dan perusahaan keteknikan terkemuka di Indonesia
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {TESTIMONIALS.map((t, i) => (
-          <div
-            key={t.name}
-            ref={el => { refs.current[i] = el; }}
-            className={`bg-slate-800 border border-slate-700 rounded-2xl p-6 transition-all duration-700 ${
-              visibleIndexes.includes(i)
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-8"
-            }`}
-            style={{ transitionDelay: `${i * 150}ms` }}
-          >
-            {/* Quote */}
-            <div className="text-orange-400 text-3xl leading-none mb-4">&ldquo;</div>
-            <p className="text-slate-300 text-sm leading-relaxed mb-6">{t.quote}</p>
-
-            {/* Author */}
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 ${t.color} rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}>
-                {t.initials}
-              </div>
-              <div>
-                <div className="text-white text-sm font-semibold">{t.name}</div>
-                <div className="text-slate-500 text-xs">{t.title}</div>
-                <div className="text-slate-600 text-xs">{t.company}</div>
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
     </section>
   );
@@ -349,7 +248,7 @@ function PlanComparisonSection() {
       <div className="text-center mb-12">
         <h2 className="text-3xl font-bold text-white mb-4">Paket Layanan</h2>
         <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-          Mulai gratis, upgrade kapan saja
+          Paket Gratis aktif sekarang, paket Pro segera hadir
         </p>
       </div>
 
@@ -399,9 +298,12 @@ function PlanComparisonSection() {
               <span className="text-slate-400 text-sm">Aktif sekarang</span>
             </div>
             <div className="px-6 text-center border-l border-slate-700/50">
-              <button className="bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs px-4 py-1.5 rounded-lg hover:bg-orange-500/30 transition-colors">
-                Daftar Antrian
-              </button>
+              <Link
+                href="/pricing"
+                className="inline-block bg-orange-500/20 border border-orange-500/40 text-orange-400 text-xs px-4 py-1.5 rounded-lg hover:bg-orange-500/30 transition-colors"
+              >
+                Lihat Detail Paket
+              </Link>
             </div>
           </div>
         </div>
@@ -1440,9 +1342,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <TestimonialsSection />
-
       {/* FAQ */}
       <FAQSection />
 
@@ -1462,7 +1361,7 @@ export default function Home() {
 
           <div className="relative z-10">
             <div className="inline-flex items-center gap-2 bg-white/10 border border-white/30 rounded-full px-4 py-2 mb-6">
-              <span className="text-white text-sm font-medium">⏰ PENAWARAN TERBATAS - DAFTAR SEKARANG!</span>
+              <span className="text-white text-sm font-medium">🚀 Gratis untuk dicoba, tanpa kartu kredit</span>
             </div>
 
             <h2 className="text-4xl font-bold text-white mb-4">
@@ -1504,38 +1403,14 @@ export default function Home() {
               </Link>
             </div>
 
-            {/* Social Proof */}
+            {/* Who it's for */}
             <div className="text-center">
-              <p className="text-orange-100 text-sm mb-4">Bergabung dengan perusahaan konstruksi terkemuka:</p>
-              <div className="flex justify-center items-center gap-6 text-orange-200">
-                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">PT WIKA</span>
-                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">PT PP</span>
-                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">PT Adhi Karya</span>
-                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">PT Nindya Karya</span>
-                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">+1000 lainnya</span>
-              </div>
-            </div>
-
-            {/* Countdown Timer */}
-            <div className="mt-8 p-4 bg-white/10 border border-white/20 rounded-xl max-w-md mx-auto">
-              <p className="text-white text-sm mb-2">Penawaran Spesial Berakhir Dalam:</p>
-              <div className="grid grid-cols-4 gap-2 text-center">
-                <div className="bg-white/20 rounded p-2">
-                  <div className="text-2xl font-bold text-white">07</div>
-                  <div className="text-xs text-orange-100">Hari</div>
-                </div>
-                <div className="bg-white/20 rounded p-2">
-                  <div className="text-2xl font-bold text-white">14</div>
-                  <div className="text-xs text-orange-100">Jam</div>
-                </div>
-                <div className="bg-white/20 rounded p-2">
-                  <div className="text-2xl font-bold text-white">23</div>
-                  <div className="text-xs text-orange-100">Menit</div>
-                </div>
-                <div className="bg-white/20 rounded p-2">
-                  <div className="text-2xl font-bold text-white">45</div>
-                  <div className="text-xs text-orange-100">Detik</div>
-                </div>
+              <p className="text-orange-100 text-sm mb-4">Dibangun untuk kontraktor, konsultan, dan profesional konstruksi di Indonesia:</p>
+              <div className="flex flex-wrap justify-center items-center gap-3 text-orange-200">
+                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">🏗️ Kontraktor</span>
+                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">📐 Konsultan Teknik</span>
+                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">🦺 Tim K3</span>
+                <span className="bg-white/10 px-3 py-1 rounded-full text-sm">📋 Tim Tender</span>
               </div>
             </div>
           </div>
