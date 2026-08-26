@@ -31,6 +31,7 @@ interface Message {
   agentId?: string;
   agentName?: string;
   domainFit?: { level: "high" | "medium" | "low"; reason: string };
+  recommendedAgentId?: string;
   isStreaming?: boolean;
   retrying?: boolean;
   interrupted?: boolean;
@@ -56,6 +57,7 @@ interface PendingSyncMessage {
   attachmentType?: string | null;
   responseAgentId?: string;
   domainFit?: Message["domainFit"];
+  recommendedAgentId?: string;
   createdAt: number;
 }
 
@@ -107,6 +109,24 @@ const AGENTS: Agent[] = [
   { id: "kontrak", name: "Legal Konstruksi", icon: "⚖️", description: "Kontrak, klaim, sengketa", color: "indigo" },
   { id: "electrical", name: "Electrical Engineer", icon: "🔌", description: "Dokumen teknis & desain elektrikal", color: "amber" },
 ];
+
+const RECOMMENDED_AGENT_MARKER = /\[\[RECOMMENDED_AGENT:\s*([^\]]+?)\s*\]\]/gi;
+
+function parseAgentRecommendation(content: string): {
+  content: string;
+  recommendedAgentId?: string;
+} {
+  let recommendedAgentId: string | undefined;
+  const cleanContent = content.replace(RECOMMENDED_AGENT_MARKER, (_marker, rawAgentId: string) => {
+    const candidate = rawAgentId.trim().toLowerCase();
+    if (!recommendedAgentId && AGENTS.some(agent => agent.id === candidate)) {
+      recommendedAgentId = candidate;
+    }
+    return "";
+  }).trim();
+
+  return { content: cleanContent, recommendedAgentId };
+}
 
 const SUGGESTED_PROMPTS = [
   { category: "Tender", icon: "📋", prompts: [
@@ -641,6 +661,7 @@ function MessageBubble({
   onRegenerate,
   onStar,
   onEdit,
+  onAgentSwitch,
   isLast,
   fontSize,
   searchQuery,
@@ -651,6 +672,7 @@ function MessageBubble({
   onRegenerate?: () => void;
   onStar: (id: string) => void;
   onEdit?: (id: string, newContent: string) => void;
+  onAgentSwitch: (agentId: string) => void;
   isLast: boolean;
   fontSize: FontSize;
   searchQuery?: string;
@@ -708,6 +730,10 @@ function MessageBubble({
     : message.domainFit?.level === "medium"
       ? "Kecocokan sedang"
       : "Kecocokan rendah";
+  const parsedRecommendation = parseAgentRecommendation(message.content);
+  const recommendedAgent = AGENTS.find(agent =>
+    agent.id === (message.recommendedAgentId ?? parsedRecommendation.recommendedAgentId),
+  );
 
   if (message.role === "user") {
     return (
@@ -820,7 +846,7 @@ function MessageBubble({
           {message.content ? (
             <div
               className={`${fontSizeClass} leading-relaxed text-slate-200 prose-custom`}
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content, searchQuery) }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(parsedRecommendation.content, searchQuery) }}
               onClick={(e) => {
                 // Event delegation for code-block copy buttons (data-copy-id replaces unsafe onclick)
                 const btn = (e.target as HTMLElement).closest("[data-copy-id]");
@@ -845,6 +871,23 @@ function MessageBubble({
               <span className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
             </div>
           ) : null}
+          {recommendedAgent && !message.isStreaming && (
+            <div className="mt-3 border-t border-slate-700/70 pt-3">
+              <p className="mb-2 text-xs text-slate-400">
+                Agen yang disarankan untuk pertanyaan berikutnya:
+              </p>
+              <button
+                type="button"
+                onClick={() => onAgentSwitch(recommendedAgent.id)}
+                className="inline-flex items-center gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs font-semibold text-orange-200 transition-colors hover:border-orange-400/70 hover:bg-orange-500/20"
+                aria-label={`Beralih ke ${recommendedAgent.name}`}
+              >
+                <span aria-hidden="true">{recommendedAgent.icon}</span>
+                Beralih ke {recommendedAgent.name}
+                <span aria-hidden="true">→</span>
+              </button>
+            </div>
+          )}
           {message.retrying && (
             <div className="mt-2 flex items-center gap-2 text-xs text-orange-300" role="status">
               <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span>
@@ -1517,6 +1560,7 @@ export default function ChatPage() {
             attachmentType: item.attachmentType ?? null,
             agentId: item.responseAgentId,
             domainFit: item.domainFit,
+            recommendedAgentId: item.recommendedAgentId,
             clientMessageId: item.id,
           }),
         });
@@ -1906,6 +1950,14 @@ export default function ChatPage() {
     ));
   }, [activeConvId]);
 
+  const handleAgentSwitch = useCallback((agentId: string) => {
+    const nextAgent = AGENTS.find(agent => agent.id === agentId);
+    if (!nextAgent) return;
+
+    setSelectedAgent(nextAgent);
+    window.setTimeout(() => textareaRef.current?.focus(), 0);
+  }, []);
+
   const stopGeneration = useCallback(() => {
     abortRef.current?.abort();
     setIsLoading(false);
@@ -2022,6 +2074,7 @@ export default function ChatPage() {
     let streamError: string | null = null;
     let respondingAgentId = selectedAgent.id;
     let responseDomainFit: Message["domainFit"];
+    let responseRecommendedAgentId: Message["recommendedAgentId"];
 
     try {
       // Build history from the updated conversation (not stale state)
@@ -2101,6 +2154,7 @@ export default function ChatPage() {
                 agentId?: string;
                 agentName?: string;
                 domainFit?: { level: "high" | "medium" | "low"; reason: string };
+                recommendedAgentId?: string;
               };
               if (event.agentId) {
                 respondingAgentId = event.agentId;
@@ -2138,6 +2192,15 @@ export default function ChatPage() {
                     : c
                 ));
                 break;
+              }
+              if (event.done) {
+                if (typeof event.message === "string") {
+                  fullResponse = event.message;
+                }
+                if (typeof event.recommendedAgentId === "string") {
+                  responseRecommendedAgentId = event.recommendedAgentId;
+                }
+                continue;
               }
               if (event.retrying) {
                 setConversations(prev => prev.map(c =>
@@ -2193,6 +2256,7 @@ export default function ChatPage() {
                       retrying: false,
                       interrupted: Boolean(streamError && fullResponse),
                       wordCount: wc,
+                      recommendedAgentId: responseRecommendedAgentId,
                     }
                   : m
               ),
@@ -2215,6 +2279,7 @@ export default function ChatPage() {
           content: responseText,
           responseAgentId: respondingAgentId,
           domainFit: responseDomainFit,
+          recommendedAgentId: responseRecommendedAgentId,
           createdAt: Date.now(),
         });
       }
@@ -2720,6 +2785,7 @@ export default function ChatPage() {
                       onRegenerate={idx === lastAssistantMsgIdx ? regenerateLastResponse : undefined}
                       onStar={handleStar}
                       onEdit={message.role === "user" ? handleEdit : undefined}
+                      onAgentSwitch={handleAgentSwitch}
                       isLast={idx === lastAssistantMsgIdx}
                       fontSize={fontSize}
                       searchQuery={isSearchMatch ? chatSearchQuery : undefined}
