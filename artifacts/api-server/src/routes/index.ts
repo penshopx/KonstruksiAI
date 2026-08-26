@@ -12,6 +12,7 @@ import assessmentRouter from "./assessment";
 import radarRouter from "./radar";
 import projectWorkspacesRouter from "./project-workspaces";
 import learnRouter from "./learn";
+import solverRouter from "./solver";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(assessmentRouter);
 router.use(radarRouter);
 router.use(projectWorkspacesRouter);
 router.use(learnRouter);
+router.use(solverRouter);
 
 export default router;

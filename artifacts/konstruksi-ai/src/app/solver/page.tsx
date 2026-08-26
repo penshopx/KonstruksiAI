@@ -183,438 +183,6 @@ const EXAMPLE_PROBLEMS: Record<string, string[]> = {
 };
 
 // ============================================================
-// SIMULATED SOLVER RESPONSES
-// ============================================================
-
-function generateSolverResponse(domain: string, problem: string, context: string): SolverResult {
-  const domainObj = SOLVER_DOMAINS.find(d => d.id === domain);
-  const domainName = domainObj?.name || domain;
-
-  // Generic structured response based on domain
-  const responses: Record<string, Partial<SolverResult>> = {
-    konstruksi: {
-      approach: "Analisis Teknik Struktural & Estimasi Biaya",
-      analysis: `**Analisis Permasalahan:**
-
-Berdasarkan deskripsi Anda, saya mengidentifikasi beberapa aspek teknis yang perlu diperhatikan:
-
-1. **Klasifikasi Proyek:** Berdasarkan informasi yang diberikan, proyek ini termasuk kategori konstruksi ${problem.includes("gedung") ? "bangunan gedung" : problem.includes("jalan") ? "infrastruktur jalan" : "konstruksi umum"}.
-
-2. **Standar yang Berlaku:**
-   - SNI 2847:2019 — Persyaratan beton struktural
-   - SNI 1726:2019 — Ketahanan gempa
-   - SNI 1727:2020 — Beban minimum bangunan
-   - Permen PUPR No. 1/2022 — AHSP
-
-3. **Parameter Kritis:**
-   - Lokasi & zona gempa (berpengaruh pada koefisien seismik)
-   - Jenis tanah & daya dukung pondasi
-   - Fungsi bangunan (menentukan beban hidup)
-   - Mutu material (beton, baja tulangan)`,
-      solution: `**Solusi & Rekomendasi:**
-
-### Langkah 1: Analisis Beban
-\`\`\`
-Beban Mati (DL):
-- Berat sendiri struktur: 24 kN/m³ (beton)
-- Finishing & partisi: 1.5-2.0 kN/m²
-
-Beban Hidup (LL):
-- Kantor: 2.4 kN/m²
-- Parkir: 4.8 kN/m²
-- Atap: 0.96 kN/m²
-
-Kombinasi LRFD:
-- 1.2D + 1.6L (dominan gravitasi)
-- 1.2D + 1.0E + 1.0L (dominan gempa)
-\`\`\`
-
-### Langkah 2: Dimensi Elemen Struktur
-| Elemen | Dimensi Awal | Mutu Material |
-|--------|-------------|---------------|
-| Kolom | 500×500 mm | fc' 30 MPa (K-350) |
-| Balok Induk | 300×600 mm | fc' 25 MPa (K-300) |
-| Pelat | 120-150 mm | fc' 25 MPa |
-| Pondasi | Tiang Ø500 mm | fc' 35 MPa |
-
-### Langkah 3: Estimasi Biaya
-| Pekerjaan | Volume | Harga Satuan | Total |
-|-----------|--------|--------------|-------|
-| Pondasi | 200 m³ | Rp 2.500.000/m³ | Rp 500.000.000 |
-| Struktur | 800 m³ | Rp 3.000.000/m³ | Rp 2.400.000.000 |
-| Arsitektur | 1.000 m² | Rp 1.500.000/m² | Rp 1.500.000.000 |
-| MEP | 1 Ls | Rp 800.000.000 | Rp 800.000.000 |
-| **TOTAL** | | | **Rp 5.200.000.000** |`,
-      regulations: [
-        "SNI 2847:2019 — Persyaratan Beton Struktural",
-        "SNI 1726:2019 — Tata Cara Perencanaan Ketahanan Gempa",
-        "SNI 1727:2020 — Beban Minimum untuk Perancangan Bangunan",
-        "Permen PUPR No. 1/2022 — AHSP Bidang Pekerjaan Umum",
-        "PP No. 16/2021 — Peraturan Pelaksanaan UU Bangunan Gedung",
-      ],
-      nextSteps: [
-        "Lakukan penyelidikan tanah (soil investigation) untuk data daya dukung",
-        "Buat DED (Detail Engineering Design) dengan software ETABS/SAP2000",
-        "Konsultasikan dengan Tim Ahli Bangunan Gedung (TABG) untuk PBG",
-        "Siapkan dokumen tender: RKS, BQ, spesifikasi teknis",
-        "Daftarkan proyek ke LPSE jika pengadaan pemerintah",
-      ],
-    },
-    energi: {
-      approach: "Analisis Teknis Sistem Energi & Studi Kelayakan",
-      analysis: `**Analisis Sistem Energi:**
-
-1. **Potensi Energi Terbarukan:**
-   - Iradiasi surya Indonesia: 4.5-5.5 kWh/m²/hari
-   - Kecepatan angin rata-rata: 3-6 m/s (bervariasi per lokasi)
-   - Potensi hidro: tersebar di Sumatera, Kalimantan, Papua
-
-2. **Regulasi & Kebijakan:**
-   - Perpres No. 112/2022 — Percepatan Pengembangan EBT
-   - Permen ESDM No. 26/2021 — PLTS Atap
-   - Target bauran EBT 23% pada 2025, 31% pada 2030
-
-3. **Aspek Teknis Kritis:**
-   - Kapasitas terpasang vs kebutuhan beban
-   - Sistem penyimpanan energi (BESS)
-   - Koneksi ke jaringan PLN (on-grid/off-grid)`,
-      solution: `**Solusi Teknis & Finansial:**
-
-### Desain Sistem PLTS
-\`\`\`
-Kapasitas Panel: sesuai kebutuhan beban
-Peak Sun Hours: 4.5-5.0 jam/hari (rata-rata Indonesia)
-Performance Ratio: 0.75-0.80
-Produksi Energi = Kapasitas × PSH × PR
-\`\`\`
-
-### Komponen Utama
-| Komponen | Spesifikasi | Estimasi Biaya |
-|----------|-------------|----------------|
-| Panel Surya | Monocrystalline 400-550 Wp | Rp 3.000-4.000/Wp |
-| Inverter | String/Central inverter | Rp 1.500-2.500/Wp |
-| Mounting | Rooftop/Ground mount | Rp 500-1.000/Wp |
-| Kabel & Panel | Sesuai kapasitas | Rp 500-800/Wp |
-| Instalasi | Termasuk komisioning | Rp 500-1.000/Wp |
-| **Total EPC** | | **Rp 6.000-9.000/Wp** |
-
-### Analisis Finansial
-| Parameter | Nilai |
-|-----------|-------|
-| Investasi Awal | Rp 6-9 juta/kWp |
-| Produksi Tahunan | ~1.600-1.800 kWh/kWp |
-| Penghematan/tahun | Rp 1.500-2.000/kWh × produksi |
-| Payback Period | 5-8 tahun |
-| IRR | 12-18% |
-| Lifetime | 25-30 tahun |`,
-      regulations: [
-        "Perpres No. 112/2022 — Percepatan Pengembangan EBT",
-        "Permen ESDM No. 26/2021 — PLTS Atap",
-        "Permen ESDM No. 4/2020 — IUPTL",
-        "UU No. 30/2009 — Ketenagalistrikan",
-        "SNI IEC 62446 — Sistem PLTS Grid-Connected",
-      ],
-      nextSteps: [
-        "Lakukan survei lokasi & analisis bayangan (shading analysis)",
-        "Hitung kebutuhan beban listrik aktual (load profile)",
-        "Ajukan permohonan ke PLN untuk koneksi on-grid",
-        "Siapkan dokumen SLO (Sertifikat Laik Operasi) ke ESDM",
-        "Pertimbangkan insentif pajak & skema pembiayaan hijau",
-      ],
-    },
-    tender: {
-      approach: "Analisis Strategi Tender & Penyusunan Dokumen",
-      analysis: `**Analisis Tender:**
-
-1. **Jenis Pengadaan:**
-   - Tender Umum (nilai > Rp 200 juta untuk jasa konsultansi, > Rp 1 miliar untuk konstruksi)
-   - Penunjukan Langsung (kondisi tertentu)
-   - Pengadaan Langsung (nilai kecil)
-
-2. **Metode Evaluasi:**
-   - Sistem Gugur: evaluasi administrasi → teknis → harga
-   - Merit Point: skor teknis + harga (bobot tertentu)
-   - Harga Terendah Responsif: untuk pekerjaan sederhana
-
-3. **Faktor Penentu Kemenangan:**
-   - Harga penawaran kompetitif (85-95% HPS)
-   - Kelengkapan dokumen administrasi
-   - Kualitas metode pelaksanaan
-   - Pengalaman & referensi proyek sejenis`,
-      solution: `**Strategi & Dokumen Tender:**
-
-### Checklist Dokumen Penawaran
-**Administrasi:**
-- [ ] Surat penawaran bermaterai
-- [ ] Jaminan penawaran (1-3% dari nilai penawaran)
-- [ ] Akta pendirian & perubahan perusahaan
-- [ ] NPWP & bukti pajak
-- [ ] SBU sesuai sub-klasifikasi
-- [ ] SIUJK / NIB
-
-**Teknis:**
-- [ ] Metode pelaksanaan (min. 10 halaman)
-- [ ] Jadwal pelaksanaan (bar chart/S-curve)
-- [ ] Daftar personil + SKA/SKT
-- [ ] Daftar peralatan + bukti kepemilikan/sewa
-- [ ] Pengalaman proyek sejenis (5 tahun terakhir)
-
-**Harga:**
-- [ ] Rekapitulasi penawaran
-- [ ] Rincian harga satuan (BOQ terisi)
-- [ ] Analisa harga satuan (AHSP)
-- [ ] Daftar harga material & upah
-
-### Strategi Harga
-| Komponen | Rekomendasi |
-|----------|-------------|
-| Target harga | 88-93% dari HPS |
-| Overhead | 8-12% dari biaya langsung |
-| Profit | 5-10% |
-| Kontingensi | 2-5% |`,
-      regulations: [
-        "Perpres No. 16/2018 jo. Perpres No. 12/2021 — Pengadaan Barang/Jasa",
-        "Perlem LKPP No. 12/2021 — Pedoman Pengadaan",
-        "UU No. 2/2017 — Jasa Konstruksi",
-        "Permen PUPR No. 14/2020 — Standar & Pedoman Pengadaan Jasa Konstruksi",
-      ],
-      nextSteps: [
-        "Daftar di LPSE (lpse.lkpp.go.id) dan lengkapi profil perusahaan",
-        "Pastikan SBU & SKK personil masih berlaku",
-        "Pelajari dokumen tender secara menyeluruh sebelum aanwijzing",
-        "Siapkan jaminan penawaran dari bank/asuransi",
-        "Konsultasikan dengan konsultan tender berpengalaman",
-      ],
-    },
-    perijinan: {
-      approach: "Analisis Regulasi & Alur Perijinan",
-      analysis: `**Analisis Kebutuhan Perijinan:**
-
-1. **Jenis Perijinan yang Diperlukan:**
-   - PBG (Persetujuan Bangunan Gedung) — pengganti IMB
-   - SLF (Sertifikat Laik Fungsi) — setelah konstruksi selesai
-   - Perijinan lingkungan (AMDAL/UKL-UPL/SPPL)
-   - Perijinan usaha (SBU, SIUJK, NIB)
-
-2. **Dasar Hukum Terkini:**
-   - UU No. 11/2020 — Cipta Kerja
-   - PP No. 16/2021 — Bangunan Gedung
-   - PP No. 5/2021 — Perizinan Berusaha Berbasis Risiko
-   - Sistem OSS (Online Single Submission)
-
-3. **Instansi Terkait:**
-   - DPMPTSP (Dinas Penanaman Modal & PTSP)
-   - Dinas PUPR setempat
-   - KLHK / Dinas Lingkungan Hidup
-   - Kementerian ESDM (untuk energi)`,
-      solution: `**Alur & Checklist Perijinan:**
-
-### Alur PBG (Persetujuan Bangunan Gedung)
-\`\`\`
-1. Persiapan Dokumen Teknis
-   ↓
-2. Konsultasi Perencanaan (DPMPTSP)
-   ↓
-3. Pemeriksaan Dokumen (TABG jika perlu)
-   ↓
-4. Penerbitan PBG (14-30 hari kerja)
-   ↓
-5. Pelaksanaan Konstruksi
-   ↓
-6. Pengajuan SLF
-   ↓
-7. Pemeriksaan Kelaikan Fungsi
-   ↓
-8. Penerbitan SLF
-\`\`\`
-
-### Persyaratan PBG
-| Dokumen | Keterangan |
-|---------|------------|
-| Gambar arsitektur | Denah, tampak, potongan (skala 1:100) |
-| Gambar struktur | + perhitungan struktur |
-| Gambar MEP | Mekanikal, elektrikal, plumbing |
-| Dokumen lingkungan | AMDAL/UKL-UPL/SPPL |
-| Sertifikat tanah | SHM/HGB/HPL |
-| KTP/Akta perusahaan | Pemohon/pemilik |
-| NPWP | Pemohon |
-
-### Biaya & Waktu
-| Perijinan | Estimasi Waktu | Biaya |
-|-----------|---------------|-------|
-| PBG | 14-30 hari kerja | 0.5-1% nilai bangunan |
-| SLF | 14-21 hari kerja | Sesuai Perda |
-| AMDAL | 75-180 hari | Rp 200-500 juta |
-| UKL-UPL | 14-30 hari | Rp 50-150 juta |`,
-      regulations: [
-        "UU No. 11/2020 — Cipta Kerja",
-        "PP No. 16/2021 — Peraturan Pelaksanaan UU Bangunan Gedung",
-        "Permen PUPR No. 1/2022 — Pedoman Teknis PBG",
-        "PP No. 22/2021 — Penyelenggaraan Perlindungan & Pengelolaan LH",
-        "PP No. 5/2021 — Perizinan Berusaha Berbasis Risiko",
-      ],
-      nextSteps: [
-        "Daftar di OSS (oss.go.id) dan lengkapi profil usaha",
-        "Konsultasikan dengan DPMPTSP setempat untuk persyaratan lokal",
-        "Siapkan gambar teknis yang sudah ditandatangani konsultan berlisensi",
-        "Pastikan lahan tidak dalam kawasan lindung atau sengketa",
-        "Pertimbangkan menggunakan jasa konsultan perijinan berpengalaman",
-      ],
-    },
-    migas: {
-      approach: "Analisis Teknis & Regulasi Migas/Pertambangan",
-      analysis: `**Analisis Sektor Migas & Pertambangan:**
-
-1. **Klasifikasi Kegiatan:**
-   - Hulu Migas: eksplorasi & produksi (SKK Migas)
-   - Hilir Migas: pengolahan, pengangkutan, niaga (BPH Migas)
-   - Pertambangan Mineral: IUP dari Kementerian ESDM
-   - Pertambangan Batubara: IUP/IUPK dari Kementerian ESDM
-
-2. **Regulasi Utama:**
-   - UU No. 22/2001 — Minyak & Gas Bumi
-   - UU No. 3/2020 — Pertambangan Mineral & Batubara
-   - PP No. 96/2021 — Pelaksanaan Kegiatan Usaha Pertambangan
-
-3. **Aspek K3 Kritis:**
-   - Permen ESDM No. 38/2014 — K3 Pertambangan
-   - Kepmen ESDM No. 1827/2018 — Pedoman Teknis Pertambangan`,
-      solution: `**Solusi & Panduan Teknis:**
-
-### Tahapan IUP Mineral
-| Tahap | Izin | Instansi | Durasi |
-|-------|------|----------|--------|
-| 1 | WIUP (Wilayah IUP) | Kementerian ESDM | 3-6 bulan |
-| 2 | IUP Eksplorasi | Kementerian ESDM | 6-12 bulan |
-| 3 | Studi Kelayakan | Internal + ESDM | 3-6 bulan |
-| 4 | IUP Operasi Produksi | Kementerian ESDM | 6-12 bulan |
-
-### Dokumen Wajib IUP
-- [ ] Akta pendirian perusahaan + NPWP
-- [ ] NIB dari OSS
-- [ ] Peta wilayah yang dimohon (koordinat)
-- [ ] Rencana kerja & anggaran biaya (RKAB)
-- [ ] Dokumen lingkungan (AMDAL wajib)
-- [ ] Bukti kemampuan finansial
-- [ ] Rencana reklamasi & pascatambang
-
-### Mekanisme PSC Migas
-\`\`\`
-Gross Revenue
-  - Cost Recovery (biaya operasi)
-  = Profit Oil/Gas
-    - Pajak (PPh Badan)
-    = Net Profit
-      ÷ Bagi Hasil (Pemerintah : Kontraktor)
-        Minyak: 85:15 (standar)
-        Gas: 70:30 (standar)
-\`\`\``,
-      regulations: [
-        "UU No. 22/2001 — Minyak & Gas Bumi",
-        "UU No. 3/2020 — Pertambangan Mineral & Batubara",
-        "PP No. 96/2021 — Pelaksanaan Kegiatan Usaha Pertambangan",
-        "Permen ESDM No. 38/2014 — K3 Pertambangan",
-        "Kepmen ESDM No. 1827/2018 — Pedoman Teknis Pertambangan",
-      ],
-      nextSteps: [
-        "Lakukan studi geologi awal untuk identifikasi potensi sumber daya",
-        "Konsultasikan dengan Dirjen Minerba/Migas untuk persyaratan terkini",
-        "Siapkan tim ahli: geolog, insinyur tambang, konsultan lingkungan",
-        "Alokasikan anggaran untuk AMDAL (wajib untuk semua IUP)",
-        "Pertimbangkan kemitraan dengan BUMN (Pertamina, MIND ID)",
-      ],
-    },
-    manajemen: {
-      approach: "Analisis Manajemen Proyek & Pengendalian",
-      analysis: `**Analisis Manajemen Proyek:**
-
-1. **Framework yang Digunakan:**
-   - PMBOK (Project Management Body of Knowledge)
-   - Standar ISO 21500 — Panduan Manajemen Proyek
-   - Permen PUPR No. 14/2020 — Standar Jasa Konstruksi
-
-2. **Area Pengetahuan Kritis:**
-   - Manajemen Ruang Lingkup (Scope)
-   - Manajemen Jadwal (Schedule)
-   - Manajemen Biaya (Cost)
-   - Manajemen Risiko (Risk)
-   - Manajemen Kualitas (Quality)
-
-3. **Tantangan Umum Proyek Konstruksi Indonesia:**
-   - Keterlambatan pembayaran termin
-   - Perubahan desain (change order)
-   - Ketersediaan material & tenaga kerja
-   - Perijinan & birokrasi`,
-      solution: `**Solusi Manajemen Proyek:**
-
-### Template WBS (Work Breakdown Structure)
-\`\`\`
-1.0 PROYEK KONSTRUKSI
-  1.1 Manajemen Proyek
-    1.1.1 Perencanaan
-    1.1.2 Pengendalian
-    1.1.3 Pelaporan
-  1.2 Pekerjaan Persiapan
-    1.2.1 Mobilisasi
-    1.2.2 Direksi Keet
-    1.2.3 Pagar Proyek
-  1.3 Pekerjaan Sipil
-    1.3.1 Tanah & Pondasi
-    1.3.2 Struktur
-    1.3.3 Arsitektur
-  1.4 Pekerjaan MEP
-    1.4.1 Mekanikal
-    1.4.2 Elektrikal
-    1.4.3 Plumbing
-  1.5 Komisioning & Serah Terima
-\`\`\`
-
-### Pengendalian Biaya (Earned Value)
-| Metrik | Formula | Interpretasi |
-|--------|---------|--------------|
-| CPI | EV/AC | >1: under budget |
-| SPI | EV/PV | >1: ahead of schedule |
-| EAC | BAC/CPI | Estimasi biaya akhir |
-| VAC | BAC-EAC | Varians biaya akhir |
-
-### Manajemen Risiko
-| Risiko | Probabilitas | Dampak | Mitigasi |
-|--------|-------------|--------|----------|
-| Keterlambatan material | Tinggi | Tinggi | Buffer stock, multi-supplier |
-| Cuaca ekstrem | Sedang | Sedang | Jadwal buffer, asuransi |
-| Perubahan desain | Tinggi | Tinggi | Freeze design, change order |
-| Kenaikan harga | Sedang | Tinggi | Eskalasi harga dalam kontrak |`,
-      regulations: [
-        "Permen PUPR No. 14/2020 — Standar & Pedoman Jasa Konstruksi",
-        "SNI ISO 21500:2012 — Panduan Manajemen Proyek",
-        "Perpres No. 16/2018 — Pengadaan Barang/Jasa Pemerintah",
-        "UU No. 2/2017 — Jasa Konstruksi",
-      ],
-      nextSteps: [
-        "Implementasikan software manajemen proyek (Primavera P6, MS Project)",
-        "Buat sistem pelaporan mingguan dengan format standar",
-        "Adakan rapat koordinasi rutin (weekly meeting)",
-        "Siapkan contingency plan untuk risiko utama",
-        "Dokumentasikan semua perubahan dengan berita acara resmi",
-      ],
-    },
-  };
-
-  const domainResponse = responses[domain] || responses.konstruksi;
-
-  return {
-    problem,
-    domain: domainName,
-    approach: domainResponse.approach || "Analisis Teknis Komprehensif",
-    analysis: domainResponse.analysis || "",
-    solution: domainResponse.solution || "",
-    regulations: domainResponse.regulations || [],
-    nextSteps: domainResponse.nextSteps || [],
-    outputFormat: "Laporan Teknis Terstruktur",
-  };
-}
-
-// ============================================================
 // MARKDOWN RENDERER (simple)
 // ============================================================
 
@@ -651,6 +219,7 @@ export default function SolverPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [result, setResult] = useState<SolverResult | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
   const selectedDomainObj = SOLVER_DOMAINS.find(d => d.id === selectedDomain);
@@ -659,31 +228,44 @@ export default function SolverPage() {
     if (!selectedDomain || !problem.trim()) return;
 
     setIsGenerating(true);
-    setGenerationProgress(0);
+    setGenerationError(null);
+    setResult(null);
+    setGenerationProgress(8);
     setCurrentStep(3);
 
-    // Simulate progressive generation
-    const steps = [
-      { progress: 15, delay: 400 },
-      { progress: 35, delay: 800 },
-      { progress: 55, delay: 600 },
-      { progress: 75, delay: 700 },
-      { progress: 90, delay: 500 },
-      { progress: 100, delay: 400 },
-    ];
+    // Progress reflects that a real request is in flight — it eases toward
+    // (but never reaches) 100% while waiting, and only completes once the
+    // backend actually responds. It is not a stand-in for real completion.
+    const progressTimer = setInterval(() => {
+      setGenerationProgress(prev => (prev < 90 ? prev + Math.max(1, Math.round((90 - prev) * 0.15)) : prev));
+    }, 350);
 
-    for (const step of steps) {
-      await new Promise(resolve => setTimeout(resolve, step.delay));
-      setGenerationProgress(step.progress);
+    try {
+      const res = await fetch("/api/solver/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: selectedDomain, problem, context, outputType }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Gagal menghasilkan solusi (status ${res.status})`);
+      }
+
+      const generatedResult: SolverResult = await res.json();
+      setGenerationProgress(100);
+      setResult(generatedResult);
+
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    } catch (err) {
+      setGenerationError(err instanceof Error ? err.message : "Gagal menghasilkan solusi. Silakan coba lagi.");
+      setCurrentStep(2);
+    } finally {
+      clearInterval(progressTimer);
+      setIsGenerating(false);
     }
-
-    const generatedResult = generateSolverResponse(selectedDomain, problem, context);
-    setResult(generatedResult);
-    setIsGenerating(false);
-
-    setTimeout(() => {
-      resultRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
   };
 
   const handleReset = () => {
@@ -693,6 +275,7 @@ export default function SolverPage() {
     setContext("");
     setResult(null);
     setGenerationProgress(0);
+    setGenerationError(null);
   };
 
   const copyToClipboard = () => {
@@ -919,6 +502,16 @@ export default function SolverPage() {
                 >
                   🚀 Analisis & Selesaikan Masalah
                 </button>
+
+                {generationError && !isGenerating && (
+                  <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3">
+                    <span className="text-red-400 text-lg flex-shrink-0">⚠️</span>
+                    <div>
+                      <p className="text-red-300 text-sm font-semibold mb-0.5">Gagal menghasilkan solusi</p>
+                      <p className="text-red-300/80 text-sm">{generationError}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
