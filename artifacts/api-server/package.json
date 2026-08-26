@@ -7,7 +7,8 @@
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:radar": "pnpm exec esbuild src/lib/radar.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --outfile=dist/radar.test.mjs && node --test dist/radar.test.mjs"
   },
   "dependencies": {
     "@types/pdf-parse": "^1.1.5",

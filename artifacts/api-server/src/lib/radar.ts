@@ -9,9 +9,9 @@ export const RADAR_CATEGORIES = [
 ] as const;
 
 export type RadarCategory = (typeof RADAR_CATEGORIES)[number];
-type SourceKind = "rss" | "html" | "tender-html";
+type SourceKind = "rss" | "tender-html";
 
-type RadarSource = {
+export type RadarSource = {
   id: string;
   name: string;
   category: RadarCategory;
@@ -56,22 +56,23 @@ export type RadarRefreshResult = {
  */
 export const APPROVED_RADAR_SOURCES: RadarSource[] = [
   {
-    id: "kementerian-pekerjaan-umum",
-    name: "Kementerian Pekerjaan Umum",
-    category: "kementerian",
-    sourceUrl: "https://pu.go.id/berita",
-    feedUrl: "https://pu.go.id/berita",
-    kind: "html",
-    allowedHosts: ["pu.go.id", "www.pu.go.id"],
+    id: "lpjk",
+    name: "Ditjen Bina Konstruksi — Pembaruan LPJK",
+    category: "lpjk-regulasi",
+    sourceUrl: "https://binakonstruksi.pu.go.id/",
+    feedUrl: "https://binakonstruksi.pu.go.id/feed/",
+    kind: "rss",
+    allowedHosts: ["binakonstruksi.pu.go.id"],
+    keywords: ["lpjk", "lembaga pengembangan jasa konstruksi"],
   },
   {
-    id: "lpjk",
-    name: "LPJK",
-    category: "lpjk-regulasi",
-    sourceUrl: "https://lpjk.pu.go.id/",
-    feedUrl: "https://lpjk.pu.go.id/",
-    kind: "html",
-    allowedHosts: ["lpjk.pu.go.id"],
+    id: "kementerian-pekerjaan-umum",
+    name: "Kementerian PU — Ditjen Bina Konstruksi",
+    category: "kementerian",
+    sourceUrl: "https://binakonstruksi.pu.go.id/",
+    feedUrl: "https://binakonstruksi.pu.go.id/feed/",
+    kind: "rss",
+    allowedHosts: ["binakonstruksi.pu.go.id"],
   },
   {
     id: "spse-icb-lkpp",
@@ -199,7 +200,8 @@ function parseRss(body: string, source: RadarSource): ParsedItem[] {
     );
 
     if (!title || !articleUrl) continue;
-    if (source.keywords && !source.keywords.some((keyword) => title.toLowerCase().includes(keyword))) {
+    const searchableText = `${title} ${summary}`.toLowerCase();
+    if (source.keywords && !source.keywords.some((keyword) => searchableText.includes(keyword))) {
       continue;
     }
 
@@ -214,34 +216,40 @@ function parseRss(body: string, source: RadarSource): ParsedItem[] {
   return items;
 }
 
-function parseHtmlLinks(body: string, source: RadarSource): ParsedItem[] {
-  const items: ParsedItem[] = [];
-  const seenUrls = new Set<string>();
-  const anchorPattern = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
-  const articlePath = /\/(berita|berita-utama|news|artikel|article|informasi|siaran-pers)(\/|[-_])/i;
-  let match: RegExpExecArray | null;
+function parseSpseAnnouncementDate(value: string): Date | null {
+  const match = value.trim().match(
+    /^(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2}),\s*(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/i,
+  );
+  if (!match) return null;
 
-  while ((match = anchorPattern.exec(body)) && items.length < 30) {
-    const articleUrl = normalizeArticleUrl(match[1], source);
-    const title = stripMarkup(match[2]);
-    if (!articleUrl || !title || title.length < 15 || !articlePath.test(new URL(articleUrl).pathname)) continue;
-    if (seenUrls.has(articleUrl)) continue;
-    if (/^(baca selengkapnya|selengkapnya|read more|home|beranda|menu)$/i.test(title)) continue;
-    seenUrls.add(articleUrl);
-    items.push({
-      title,
-      summary: "Ringkasan belum tersedia pada sumber asli.",
-      articleUrl,
-      publishedAt: null,
-    });
-  }
+  const month = [
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+  ].indexOf(match[1].toLowerCase());
 
-  return items;
+  return new Date(Date.UTC(
+    Number(match[3]),
+    month,
+    Number(match[2]),
+    Number(match[4] ?? 0),
+    Number(match[5] ?? 0),
+  ));
 }
 
 function parseTenderHtml(body: string, source: RadarSource): ParsedItem[] {
-  const rows = body.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi) ?? [];
   const items: ParsedItem[] = [];
+  const seenUrls = new Set<string>();
+  const rows = body.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi) ?? [];
 
   for (const row of rows) {
     const linkMatch = row.match(/href=["']([^"']*\/lelang\/view\/[^"']*)["']/i);
@@ -253,12 +261,30 @@ function parseTenderHtml(body: string, source: RadarSource): ParsedItem[] {
     const agency = stripMarkup(agencyMatch?.[1] ?? "");
     const schedule = stripMarkup(scheduleMatch?.[1] ?? "");
 
-    if (!title || !articleUrl) continue;
+    if (!title || !articleUrl || seenUrls.has(articleUrl)) continue;
+    seenUrls.add(articleUrl);
     items.push({
       title,
       summary: `Instansi: ${agency || "Tidak disebutkan"}. Jadwal unduh dokumen: ${schedule || "Periksa halaman tender."}`,
       articleUrl,
       publishedAt: null,
+    });
+  }
+
+  const announcementPattern = /<b\b[^>]*>([^<]+)<\/b>\s*(?:<br\s*\/?>)?\s*<a\b[^>]*href=["']([^"']*\/publicberitadetail\/[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let announcement: RegExpExecArray | null;
+  while ((announcement = announcementPattern.exec(body)) && items.length < 30) {
+    const articleUrl = normalizeArticleUrl(announcement[2], source);
+    const title = stripMarkup(announcement[3]);
+    const publishedAt = parseSpseAnnouncementDate(stripMarkup(announcement[1]));
+    if (!articleUrl || !title || !publishedAt || seenUrls.has(articleUrl)) continue;
+
+    seenUrls.add(articleUrl);
+    items.push({
+      title,
+      summary: "Pengumuman resmi dari SPSE ICB LKPP.",
+      articleUrl,
+      publishedAt,
     });
   }
 
@@ -292,18 +318,35 @@ async function fetchSource(source: RadarSource): Promise<ParsedItem[]> {
   }
 
   const body = await response.text();
-  const items = source.kind === "rss"
-    ? parseRss(body, source)
-    : source.kind === "tender-html"
-      ? parseTenderHtml(body, source)
-      : parseHtmlLinks(body, source);
-  return items.slice(0, 20);
+  return parseRadarSourceBody(body, source).slice(0, 20);
 }
 
 function fingerprintFor(item: ParsedItem): string {
   return createHash("sha256")
     .update(`${item.articleUrl}|${item.title.toLowerCase()}`)
     .digest("hex");
+}
+
+export function parseRadarSourceBody(body: string, source: RadarSource): ParsedItem[] {
+  return source.kind === "rss" ? parseRss(body, source) : parseTenderHtml(body, source);
+}
+
+export function mapRadarItemToArticle(item: ParsedItem, source: RadarSource, fetchedAt = new Date()) {
+  const fingerprint = fingerprintFor(item);
+  return {
+    id: fingerprint.slice(0, 24),
+    fingerprint,
+    title: item.title,
+    summary: makeSummary(item.summary, item.title),
+    category: source.category,
+    sourceName: source.name,
+    sourceUrl: source.sourceUrl,
+    articleUrl: item.articleUrl,
+    publishedAt: item.publishedAt,
+    fetchedAt,
+    importance: getImportance(item.title, item.summary),
+    status: "published" as const,
+  };
 }
 
 function addNewItems(items: ParsedItem[], source: RadarSource, existingFingerprints: Set<string>): number {
@@ -316,20 +359,7 @@ function addNewItems(items: ParsedItem[], source: RadarSource, existingFingerpri
 
     try {
       db.insert(radarArticles)
-        .values({
-          id: fingerprint.slice(0, 24),
-          fingerprint,
-          title: item.title,
-          summary: makeSummary(item.summary, item.title),
-          category: source.category,
-          sourceName: source.name,
-          sourceUrl: source.sourceUrl,
-          articleUrl: item.articleUrl,
-          publishedAt: item.publishedAt,
-          fetchedAt: new Date(),
-          importance: getImportance(item.title, item.summary),
-          status: "published",
-        })
+        .values(mapRadarItemToArticle(item, source))
         .run();
     } catch (error) {
       if ((error as { code?: string }).code === "SQLITE_CONSTRAINT_UNIQUE") {
