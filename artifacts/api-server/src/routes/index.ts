@@ -13,6 +13,7 @@ import radarRouter from "./radar";
 import projectWorkspacesRouter from "./project-workspaces";
 import learnRouter from "./learn";
 import solverRouter from "./solver";
+import tenderIntelligenceRouter from "./tender-intelligence";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(radarRouter);
 router.use(projectWorkspacesRouter);
 router.use(learnRouter);
 router.use(solverRouter);
+router.use(tenderIntelligenceRouter);
 
 export default router;
