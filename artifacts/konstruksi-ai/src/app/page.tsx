@@ -854,7 +854,7 @@ export default function Home() {
             {
               icon: "🧠",
               title: "AI & Machine Learning",
-              features: ["NLP untuk bahasa Indonesia", "Computer Vision untuk dokumen", "Predictive Analytics", "Regulasi Compliance Engine"]
+              features: ["NLP untuk bahasa Indonesia", "OCR foto dokumen (Vision AI)", "Analisis risiko & skor kepatuhan tender berbasis AI", "Basis data persyaratan perizinan & pencocokan bukti"]
             },
             {
               icon: "⚙️",
@@ -864,7 +864,7 @@ export default function Home() {
             {
               icon: "🔒",
               title: "Enterprise Security",
-              features: ["End-to-end Encryption", "Kontrol akses", "Audit Trails", "Praktik keamanan berkelanjutan"]
+              features: ["Enkripsi kata sandi (bcrypt)", "Kontrol akses", "Audit Trails", "Praktik keamanan berkelanjutan"]
             }
           ].map((tech, i) => (
             <div key={tech.title} className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
