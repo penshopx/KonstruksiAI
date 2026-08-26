@@ -129,3 +129,44 @@ export const radarArticles = sqliteTable("radar_articles", {
 
 export type RadarArticle = typeof radarArticles.$inferSelect;
 export type NewRadarArticle = typeof radarArticles.$inferInsert;
+
+export const legalEntities = sqliteTable("legal_entities", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  type: text("type").notNull(),
+  npwp: text("npwp").notNull(),
+  nib: text("nib"),
+  sector: text("sector").notNull(),
+  subSector: text("sub_sector").notNull().default(""),
+  region: text("region").notNull(),
+  establishmentDate: text("establishment_date").notNull(),
+  status: text("status").notNull().default("active"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+}, (table) => ({
+  userUnique: uniqueIndex("legal_entities_user_unique").on(table.userId),
+}));
+
+export type LegalEntityRow = typeof legalEntities.$inferSelect;
+export type NewLegalEntityRow = typeof legalEntities.$inferInsert;
+
+export const legalLicenses = sqliteTable("legal_licenses", {
+  id: text("id").primaryKey(),
+  entityId: text("entity_id").notNull().references(() => legalEntities.id, { onDelete: "cascade" }),
+  licenseRequirementId: text("license_requirement_id").notNull(),
+  status: text("status").notNull().default("not_applied"),
+  applicationDate: text("application_date"),
+  approvalDate: text("approval_date"),
+  expiryDate: text("expiry_date"),
+  licenseNumber: text("license_number"),
+  notes: text("notes").notNull().default(""),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+}, (table) => ({
+  entityRequirementUnique: uniqueIndex("legal_licenses_entity_requirement_unique")
+    .on(table.entityId, table.licenseRequirementId),
+}));
+
+export type LegalLicenseRow = typeof legalLicenses.$inferSelect;
+export type NewLegalLicenseRow = typeof legalLicenses.$inferInsert;

@@ -54,6 +54,7 @@ export interface LicenseStatus {
   approvalDate?: string;
   expiryDate?: string;
   licenseNumber?: string;
+  notes?: string;
   documents: LicenseDocument[];
   renewalHistory: RenewalRecord[];
 }

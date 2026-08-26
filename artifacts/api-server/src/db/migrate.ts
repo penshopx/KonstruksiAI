@@ -123,6 +123,39 @@ export function initializeDatabase() {
     )`);
     db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS radar_articles_fingerprint_unique ON radar_articles(fingerprint)`);
 
+    db.run(sql`CREATE TABLE IF NOT EXISTS legal_entities (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      npwp TEXT NOT NULL,
+      nib TEXT,
+      sector TEXT NOT NULL,
+      sub_sector TEXT NOT NULL DEFAULT '',
+      region TEXT NOT NULL,
+      establishment_date TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`);
+    db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS legal_entities_user_unique ON legal_entities(user_id)`);
+
+    db.run(sql`CREATE TABLE IF NOT EXISTS legal_licenses (
+      id TEXT PRIMARY KEY,
+      entity_id TEXT NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
+      license_requirement_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'not_applied',
+      application_date TEXT,
+      approval_date TEXT,
+      expiry_date TEXT,
+      license_number TEXT,
+      notes TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`);
+    db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS legal_licenses_entity_requirement_unique
+      ON legal_licenses(entity_id, license_requirement_id)`);
+
     console.log("[DB] Database initialized");
   } catch (err) {
     console.error("[DB] Error initializing database:", err);
