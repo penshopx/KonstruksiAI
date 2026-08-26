@@ -1,15 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from '@/shims/next-link';
 import {
-  EXAM_SETS,
-  calculateScore,
   getCategoryLabel,
   getLevelLabel,
   getLevelColor,
-  type ExamSet,
-  type ExamQuestion,
 } from '@/lib/simulasi';
 import {
   Play,
@@ -27,39 +23,156 @@ import {
   Trophy,
   Star,
   Filter,
+  Loader2,
 } from 'lucide-react';
 import { WorkspaceContextBanner, useWorkspaceContext } from '@/lib/workspace-context';
 
 type ExamState = 'list' | 'intro' | 'exam' | 'result';
 
+interface AttemptSummary {
+  id: string;
+  examId: string;
+  status: 'in_progress' | 'completed';
+  score?: number;
+  correctCount?: number;
+  totalQuestions: number;
+  passed?: boolean;
+  startedAt: string;
+  submittedAt?: string;
+  timeSpentSeconds?: number;
+}
+
+interface ExamListItem {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  level: string;
+  skkniCode?: string;
+  duration: number;
+  passingScore: number;
+  icon: string;
+  color: string;
+  questionCount: number;
+  lastAttempt?: AttemptSummary;
+}
+
+interface AttemptQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  topic: string;
+  difficulty: 'mudah' | 'sedang' | 'sulit';
+}
+
+interface AnswerFeedback {
+  correct: boolean;
+  correctAnswer: number;
+  explanation: string;
+  reference?: string;
+}
+
+interface ReviewQuestion extends AttemptQuestion {
+  correctAnswer?: number;
+  explanation?: string;
+  reference?: string;
+}
+
 export default function SimulasiPage() {
   const [examState, setExamState] = useState<ExamState>('list');
-  const [selectedExam, setSelectedExam] = useState<ExamSet | null>(null);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [exams, setExams] = useState<ExamListItem[]>([]);
+  const [isLoadingExams, setIsLoadingExams] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
   const [filterLevel, setFilterLevel] = useState<string>('all');
   const workspaceContext = useWorkspaceContext();
 
-  const filteredExams = EXAM_SETS.filter(e =>
+  const [selectedExam, setSelectedExam] = useState<ExamListItem | null>(null);
+  const [attempt, setAttempt] = useState<AttemptSummary | null>(null);
+  const [questions, setQuestions] = useState<AttemptQuestion[]>([]);
+  const [answers, setAnswers] = useState<number[]>([]);
+  const [feedback, setFeedback] = useState<Record<number, AnswerFeedback>>({});
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const [isAnswering, setIsAnswering] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
+  const [examError, setExamError] = useState<string | null>(null);
+  const [reviewQuestions, setReviewQuestions] = useState<ReviewQuestion[]>([]);
+  const [reviewAnswers, setReviewAnswers] = useState<number[]>([]);
+  const finishingRef = useRef(false);
+
+  const loadExams = useCallback(async () => {
+    setIsLoadingExams(true);
+    setListError(null);
+    try {
+      const res = await fetch('/api/simulasi/exams', { credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) {
+        setListError(data.error || 'Gagal memuat daftar simulasi ujian');
+        return;
+      }
+      setExams(data.exams ?? []);
+    } catch {
+      setListError('Gagal memuat daftar simulasi ujian');
+    } finally {
+      setIsLoadingExams(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadExams();
+  }, [loadExams]);
+
+  const filteredExams = exams.filter(e =>
     filterLevel === 'all' || e.level === filterLevel
   );
 
-  const handleFinishExam = useCallback(() => {
-    setExamState('result');
-  }, []);
+  const finishExam = useCallback(async () => {
+    if (!attempt || finishingRef.current) return;
+    finishingRef.current = true;
+    setIsFinishing(true);
+    setExamError(null);
+    try {
+      const res = await fetch(`/api/simulasi/attempts/${encodeURIComponent(attempt.id)}/submit`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setExamError(data.error || 'Gagal menyelesaikan ujian');
+        finishingRef.current = false;
+        setIsFinishing(false);
+        return;
+      }
+
+      const detailRes = await fetch(`/api/simulasi/attempts/${encodeURIComponent(attempt.id)}`, { credentials: 'include' });
+      const detail = await detailRes.json();
+      if (detailRes.ok) {
+        setReviewQuestions(detail.questions ?? []);
+        setReviewAnswers(detail.answers ?? []);
+      }
+
+      setAttempt(data.attempt);
+      setExamState('result');
+      loadExams();
+    } catch {
+      setExamError('Gagal menyelesaikan ujian');
+    } finally {
+      finishingRef.current = false;
+      setIsFinishing(false);
+    }
+  }, [attempt, loadExams]);
 
   // Timer
   useEffect(() => {
-    if (examState !== 'exam' || !selectedExam) return;
+    if (examState !== 'exam') return;
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleFinishExam();
+          finishExam();
           return 0;
         }
         return prev - 1;
@@ -67,33 +180,85 @@ export default function SimulasiPage() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [examState, selectedExam, handleFinishExam]);
+  }, [examState, finishExam]);
 
-  const startExam = (exam: ExamSet) => {
+  const startExam = (exam: ExamListItem) => {
     setSelectedExam(exam);
+    setExamError(null);
     setExamState('intro');
   };
 
-  const beginExam = () => {
+  const beginExam = async () => {
     if (!selectedExam) return;
-    setCurrentQuestion(0);
-    setAnswers(new Array(selectedExam.questions.length).fill(-1));
-    setTimeLeft(selectedExam.duration * 60);
-    setStartTime(new Date());
-    setShowExplanation(false);
-    setExamState('exam');
+    setIsStarting(true);
+    setExamError(null);
+    try {
+      const res = await fetch(`/api/simulasi/exams/${encodeURIComponent(selectedExam.id)}/attempts`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setExamError(data.error || 'Gagal memulai ujian');
+        setIsStarting(false);
+        return;
+      }
+      setAttempt(data.attempt);
+      setQuestions(data.questions ?? []);
+      setAnswers(new Array((data.questions ?? []).length).fill(-1));
+      setFeedback({});
+      setCurrentQuestion(0);
+      setTimeLeft((data.exam?.duration ?? selectedExam.duration) * 60);
+      setShowExplanation(false);
+      setReviewQuestions([]);
+      setReviewAnswers([]);
+      setExamState('exam');
+    } catch {
+      setExamError('Gagal memulai ujian');
+    } finally {
+      setIsStarting(false);
+    }
   };
 
-  const handleAnswer = (answerIndex: number) => {
-    if (!selectedExam) return;
-    const newAnswers = [...answers];
-    newAnswers[currentQuestion] = answerIndex;
-    setAnswers(newAnswers);
+  const handleAnswer = async (answerIndex: number) => {
+    if (!attempt || answers[currentQuestion] !== -1 || isAnswering) return;
+    setIsAnswering(true);
+    setExamError(null);
+    try {
+      const res = await fetch(`/api/simulasi/attempts/${encodeURIComponent(attempt.id)}/answers`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionIndex: currentQuestion, answerIndex }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setExamError(data.error || 'Gagal mengirim jawaban');
+        return;
+      }
+      setAnswers(prev => {
+        const next = [...prev];
+        next[currentQuestion] = answerIndex;
+        return next;
+      });
+      setFeedback(prev => ({
+        ...prev,
+        [currentQuestion]: {
+          correct: data.correct,
+          correctAnswer: data.correctAnswer,
+          explanation: data.explanation,
+          reference: data.reference,
+        },
+      }));
+    } catch {
+      setExamError('Gagal mengirim jawaban');
+    } finally {
+      setIsAnswering(false);
+    }
   };
 
   const nextQuestion = () => {
-    if (!selectedExam) return;
-    if (currentQuestion < selectedExam.questions.length - 1) {
+    if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
       setShowExplanation(false);
     }
@@ -109,11 +274,17 @@ export default function SimulasiPage() {
   const resetExam = () => {
     setExamState('list');
     setSelectedExam(null);
-    setCurrentQuestion(0);
+    setAttempt(null);
+    setQuestions([]);
     setAnswers([]);
+    setFeedback({});
+    setCurrentQuestion(0);
     setTimeLeft(0);
-    setStartTime(null);
     setShowExplanation(false);
+    setExamError(null);
+    setReviewQuestions([]);
+    setReviewAnswers([]);
+    loadExams();
   };
 
   const formatTime = (seconds: number) => {
@@ -128,44 +299,46 @@ export default function SimulasiPage() {
     return 'text-red-600';
   };
 
-  if (examState === 'exam' && selectedExam) {
-    const question = selectedExam.questions[currentQuestion];
+  if (examState === 'exam' && attempt && questions.length > 0) {
+    const question = questions[currentQuestion];
     const answeredCount = answers.filter(a => a !== -1).length;
 
     return (
       <ExamInterface
-        exam={selectedExam}
+        examTitle={selectedExam?.title ?? ''}
         question={question}
         currentQuestion={currentQuestion}
-        totalQuestions={selectedExam.questions.length}
+        totalQuestions={questions.length}
         answers={answers}
+        feedback={feedback}
         timeLeft={timeLeft}
         showExplanation={showExplanation}
         answeredCount={answeredCount}
+        isAnswering={isAnswering}
+        isFinishing={isFinishing}
+        error={examError}
         formatTime={formatTime}
         getTimeColor={getTimeColor}
         onAnswer={handleAnswer}
         onNext={nextQuestion}
         onPrev={prevQuestion}
-        onFinish={handleFinishExam}
+        onFinish={finishExam}
         onToggleExplanation={() => setShowExplanation(!showExplanation)}
         onJumpTo={(i) => { setCurrentQuestion(i); setShowExplanation(false); }}
       />
     );
   }
 
-  if (examState === 'result' && selectedExam && startTime) {
-    const timeSpent = Math.round((new Date().getTime() - startTime.getTime()) / 1000);
-    const result = calculateScore(selectedExam.questions, answers);
-
+  if (examState === 'result' && selectedExam && attempt) {
     return (
       <ExamResult
         exam={selectedExam}
-        result={result}
-        answers={answers}
-        timeSpent={timeSpent}
+        attempt={attempt}
+        questions={reviewQuestions}
+        answers={reviewAnswers}
         onRetry={beginExam}
         onBack={resetExam}
+        isStarting={isStarting}
       />
     );
   }
@@ -176,6 +349,8 @@ export default function SimulasiPage() {
         exam={selectedExam}
         onStart={beginExam}
         onBack={() => setExamState('list')}
+        isStarting={isStarting}
+        error={examError}
       />
     );
   }
@@ -214,8 +389,8 @@ export default function SimulasiPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             {[
-              { icon: BookOpen, value: EXAM_SETS.length, label: 'Paket Ujian' },
-              { icon: Target, value: EXAM_SETS.reduce((s, e) => s + e.questions.length, 0), label: 'Total Soal' },
+              { icon: BookOpen, value: exams.length, label: 'Paket Ujian' },
+              { icon: Target, value: exams.reduce((s, e) => s + e.questionCount, 0), label: 'Total Soal' },
               { icon: Clock, value: '60-90', label: 'Menit/Ujian' },
               { icon: Trophy, value: '70%', label: 'Nilai Lulus' },
             ].map((stat, i) => (
@@ -232,7 +407,7 @@ export default function SimulasiPage() {
       {/* Exam List */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Filter */}
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-8 flex-wrap">
           <Filter className="w-5 h-5 text-slate-500" />
           <span className="text-slate-600 font-medium">Filter Level:</span>
           {['all', 'operator', 'teknisi', 'supervisor', 'ahli'].map(level => (
@@ -245,16 +420,30 @@ export default function SimulasiPage() {
                   : 'bg-white text-slate-600 border border-slate-200 hover:border-violet-300'
               }`}
             >
-              {level === 'all' ? 'Semua' : getLevelLabel(level as ExamSet['level'])}
+              {level === 'all' ? 'Semua' : getLevelLabel(level)}
             </button>
           ))}
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredExams.map(exam => (
-            <ExamCard key={exam.id} exam={exam} onStart={() => startExam(exam)} />
-          ))}
-        </div>
+        {listError && (
+          <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            {listError}
+          </div>
+        )}
+
+        {isLoadingExams ? (
+          <div className="flex items-center justify-center py-24 text-slate-400 gap-2">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            Memuat paket ujian...
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredExams.map(exam => (
+              <ExamCard key={exam.id} exam={exam} onStart={() => startExam(exam)} />
+            ))}
+          </div>
+        )}
 
         {/* Tips Section */}
         <div className="mt-16 bg-gradient-to-r from-violet-50 to-indigo-50 rounded-2xl p-8 border border-violet-200">
@@ -313,7 +502,7 @@ export default function SimulasiPage() {
 }
 
 // ============ EXAM CARD ============
-function ExamCard({ exam, onStart }: { exam: ExamSet; onStart: () => void }) {
+function ExamCard({ exam, onStart }: { exam: ExamListItem; onStart: () => void }) {
   const colorMap: Record<string, string> = {
     orange: 'bg-orange-500',
     blue: 'bg-blue-500',
@@ -349,9 +538,9 @@ function ExamCard({ exam, onStart }: { exam: ExamSet; onStart: () => void }) {
           </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-5 text-center">
+        <div className="grid grid-cols-3 gap-3 mb-4 text-center">
           <div className="bg-slate-50 rounded-lg p-2">
-            <div className="font-bold text-slate-900">{exam.questions.length}</div>
+            <div className="font-bold text-slate-900">{exam.questionCount}</div>
             <div className="text-xs text-slate-500">Soal</div>
           </div>
           <div className="bg-slate-50 rounded-lg p-2">
@@ -364,12 +553,21 @@ function ExamCard({ exam, onStart }: { exam: ExamSet; onStart: () => void }) {
           </div>
         </div>
 
+        {exam.lastAttempt && (
+          <div className={`mb-4 rounded-lg p-2.5 text-xs font-medium flex items-center justify-between ${
+            exam.lastAttempt.passed ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+          }`}>
+            <span>Percobaan terakhir: {exam.lastAttempt.score}%</span>
+            <span>{exam.lastAttempt.passed ? 'Lulus' : 'Belum Lulus'}</span>
+          </div>
+        )}
+
         <button
           onClick={onStart}
           className="w-full flex items-center justify-center gap-2 bg-violet-600 text-white py-3 rounded-xl font-semibold text-sm hover:bg-violet-700 transition-colors"
         >
           <Play className="w-4 h-4" />
-          Mulai Simulasi
+          {exam.lastAttempt ? 'Ulangi Simulasi' : 'Mulai Simulasi'}
         </button>
       </div>
     </div>
@@ -377,7 +575,13 @@ function ExamCard({ exam, onStart }: { exam: ExamSet; onStart: () => void }) {
 }
 
 // ============ EXAM INTRO ============
-function ExamIntro({ exam, onStart, onBack }: { exam: ExamSet; onStart: () => void; onBack: () => void }) {
+function ExamIntro({ exam, onStart, onBack, isStarting, error }: {
+  exam: ExamListItem;
+  onStart: () => void;
+  onBack: () => void;
+  isStarting: boolean;
+  error: string | null;
+}) {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full p-8">
@@ -394,7 +598,7 @@ function ExamIntro({ exam, onStart, onBack }: { exam: ExamSet; onStart: () => vo
 
         <div className="grid grid-cols-2 gap-4 mb-8">
           {[
-            { icon: BookOpen, label: 'Jumlah Soal', value: `${exam.questions.length} soal` },
+            { icon: BookOpen, label: 'Jumlah Soal', value: `${exam.questionCount} soal` },
             { icon: Clock, label: 'Waktu', value: `${exam.duration} menit` },
             { icon: Target, label: 'Nilai Lulus', value: `${exam.passingScore}%` },
             { icon: GraduationCap, label: 'Level', value: getLevelLabel(exam.level) },
@@ -411,7 +615,7 @@ function ExamIntro({ exam, onStart, onBack }: { exam: ExamSet; onStart: () => vo
           ))}
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
@@ -427,12 +631,20 @@ function ExamIntro({ exam, onStart, onBack }: { exam: ExamSet; onStart: () => vo
           </div>
         </div>
 
+        {error && (
+          <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            {error}
+          </div>
+        )}
+
         <button
           onClick={onStart}
-          className="w-full flex items-center justify-center gap-2 bg-violet-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-violet-700 transition-colors"
+          disabled={isStarting}
+          className="w-full flex items-center justify-center gap-2 bg-violet-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-violet-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          <Play className="w-5 h-5" />
-          Mulai Ujian Sekarang
+          {isStarting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
+          {isStarting ? 'Menyiapkan Soal...' : 'Mulai Ujian Sekarang'}
         </button>
       </div>
     </div>
@@ -441,14 +653,18 @@ function ExamIntro({ exam, onStart, onBack }: { exam: ExamSet; onStart: () => vo
 
 // ============ EXAM INTERFACE ============
 function ExamInterface({
-  exam,
+  examTitle,
   question,
   currentQuestion,
   totalQuestions,
   answers,
+  feedback,
   timeLeft,
   showExplanation,
   answeredCount,
+  isAnswering,
+  isFinishing,
+  error,
   formatTime,
   getTimeColor,
   onAnswer,
@@ -458,14 +674,18 @@ function ExamInterface({
   onToggleExplanation,
   onJumpTo,
 }: {
-  exam: ExamSet;
-  question: ExamQuestion;
+  examTitle: string;
+  question: AttemptQuestion;
   currentQuestion: number;
   totalQuestions: number;
   answers: number[];
+  feedback: Record<number, AnswerFeedback>;
   timeLeft: number;
   showExplanation: boolean;
   answeredCount: number;
+  isAnswering: boolean;
+  isFinishing: boolean;
+  error: string | null;
   formatTime: (s: number) => string;
   getTimeColor: () => string;
   onAnswer: (i: number) => void;
@@ -477,7 +697,7 @@ function ExamInterface({
 }) {
   const selectedAnswer = answers[currentQuestion];
   const isAnswered = selectedAnswer !== -1;
-  const isCorrect = isAnswered && selectedAnswer === question.correctAnswer;
+  const currentFeedback = feedback[currentQuestion];
 
   const difficultyColor = {
     mudah: 'bg-green-100 text-green-700',
@@ -491,7 +711,7 @@ function ExamInterface({
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-slate-700">{exam.title}</span>
+            <span className="text-sm font-medium text-slate-700">{examTitle}</span>
             <span className="text-slate-400">|</span>
             <span className="text-sm text-slate-500">
               Soal {currentQuestion + 1}/{totalQuestions}
@@ -508,9 +728,10 @@ function ExamInterface({
             </div>
             <button
               onClick={onFinish}
-              className="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors"
+              disabled={isFinishing}
+              className="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors disabled:opacity-60"
             >
-              Selesai
+              {isFinishing ? 'Menyimpan...' : 'Selesai'}
             </button>
           </div>
         </div>
@@ -527,6 +748,13 @@ function ExamInterface({
       <div className="max-w-5xl mx-auto px-4 py-8 grid lg:grid-cols-4 gap-6">
         {/* Question */}
         <div className="lg:col-span-3 space-y-6">
+          {error && (
+            <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
           <div className="bg-white rounded-2xl p-6 shadow-sm">
             {/* Question Header */}
             <div className="flex items-center gap-3 mb-4">
@@ -551,10 +779,10 @@ function ExamInterface({
               {question.options.map((option, i) => {
                 let optionStyle = 'border-slate-200 bg-white hover:border-violet-300 hover:bg-violet-50';
 
-                if (isAnswered) {
-                  if (i === question.correctAnswer) {
+                if (isAnswered && currentFeedback) {
+                  if (i === currentFeedback.correctAnswer) {
                     optionStyle = 'border-green-500 bg-green-50';
-                  } else if (i === selectedAnswer && i !== question.correctAnswer) {
+                  } else if (i === selectedAnswer && i !== currentFeedback.correctAnswer) {
                     optionStyle = 'border-red-500 bg-red-50';
                   } else {
                     optionStyle = 'border-slate-200 bg-slate-50 opacity-60';
@@ -567,23 +795,23 @@ function ExamInterface({
                   <button
                     key={i}
                     onClick={() => !isAnswered && onAnswer(i)}
-                    disabled={isAnswered}
+                    disabled={isAnswered || isAnswering}
                     className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all ${optionStyle} ${!isAnswered ? 'cursor-pointer' : 'cursor-default'}`}
                   >
                     <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-                      isAnswered && i === question.correctAnswer
+                      isAnswered && currentFeedback && i === currentFeedback.correctAnswer
                         ? 'bg-green-500 text-white'
-                        : isAnswered && i === selectedAnswer && i !== question.correctAnswer
+                        : isAnswered && i === selectedAnswer && currentFeedback && i !== currentFeedback.correctAnswer
                         ? 'bg-red-500 text-white'
                         : 'bg-slate-100 text-slate-600'
                     }`}>
                       {String.fromCharCode(65 + i)}
                     </span>
                     <span className="text-slate-800">{option}</span>
-                    {isAnswered && i === question.correctAnswer && (
+                    {isAnswered && currentFeedback && i === currentFeedback.correctAnswer && (
                       <CheckCircle className="w-5 h-5 text-green-500 ml-auto flex-shrink-0" />
                     )}
-                    {isAnswered && i === selectedAnswer && i !== question.correctAnswer && (
+                    {isAnswered && currentFeedback && i === selectedAnswer && i !== currentFeedback.correctAnswer && (
                       <XCircle className="w-5 h-5 text-red-500 ml-auto flex-shrink-0" />
                     )}
                   </button>
@@ -591,25 +819,32 @@ function ExamInterface({
               })}
             </div>
 
+            {isAnswering && (
+              <div className="mt-4 flex items-center gap-2 text-sm text-slate-500">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Memeriksa jawaban...
+              </div>
+            )}
+
             {/* Result Feedback */}
-            {isAnswered && (
+            {isAnswered && currentFeedback && (
               <div className={`mt-4 p-3 rounded-xl flex items-center gap-2 ${
-                isCorrect ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                currentFeedback.correct ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
               }`}>
-                {isCorrect ? (
+                {currentFeedback.correct ? (
                   <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
                 ) : (
                   <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
                 )}
                 <span className="font-medium">
-                  {isCorrect ? 'Jawaban Benar! 🎉' : 'Jawaban Salah'}
+                  {currentFeedback.correct ? 'Jawaban Benar! 🎉' : 'Jawaban Salah'}
                 </span>
               </div>
             )}
           </div>
 
           {/* Explanation */}
-          {isAnswered && (
+          {isAnswered && currentFeedback && (
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <button
                 onClick={onToggleExplanation}
@@ -624,11 +859,11 @@ function ExamInterface({
 
               {showExplanation && (
                 <div className="px-5 pb-5 border-t border-slate-100">
-                  <p className="text-slate-700 mt-4 leading-relaxed">{question.explanation}</p>
-                  {question.reference && (
+                  <p className="text-slate-700 mt-4 leading-relaxed">{currentFeedback.explanation}</p>
+                  {currentFeedback.reference && (
                     <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
                       <span className="font-medium">Referensi:</span>
-                      <span className="bg-slate-100 px-2 py-0.5 rounded">{question.reference}</span>
+                      <span className="bg-slate-100 px-2 py-0.5 rounded">{currentFeedback.reference}</span>
                     </div>
                   )}
                 </div>
@@ -647,7 +882,7 @@ function ExamInterface({
               Sebelumnya
             </button>
 
-            {currentQuestion < (exam.questions.length - 1) ? (
+            {currentQuestion < (totalQuestions - 1) ? (
               <button
                 onClick={onNext}
                 className="flex items-center gap-2 px-5 py-3 bg-violet-600 text-white rounded-xl font-medium hover:bg-violet-700 transition-colors"
@@ -658,9 +893,10 @@ function ExamInterface({
             ) : (
               <button
                 onClick={onFinish}
-                className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors"
+                disabled={isFinishing}
+                className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors disabled:opacity-60"
               >
-                <CheckCircle className="w-5 h-5" />
+                {isFinishing ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
                 Selesai Ujian
               </button>
             )}
@@ -672,11 +908,11 @@ function ExamInterface({
           <div className="bg-white rounded-2xl p-5 shadow-sm sticky top-20">
             <h3 className="font-semibold text-slate-900 mb-4">Navigasi Soal</h3>
             <div className="grid grid-cols-5 gap-2">
-              {exam.questions.map((_, i) => {
+              {Array.from({ length: totalQuestions }).map((_, i) => {
                 let btnStyle = 'bg-slate-100 text-slate-600 hover:bg-slate-200';
                 if (i === currentQuestion) btnStyle = 'bg-violet-600 text-white';
-                else if (answers[i] !== -1) {
-                  btnStyle = answers[i] === exam.questions[i].correctAnswer
+                else if (answers[i] !== -1 && feedback[i]) {
+                  btnStyle = feedback[i].correct
                     ? 'bg-green-100 text-green-700'
                     : 'bg-red-100 text-red-700';
                 }
@@ -721,20 +957,26 @@ function ExamInterface({
 // ============ EXAM RESULT ============
 function ExamResult({
   exam,
-  result,
+  attempt,
+  questions,
   answers,
-  timeSpent,
   onRetry,
   onBack,
+  isStarting,
 }: {
-  exam: ExamSet;
-  result: { score: number; correct: number; total: number };
+  exam: ExamListItem;
+  attempt: AttemptSummary;
+  questions: ReviewQuestion[];
   answers: number[];
-  timeSpent: number;
   onRetry: () => void;
   onBack: () => void;
+  isStarting: boolean;
 }) {
-  const passed = result.score >= exam.passingScore;
+  const passed = attempt.passed ?? false;
+  const score = attempt.score ?? 0;
+  const correct = attempt.correctCount ?? 0;
+  const total = attempt.totalQuestions;
+  const timeSpent = attempt.timeSpentSeconds ?? 0;
   const minutes = Math.floor(timeSpent / 60);
   const seconds = timeSpent % 60;
 
@@ -757,16 +999,16 @@ function ExamResult({
               : `Nilai minimum kelulusan adalah ${exam.passingScore}%. Terus berlatih!`}
           </p>
 
-          <div className="text-7xl font-bold mb-2">{result.score}%</div>
+          <div className="text-7xl font-bold mb-2">{score}%</div>
           <div className="text-white/80">Nilai Anda</div>
 
           <div className="grid grid-cols-3 gap-4 mt-8">
             <div className="bg-white/20 rounded-xl p-4">
-              <div className="text-2xl font-bold">{result.correct}</div>
+              <div className="text-2xl font-bold">{correct}</div>
               <div className="text-white/70 text-sm">Benar</div>
             </div>
             <div className="bg-white/20 rounded-xl p-4">
-              <div className="text-2xl font-bold">{result.total - result.correct}</div>
+              <div className="text-2xl font-bold">{total - correct}</div>
               <div className="text-white/70 text-sm">Salah</div>
             </div>
             <div className="bg-white/20 rounded-xl p-4">
@@ -777,59 +1019,66 @@ function ExamResult({
         </div>
 
         {/* Review Answers */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-bold text-slate-900 mb-6">Review Jawaban</h2>
-          <div className="space-y-4">
-            {exam.questions.map((q, i) => {
-              const userAnswer = answers[i];
-              const isCorrect = userAnswer === q.correctAnswer;
+        {questions.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-bold text-slate-900 mb-6">Review Jawaban</h2>
+            <div className="space-y-4">
+              {questions.map((q, i) => {
+                const userAnswer = answers[i] ?? -1;
+                const isCorrect = q.correctAnswer !== undefined && userAnswer === q.correctAnswer;
 
-              return (
-                <div key={q.id} className={`rounded-xl p-4 border-2 ${
-                  isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
-                }`}>
-                  <div className="flex items-start gap-3">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      isCorrect ? 'bg-green-500' : 'bg-red-500'
-                    }`}>
-                      {isCorrect
-                        ? <CheckCircle className="w-4 h-4 text-white" />
-                        : <XCircle className="w-4 h-4 text-white" />
-                      }
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900 mb-2">
-                        <span className="text-slate-500 mr-2">Soal {i + 1}.</span>
-                        {q.question}
-                      </p>
-                      {!isCorrect && (
-                        <div className="space-y-1 text-sm">
-                          <p className="text-red-700">
-                            <span className="font-medium">Jawaban Anda:</span>{' '}
-                            {userAnswer !== -1 ? q.options[userAnswer] : 'Tidak dijawab'}
-                          </p>
-                          <p className="text-green-700">
-                            <span className="font-medium">Jawaban Benar:</span>{' '}
-                            {q.options[q.correctAnswer]}
-                          </p>
-                        </div>
-                      )}
-                      <p className="text-slate-600 text-sm mt-2 italic">{q.explanation}</p>
+                return (
+                  <div key={q.id} className={`rounded-xl p-4 border-2 ${
+                    isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        isCorrect ? 'bg-green-500' : 'bg-red-500'
+                      }`}>
+                        {isCorrect
+                          ? <CheckCircle className="w-4 h-4 text-white" />
+                          : <XCircle className="w-4 h-4 text-white" />
+                        }
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900 mb-2">
+                          <span className="text-slate-500 mr-2">Soal {i + 1}.</span>
+                          {q.question}
+                        </p>
+                        {!isCorrect && (
+                          <div className="space-y-1 text-sm">
+                            <p className="text-red-700">
+                              <span className="font-medium">Jawaban Anda:</span>{' '}
+                              {userAnswer !== -1 ? q.options[userAnswer] : 'Tidak dijawab'}
+                            </p>
+                            {q.correctAnswer !== undefined && (
+                              <p className="text-green-700">
+                                <span className="font-medium">Jawaban Benar:</span>{' '}
+                                {q.options[q.correctAnswer]}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        {q.explanation && (
+                          <p className="text-slate-600 text-sm mt-2 italic">{q.explanation}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-4">
           <button
             onClick={onRetry}
-            className="flex-1 flex items-center justify-center gap-2 bg-violet-600 text-white py-4 rounded-xl font-bold hover:bg-violet-700 transition-colors"
+            disabled={isStarting}
+            className="flex-1 flex items-center justify-center gap-2 bg-violet-600 text-white py-4 rounded-xl font-bold hover:bg-violet-700 transition-colors disabled:opacity-60"
           >
-            <RotateCcw className="w-5 h-5" />
+            {isStarting ? <Loader2 className="w-5 h-5 animate-spin" /> : <RotateCcw className="w-5 h-5" />}
             Ulangi Ujian
           </button>
           <button

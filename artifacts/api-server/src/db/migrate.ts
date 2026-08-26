@@ -6,8 +6,11 @@ import {
   radarArticles,
   projectWorkspaceMembers,
   projectWorkspaceInvitations,
+  examSets,
+  examQuestions,
 } from "./schema";
 import { sql } from "drizzle-orm";
+import { SKK_EXAM_BANK } from "../data/skk-exam-bank";
 
 export function initializeDatabase() {
   try {
@@ -211,6 +214,91 @@ export function initializeDatabase() {
     db.run(sql`DROP INDEX IF EXISTS evidence_mappings_document_requirement_entity_unique`);
     db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS evidence_mappings_document_requirement_entity_type_unique
       ON evidence_mappings(document_id, requirement_id, entity_id, entity_type)`);
+
+    db.run(sql`CREATE TABLE IF NOT EXISTS exam_sets (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      category TEXT NOT NULL,
+      level TEXT NOT NULL,
+      skkni_code TEXT,
+      duration INTEGER NOT NULL,
+      passing_score INTEGER NOT NULL,
+      icon TEXT NOT NULL,
+      color TEXT NOT NULL,
+      order_index INTEGER NOT NULL DEFAULT 0
+    )`);
+
+    db.run(sql`CREATE TABLE IF NOT EXISTS exam_questions (
+      id TEXT PRIMARY KEY,
+      exam_id TEXT NOT NULL REFERENCES exam_sets(id) ON DELETE CASCADE,
+      question TEXT NOT NULL,
+      options TEXT NOT NULL,
+      correct_answer INTEGER NOT NULL,
+      explanation TEXT NOT NULL,
+      topic TEXT NOT NULL,
+      difficulty TEXT NOT NULL,
+      reference TEXT,
+      order_index INTEGER NOT NULL DEFAULT 0
+    )`);
+    db.run(sql`CREATE INDEX IF NOT EXISTS exam_questions_exam_id_idx ON exam_questions(exam_id)`);
+
+    db.run(sql`CREATE TABLE IF NOT EXISTS exam_attempts (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      exam_id TEXT NOT NULL REFERENCES exam_sets(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'in_progress',
+      answers TEXT NOT NULL DEFAULT '[]',
+      score INTEGER,
+      correct_count INTEGER,
+      total_questions INTEGER NOT NULL,
+      passed INTEGER,
+      started_at INTEGER NOT NULL,
+      submitted_at INTEGER,
+      time_spent_seconds INTEGER
+    )`);
+    db.run(sql`CREATE INDEX IF NOT EXISTS exam_attempts_user_exam_idx ON exam_attempts(user_id, exam_id)`);
+
+    // Seed the SKK exam bank. Each row is inserted with onConflictDoNothing
+    // keyed on its own primary key, so re-running this on every boot is safe
+    // (existing rows are left untouched) while still picking up any new exam
+    // sets/questions added to SKK_EXAM_BANK in future deploys.
+    for (const [setIndex, examSet] of SKK_EXAM_BANK.entries()) {
+      db.insert(examSets)
+        .values({
+          id: examSet.id,
+          title: examSet.title,
+          description: examSet.description,
+          category: examSet.category,
+          level: examSet.level,
+          skkniCode: examSet.skkniCode ?? null,
+          duration: examSet.duration,
+          passingScore: examSet.passingScore,
+          icon: examSet.icon,
+          color: examSet.color,
+          orderIndex: setIndex,
+        })
+        .onConflictDoNothing({ target: examSets.id })
+        .run();
+
+      for (const [questionIndex, question] of examSet.questions.entries()) {
+        db.insert(examQuestions)
+          .values({
+            id: question.id,
+            examId: examSet.id,
+            question: question.question,
+            options: JSON.stringify(question.options),
+            correctAnswer: question.correctAnswer,
+            explanation: question.explanation,
+            topic: question.topic,
+            difficulty: question.difficulty,
+            reference: question.reference ?? null,
+            orderIndex: questionIndex,
+          })
+          .onConflictDoNothing({ target: examQuestions.id })
+          .run();
+      }
+    }
 
     console.log("[DB] Database initialized");
   } catch (err) {

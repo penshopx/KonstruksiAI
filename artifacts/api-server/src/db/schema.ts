@@ -230,3 +230,54 @@ export const evidenceMappings = sqliteTable("evidence_mappings", {
 
 export type EvidenceMappingRow = typeof evidenceMappings.$inferSelect;
 export type NewEvidenceMappingRow = typeof evidenceMappings.$inferInsert;
+
+export const examSets = sqliteTable("exam_sets", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(),
+  level: text("level").notNull(),
+  skkniCode: text("skkni_code"),
+  duration: integer("duration").notNull(),
+  passingScore: integer("passing_score").notNull(),
+  icon: text("icon").notNull(),
+  color: text("color").notNull(),
+  orderIndex: integer("order_index").notNull().default(0),
+});
+
+export type ExamSetRow = typeof examSets.$inferSelect;
+export type NewExamSetRow = typeof examSets.$inferInsert;
+
+export const examQuestions = sqliteTable("exam_questions", {
+  id: text("id").primaryKey(),
+  examId: text("exam_id").notNull().references(() => examSets.id, { onDelete: "cascade" }),
+  question: text("question").notNull(),
+  options: text("options").notNull(),
+  correctAnswer: integer("correct_answer").notNull(),
+  explanation: text("explanation").notNull(),
+  topic: text("topic").notNull(),
+  difficulty: text("difficulty").notNull(),
+  reference: text("reference"),
+  orderIndex: integer("order_index").notNull().default(0),
+});
+
+export type ExamQuestionRow = typeof examQuestions.$inferSelect;
+export type NewExamQuestionRow = typeof examQuestions.$inferInsert;
+
+export const examAttempts = sqliteTable("exam_attempts", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  examId: text("exam_id").notNull().references(() => examSets.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("in_progress"),
+  answers: text("answers").notNull().default("[]"),
+  score: integer("score"),
+  correctCount: integer("correct_count"),
+  totalQuestions: integer("total_questions").notNull(),
+  passed: integer("passed", { mode: "boolean" }),
+  startedAt: integer("started_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  submittedAt: integer("submitted_at", { mode: "timestamp" }),
+  timeSpentSeconds: integer("time_spent_seconds"),
+});
+
+export type ExamAttemptRow = typeof examAttempts.$inferSelect;
+export type NewExamAttemptRow = typeof examAttempts.$inferInsert;
