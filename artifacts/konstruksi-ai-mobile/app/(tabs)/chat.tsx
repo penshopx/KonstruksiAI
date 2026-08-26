@@ -23,7 +23,12 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useColors } from '@/hooks/useColors';
 import { useChat, AGENTS, type Message } from '@/context/ChatContext';
-import { apiChat, type ChatAttachment, type ConversationSummary } from '@/lib/api';
+import {
+  apiChat,
+  MAX_ATTACHMENT_SIZE,
+  type ChatAttachment,
+  type ConversationSummary,
+} from '@/lib/api';
 
 // ─── Agent selector chip ─────────────────────────────────────────────────────
 
@@ -248,10 +253,12 @@ const emptyStyles = StyleSheet.create({
 function AttachmentPreview({
   name,
   type,
+  sizeBytes,
   onRemove,
 }: {
   name: string;
   type?: string;
+  sizeBytes?: number;
   onRemove: () => void;
 }) {
   const colors = useColors();
@@ -260,7 +267,7 @@ function AttachmentPreview({
     <View style={[attachStyles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <Ionicons name={isImageAttachment ? 'camera' : 'document-attach'} size={16} color="#f97316" />
       <Text numberOfLines={1} style={[attachStyles.name, { color: colors.foreground }]}>
-        {name}
+        {sizeBytes !== undefined ? `${name} · ${formatFileSize(sizeBytes)}` : name}
       </Text>
       <TouchableOpacity onPress={onRemove} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
         <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
@@ -287,6 +294,13 @@ const attachStyles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
   },
 });
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 // ─── Conversation history sheet ───────────────────────────────────────────────
 
@@ -650,13 +664,30 @@ export default function ChatScreen() {
       const asset = result.assets[0];
       const { uri, name, mimeType } = asset;
 
+      if (typeof asset.size === 'number' && asset.size > MAX_ATTACHMENT_SIZE) {
+        Alert.alert(
+          'Dokumen terlalu besar',
+          'Dokumen terlalu besar (maks 10 MB). Coba kompres PDF terlebih dahulu.',
+        );
+        return;
+      }
+
       // Read file as base64 ('base64' string accepted by legacy API)
       const base64 = await FileSystem.readAsStringAsync(uri, {
         encoding: 'base64' as FileSystem.EncodingType,
       });
+      const sizeBytes = asset.size ?? Math.floor(base64.replace(/=+$/, '').length * 0.75);
+
+      if (sizeBytes > MAX_ATTACHMENT_SIZE) {
+        Alert.alert(
+          'Dokumen terlalu besar',
+          'Dokumen terlalu besar (maks 10 MB). Coba kompres PDF terlebih dahulu.',
+        );
+        return;
+      }
 
       const type = mimeType ?? 'application/octet-stream';
-      setPendingAttachment({ name: name ?? 'document', type, base64 });
+      setPendingAttachment({ name: name ?? 'document', type, base64, sizeBytes });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch {
       Alert.alert('Gagal', 'Tidak dapat membaca dokumen. Coba lagi.');
@@ -707,10 +738,21 @@ export default function ChatScreen() {
       const base64 = asset.base64 ?? await FileSystem.readAsStringAsync(asset.uri, {
         encoding: 'base64' as FileSystem.EncodingType,
       });
+      const sizeBytes = asset.fileSize ?? Math.floor(base64.replace(/=+$/, '').length * 0.75);
+
+      if (sizeBytes > MAX_ATTACHMENT_SIZE) {
+        Alert.alert(
+          'Dokumen terlalu besar',
+          'Dokumen terlalu besar (maks 10 MB). Coba kompres PDF terlebih dahulu.',
+        );
+        return;
+      }
+
       setPendingAttachment({
         name: asset.fileName ?? `scan-${Date.now()}.jpg`,
         type,
         base64,
+        sizeBytes,
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
@@ -890,6 +932,7 @@ export default function ChatScreen() {
           <AttachmentPreview
             name={pendingAttachment.name}
             type={pendingAttachment.type}
+            sizeBytes={pendingAttachment.sizeBytes}
             onRemove={() => setPendingAttachment(null)}
           />
         )}

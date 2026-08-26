@@ -2,6 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE_URL = `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`;
 
+/** Maximum decoded attachment size accepted by the chat API. */
+export const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
+
 export async function getAuthToken(): Promise<string | null> {
   return AsyncStorage.getItem('auth_token');
 }
@@ -97,6 +100,8 @@ export interface ChatAttachment {
     | 'image/webp'
     | (string & {});
   base64: string;
+  /** Local-only metadata used to show the attachment size in the preview. */
+  sizeBytes?: number;
 }
 
 export async function apiChat(
@@ -104,10 +109,18 @@ export async function apiChat(
   agentId: string,
   attachment?: ChatAttachment,
 ): Promise<ChatResponse> {
+  const attachmentPayload = attachment
+    ? {
+        name: attachment.name,
+        type: attachment.type,
+        base64: attachment.base64,
+      }
+    : undefined;
+
   return request<ChatResponse>('/chat', {
     method: 'POST',
     // stream: false → server returns JSON (SSE streaming not supported in React Native fetch)
-    body: JSON.stringify({ messages, agentId, stream: false, attachment }),
+    body: JSON.stringify({ messages, agentId, stream: false, attachment: attachmentPayload }),
   });
 }
 
