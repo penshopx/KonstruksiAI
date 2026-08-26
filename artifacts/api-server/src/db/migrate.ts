@@ -85,6 +85,7 @@ export function initializeDatabase() {
       agent_id TEXT,
       domain_fit_level TEXT,
       domain_fit_reason TEXT,
+      recommended_agent_id TEXT,
       attachment_name TEXT,
       attachment_type TEXT,
       created_at INTEGER NOT NULL
@@ -97,6 +98,7 @@ export function initializeDatabase() {
       ["agent_id", "agent_id TEXT"],
       ["domain_fit_level", "domain_fit_level TEXT"],
       ["domain_fit_reason", "domain_fit_reason TEXT"],
+      ["recommended_agent_id", "recommended_agent_id TEXT"],
     ]) {
       if (!messageColumns.has(name)) {
         db.run(sql.raw(`ALTER TABLE messages ADD COLUMN ${definition}`));

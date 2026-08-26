@@ -4,6 +4,7 @@ import { eq, desc, and, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { getSessionFromRequest } from "../../lib/auth";
 import { hasActiveWorkspaceAccess } from "../../lib/workspace-access";
+import { isValidAgentId } from "../../lib/agent-roster";
 
 const router = Router();
 
@@ -233,6 +234,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
       content,
       agentId,
       domainFit,
+      recommendedAgentId,
       attachmentName,
       attachmentType,
       clientMessageId,
@@ -271,6 +273,9 @@ router.post("/conversations/:id/messages", async (req, res) => {
         : null,
       domainFitReason: role === "assistant" && typeof domainFit?.reason === "string"
         ? domainFit.reason.slice(0, 500)
+        : null,
+      recommendedAgentId: role === "assistant" && isValidAgentId(recommendedAgentId)
+        ? recommendedAgentId
         : null,
       attachmentName: attachmentName || null,
       attachmentType: attachmentType || null,

@@ -102,6 +102,7 @@ export const messages = sqliteTable("messages", {
   agentId: text("agent_id"),
   domainFitLevel: text("domain_fit_level"),
   domainFitReason: text("domain_fit_reason"),
+  recommendedAgentId: text("recommended_agent_id"),
   attachmentName: text("attachment_name"),
   attachmentType: text("attachment_type"),
   createdAt: integer("created_at", { mode: "timestamp" })

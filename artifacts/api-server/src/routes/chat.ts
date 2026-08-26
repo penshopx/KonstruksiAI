@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import { getSessionFromRequest } from "../lib/auth";
 import { db, projectWorkspaces } from "../db";
 import { hasActiveWorkspaceAccess } from "../lib/workspace-access";
+import { AGENT_NAMES } from "../lib/agent-roster";
 import { eq } from "drizzle-orm";
 import OpenAI from "openai";
 // pdf-parse v2 exports a PDFParse class via its CJS bundle.
@@ -556,18 +557,6 @@ interface DomainFit {
   level: DomainFitLevel;
   reason: string;
 }
-
-const AGENT_NAMES: Record<string, string> = {
-  general: "KonstruksiAI",
-  estimator: "Estimator RAB",
-  tender: "Tender Expert",
-  k3: "Ahli K3",
-  perijinan: "Konsultan Perijinan",
-  energi: "EBT Specialist",
-  migas: "Migas Expert",
-  kontrak: "Legal Konstruksi",
-  electrical: "Electrical Engineer",
-};
 
 const RECOMMENDED_AGENT_MARKER = /\[\[RECOMMENDED_AGENT:\s*([^\]]+?)\s*\]\]/gi;
 

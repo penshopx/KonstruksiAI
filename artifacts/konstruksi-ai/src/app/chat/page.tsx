@@ -1877,6 +1877,7 @@ export default function ChatPage() {
               agentId?: string;
               domainFitLevel?: "high" | "medium" | "low";
               domainFitReason?: string;
+              recommendedAgentId?: string;
               attachmentName?: string;
               attachmentType?: string;
               createdAt: string | number;
@@ -1888,6 +1889,12 @@ export default function ChatPage() {
               agentId: m.role === "assistant" ? (m.agentId || existing.agentId) : undefined,
               domainFit: m.role === "assistant" && m.domainFitLevel && m.domainFitReason
                 ? { level: m.domainFitLevel, reason: m.domainFitReason }
+                : undefined,
+              // Recommendations are re-validated against the current agent roster so a
+              // retired/renamed agent id from an old row never surfaces a dead action.
+              recommendedAgentId: m.role === "assistant" && m.recommendedAgentId
+                && AGENTS.some(agent => agent.id === m.recommendedAgentId)
+                ? m.recommendedAgentId
                 : undefined,
               wordCount: m.role === "assistant" ? countWords(m.content) : undefined,
               attachment: m.attachmentName ? {
