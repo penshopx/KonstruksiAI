@@ -51,6 +51,11 @@ export async function listProjectWorkspaces(includeArchived = false): Promise<Pr
   return data.workspaces;
 }
 
+export async function getProjectWorkspace(id: string): Promise<ProjectWorkspace> {
+  const data = await request<{ workspace: ProjectWorkspace }>(`/api/project-workspaces/${encodeURIComponent(id)}`);
+  return data.workspace;
+}
+
 export async function createProjectWorkspace(payload: ProjectWorkspacePayload): Promise<ProjectWorkspace> {
   const data = await request<{ workspace: ProjectWorkspace }>("/api/project-workspaces", {
     method: "POST",

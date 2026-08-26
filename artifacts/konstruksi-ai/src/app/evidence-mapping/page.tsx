@@ -13,6 +13,7 @@ import {
   getValidationStatusColor
 } from "@/lib/evidence-mapping";
 import NavbarAuth from "@/components/NavbarAuth";
+import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
 
 const TABS = [
   { id: "upload", label: "📤 Upload Documents", icon: "📤" },
@@ -61,6 +62,7 @@ export default function EvidenceMappingPage() {
   const [requirementType, setRequirementType] = useState("sbu");
   const [complianceResult, setComplianceResult] = useState<EvidenceMappingResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const workspaceContext = useWorkspaceContext();
 
   const handleFileUpload = async (files: FileList) => {
     setIsProcessing(true);
@@ -507,6 +509,7 @@ export default function EvidenceMappingPage() {
     <div className="min-h-screen bg-slate-900">
       <NavbarAuth />
       <div className="max-w-7xl mx-auto px-4 py-8">
+        <WorkspaceContextBanner context={workspaceContext} />
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-100 mb-2">🔗 Evidence Mapping</h1>
           <p className="text-slate-400">Centralized document management dan mapping eviden otomatis</p>

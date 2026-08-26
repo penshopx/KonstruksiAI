@@ -44,6 +44,37 @@ router.get("/project-workspaces", async (req, res) => {
   }
 });
 
+router.get("/project-workspaces/:id", async (req, res) => {
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  const workspaceId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!workspaceId) {
+    res.status(400).json({ error: "Ruang proyek tidak valid" });
+    return;
+  }
+
+  try {
+    const [workspace] = await db
+      .select()
+      .from(projectWorkspaces)
+      .where(and(eq(projectWorkspaces.id, workspaceId), eq(projectWorkspaces.userId, session.userId)));
+
+    if (!workspace) {
+      res.status(404).json({ error: "Ruang proyek tidak ditemukan" });
+      return;
+    }
+
+    res.json({ workspace });
+  } catch (err) {
+    req.log.error({ err }, "GET /project-workspaces/:id error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/project-workspaces", async (req, res) => {
   const session = await getSessionFromRequest(req);
   if (!session) {

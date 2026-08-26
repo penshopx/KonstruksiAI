@@ -28,6 +28,7 @@ import {
   Star,
   Filter,
 } from 'lucide-react';
+import { WorkspaceContextBanner, useWorkspaceContext } from '@/lib/workspace-context';
 
 type ExamState = 'list' | 'intro' | 'exam' | 'result';
 
@@ -40,6 +41,7 @@ export default function SimulasiPage() {
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [filterLevel, setFilterLevel] = useState<string>('all');
+  const workspaceContext = useWorkspaceContext();
 
   const filteredExams = EXAM_SETS.filter(e =>
     filterLevel === 'all' || e.level === filterLevel
@@ -181,6 +183,9 @@ export default function SimulasiPage() {
   // Exam List
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+        <WorkspaceContextBanner context={workspaceContext} />
+      </div>
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-violet-700 via-purple-700 to-indigo-800 py-16 lg:py-24">
         <div className="absolute inset-0 opacity-10">

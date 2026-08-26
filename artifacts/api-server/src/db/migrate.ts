@@ -59,6 +59,13 @@ export function initializeDatabase() {
         db.run(sql.raw(`ALTER TABLE messages ADD COLUMN ${definition}`));
       }
     }
+    const conversationColumns = new Set(
+      (db.all(sql`PRAGMA table_info(conversations)`) as Array<{ name: string }>)
+        .map(({ name }) => name),
+    );
+    if (!conversationColumns.has("workspace_id")) {
+      db.run(sql.raw("ALTER TABLE conversations ADD COLUMN workspace_id TEXT REFERENCES project_workspaces(id) ON DELETE SET NULL"));
+    }
 
     db.run(sql`CREATE TABLE IF NOT EXISTS radar_articles (
       id TEXT PRIMARY KEY,

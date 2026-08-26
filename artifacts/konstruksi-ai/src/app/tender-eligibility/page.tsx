@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   assessTenderEligibility,
   createMockTenderDocument,
@@ -8,6 +8,7 @@ import {
   type TenderDocument
 } from "@/lib/tender-eligibility";
 import NavbarAuth from "@/components/NavbarAuth";
+import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
 
 const TABS = [
   { id: "input", label: "📋 Input Data", icon: "📋" },
@@ -36,6 +37,12 @@ export default function TenderEligibilityCheckerPage() {
   const [personnelIds, setPersonnelIds] = useState<string[]>(["P-001", "P-002", "P-003"]);
   const [evidence, setEvidence] = useState<Record<string, any>>({});
   const [eligibilityCheck, setEligibilityCheck] = useState<TenderEligibilityCheck | null>(null);
+  const workspaceContext = useWorkspaceContext();
+
+  useEffect(() => {
+    if (!workspaceContext.workspace) return;
+    setTenderDocument((current) => ({ ...current, title: workspaceContext.workspace!.name }));
+  }, [workspaceContext.workspace?.id]);
 
   const handleRunAnalysis = () => {
     const result = assessTenderEligibility(businessEntityId, tenderDocument, personnelIds, evidence);
@@ -557,6 +564,7 @@ export default function TenderEligibilityCheckerPage() {
     <div className="min-h-screen bg-slate-900">
       <NavbarAuth />
       <div className="max-w-7xl mx-auto px-4 py-8">
+        <WorkspaceContextBanner context={workspaceContext} />
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-100 mb-2">🎯 Tender Eligibility Checker</h1>
           <p className="text-slate-400">Analisis kelayakan badan usaha untuk mengikuti tender konstruksi</p>

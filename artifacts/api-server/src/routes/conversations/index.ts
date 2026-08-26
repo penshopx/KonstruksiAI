@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, conversations, messages } from "../../db";
+import { db, conversations, messages, projectWorkspaces } from "../../db";
 import { eq, desc, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { getSessionFromRequest } from "../../lib/auth";
@@ -31,20 +31,37 @@ router.post("/conversations", async (req, res) => {
   if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   try {
-    const { title, agentId } = req.body;
+    const { title, agentId, workspaceId } = req.body;
+    let validatedWorkspaceId: string | null = null;
+    if (workspaceId !== undefined && workspaceId !== null) {
+      if (typeof workspaceId !== "string" || !workspaceId.trim()) {
+        res.status(400).json({ error: "Konteks ruang proyek tidak valid" });
+        return;
+      }
+      const [workspace] = await db
+        .select({ id: projectWorkspaces.id })
+        .from(projectWorkspaces)
+        .where(and(eq(projectWorkspaces.id, workspaceId), eq(projectWorkspaces.userId, session.userId)));
+      if (!workspace) {
+        res.status(404).json({ error: "Ruang proyek tidak ditemukan" });
+        return;
+      }
+      validatedWorkspaceId = workspace.id;
+    }
     const id = randomUUID();
     const now = new Date();
 
     await db.insert(conversations).values({
       id,
       userId: session.userId,
+      workspaceId: validatedWorkspaceId,
       title: title || "Percakapan Baru",
       agentId: agentId || "general",
       createdAt: now,
       updatedAt: now,
     });
 
-    res.json({ id, title: title || "Percakapan Baru", agentId: agentId || "general" });
+    res.json({ id, title: title || "Percakapan Baru", agentId: agentId || "general", workspaceId: validatedWorkspaceId });
   } catch (err) {
     req.log.error({ err }, "POST /conversations error");
     res.status(500).json({ error: "Internal server error" });

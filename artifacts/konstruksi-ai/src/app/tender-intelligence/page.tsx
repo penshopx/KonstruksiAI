@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   TENDER_REQUIREMENTS,
   TENDER_CHECKLISTS,
@@ -12,6 +12,7 @@ import {
   type RiskAssessment
 } from "@/lib/tender-intelligence";
 import NavbarAuth from "@/components/NavbarAuth";
+import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
 
 const TABS = [
   { id: "overview", label: "📊 Overview", icon: "📊" },
@@ -41,6 +42,13 @@ export default function TenderIntelligencePage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [projectName, setProjectName] = useState("Pembangunan Gedung Kantor");
   const [checklistState, setChecklistState] = useState<Record<string, boolean>>({});
+  const workspaceContext = useWorkspaceContext();
+
+  useEffect(() => {
+    if (workspaceContext.workspace) {
+      setProjectName(workspaceContext.workspace.name);
+    }
+  }, [workspaceContext.workspace?.id]);
 
   // Mock completeness data
   const mockChecks = useMemo<DocumentCompletenessCheck[]>(() => [
@@ -282,6 +290,7 @@ export default function TenderIntelligencePage() {
     <div className="min-h-screen bg-slate-900">
       <NavbarAuth />
       <div className="max-w-7xl mx-auto px-4 py-8">
+        <WorkspaceContextBanner context={workspaceContext} />
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-100 mb-2">🎯 Tender Intelligence</h1>
           <p className="text-slate-400">Analisis mendalam dokumen tender dan persiapan penawaran yang optimal</p>

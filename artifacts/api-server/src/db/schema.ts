@@ -17,6 +17,7 @@ export type NewUser = typeof users.$inferInsert;
 export const conversations = sqliteTable("conversations", {
   id: text("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").references(() => projectWorkspaces.id, { onDelete: "set null" }),
   title: text("title").notNull().default("Percakapan Baru"),
   agentId: text("agent_id").notNull().default("general"),
   label: text("label"),

@@ -32,6 +32,7 @@ import {
   updateProjectWorkspace,
   type ProjectWorkspace,
 } from "@/lib/project-workspaces";
+import { withWorkspaceContext } from "@/lib/workspace-context";
 
 type Stage = {
   id: string;
@@ -263,17 +264,22 @@ export default function ProjectWorkspacePage() {
       .then((savedWorkspaces) => {
         if (!cancelled) {
           setWorkspaces(savedWorkspaces);
+          const requestedWorkspaceId = new URLSearchParams(window.location.search).get("workspace");
+          const requestedWorkspace = requestedWorkspaceId
+            ? savedWorkspaces.find((workspace) => workspace.id === requestedWorkspaceId)
+            : null;
           const latestActiveWorkspace = savedWorkspaces.find((workspace) => !workspace.archivedAt);
-          if (latestActiveWorkspace && !hasLocalDraftRef.current) {
-            const stageIndex = STAGES.findIndex((stage) => stage.id === latestActiveWorkspace.stageId);
-            setActiveWorkspaceId(latestActiveWorkspace.id);
-            setProjectName(latestActiveWorkspace.name);
-            setNotes(latestActiveWorkspace.notes);
+          const workspaceToResume = requestedWorkspace ?? latestActiveWorkspace;
+          if (workspaceToResume && !hasLocalDraftRef.current) {
+            const stageIndex = STAGES.findIndex((stage) => stage.id === workspaceToResume.stageId);
+            setActiveWorkspaceId(workspaceToResume.id);
+            setProjectName(workspaceToResume.name);
+            setNotes(workspaceToResume.notes);
             setActiveIndex(stageIndex >= 0 ? stageIndex : 0);
             setIsDirty(false);
             setResumeCandidate(null);
-          } else if (latestActiveWorkspace) {
-            setResumeCandidate(latestActiveWorkspace);
+          } else if (workspaceToResume) {
+            setResumeCandidate(workspaceToResume);
           }
           setAuthRequired(false);
         }
@@ -702,10 +708,11 @@ export default function ProjectWorkspacePage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {activeStage.actions.map((action) => {
                   const ActionIcon = action.icon;
+                  const canCarryContext = Boolean(activeWorkspace);
                   return (
                     <Link
                       key={action.href + action.label}
-                      href={action.href}
+                      href={withWorkspaceContext(action.href, activeWorkspace?.id)}
                       className="group rounded-2xl border border-slate-800 bg-slate-900/60 p-5 transition-all hover:-translate-y-0.5 hover:border-slate-600 hover:bg-slate-900"
                     >
                       <div className="flex items-start justify-between gap-4">
@@ -716,6 +723,11 @@ export default function ProjectWorkspacePage() {
                       </div>
                       <h3 className="mt-5 text-base font-semibold text-white">{action.label}</h3>
                       <p className="mt-2 text-sm leading-relaxed text-slate-500">{action.description}</p>
+                       <p className={`mt-3 text-[11px] font-medium ${canCarryContext ? "text-cyan-300" : "text-slate-600"}`}>
+                         {canCarryContext
+                           ? `Membawa konteks: ${displayName}`
+                           : "Simpan ruang proyek untuk membawa konteks pekerjaan."}
+                       </p>
                     </Link>
                   );
                 })}

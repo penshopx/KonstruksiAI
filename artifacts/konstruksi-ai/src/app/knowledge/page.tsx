@@ -13,6 +13,7 @@ import {
   type DocumentTemplate 
 } from "@/lib/knowledge";
 import NavbarAuth from "@/components/NavbarAuth";
+import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
 
 const TABS = [
   { id: "articles", label: "📚 Artikel", icon: "📚" },
@@ -156,6 +157,7 @@ export default function KnowledgePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("articles");
+  const workspaceContext = useWorkspaceContext();
 
   const filteredArticles = useMemo(() => {
     let articles = ARTICLES;
@@ -239,6 +241,7 @@ export default function KnowledgePage() {
       {/* Hero Section */}
       <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <WorkspaceContextBanner context={workspaceContext} />
           <div className="text-center max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
               📚 Knowledge Base

@@ -18,6 +18,7 @@ import {
   RefreshCw,
   ShieldCheck,
 } from "lucide-react";
+import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
 
 type RadarCategory = "kementerian" | "lpjk-regulasi" | "infrastruktur" | "tender-pengadaan";
 type CategoryFilter = "all" | RadarCategory;
@@ -164,6 +165,7 @@ export default function RadarKonstruksiPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const workspaceContext = useWorkspaceContext();
 
   const loadArticles = async (signal?: AbortSignal) => {
     const query = category === "all" ? "" : `?category=${encodeURIComponent(category)}`;
@@ -220,6 +222,7 @@ export default function RadarKonstruksiPage() {
       <main>
         <section className="border-b border-slate-800 bg-[radial-gradient(circle_at_top_right,_rgba(8,145,178,0.16),_transparent_42%),linear-gradient(135deg,#020617,#0f172a_55%,#172033)]">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+            <WorkspaceContextBanner context={workspaceContext} />
             <div className="grid gap-10 lg:grid-cols-[1fr_340px] lg:items-end">
               <div>
                 <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">
