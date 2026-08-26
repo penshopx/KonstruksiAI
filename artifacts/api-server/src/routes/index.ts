@@ -15,6 +15,7 @@ import learnRouter from "./learn";
 import solverRouter from "./solver";
 import tenderIntelligenceRouter from "./tender-intelligence";
 import legalLicensingRouter from "./legal-licensing";
+import evidenceMappingRouter from "./evidence-mapping";
 
 const router: IRouter = Router();
 
@@ -34,5 +35,6 @@ router.use(learnRouter);
 router.use(solverRouter);
 router.use(tenderIntelligenceRouter);
 router.use(legalLicensingRouter);
+router.use(evidenceMappingRouter);
 
 export default router;

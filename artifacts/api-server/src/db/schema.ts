@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex, blob } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -187,3 +187,46 @@ export const legalLicenses = sqliteTable("legal_licenses", {
 
 export type LegalLicenseRow = typeof legalLicenses.$inferSelect;
 export type NewLegalLicenseRow = typeof legalLicenses.$inferInsert;
+
+export const evidenceDocuments = sqliteTable("evidence_documents", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  filename: text("filename").notNull(),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  size: integer("size").notNull(),
+  checksum: text("checksum").notNull(),
+  data: blob("data", { mode: "buffer" }),
+  extractedText: text("extracted_text"),
+  status: text("status").notNull().default("uploaded"),
+  processingError: text("processing_error"),
+  uploadedAt: integer("uploaded_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export type EvidenceDocumentRow = typeof evidenceDocuments.$inferSelect;
+export type NewEvidenceDocumentRow = typeof evidenceDocuments.$inferInsert;
+
+export const evidenceMappings = sqliteTable("evidence_mappings", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  documentId: text("document_id").notNull().references(() => evidenceDocuments.id, { onDelete: "cascade" }),
+  entityId: text("entity_id").notNull(),
+  entityType: text("entity_type").notNull(),
+  requirementId: text("requirement_id").notNull(),
+  requirementType: text("requirement_type").notNull(),
+  mappingConfidence: integer("mapping_confidence").notNull().default(0),
+  extractedEvidence: text("extracted_evidence").notNull().default("[]"),
+  validationStatus: text("validation_status").notNull().default("pending"),
+  validationNotes: text("validation_notes").notNull().default(""),
+  mappedBy: text("mapped_by").notNull().default("system"),
+  mappedAt: integer("mapped_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  lastReviewedBy: text("last_reviewed_by"),
+  lastReviewedAt: integer("last_reviewed_at", { mode: "timestamp" }),
+  auditTrail: text("audit_trail").notNull().default("[]"),
+}, (table) => ({
+  documentRequirementEntityUnique: uniqueIndex("evidence_mappings_document_requirement_entity_unique")
+    .on(table.documentId, table.requirementId, table.entityId, table.entityType),
+}));
+
+export type EvidenceMappingRow = typeof evidenceMappings.$inferSelect;
+export type NewEvidenceMappingRow = typeof evidenceMappings.$inferInsert;

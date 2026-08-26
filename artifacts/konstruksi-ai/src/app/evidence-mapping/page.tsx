@@ -1,11 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  processDocument,
-  mapEvidenceToRequirements,
-  analyzeEvidenceCompliance,
-  validateEvidenceMapping,
   type DocumentMetadata,
   type EvidenceMapping,
   type EvidenceMappingResult,
@@ -22,7 +18,7 @@ const TABS = [
   { id: "compliance", label: "✅ Compliance Analysis", icon: "✅" }
 ];
 
-// Mock requirements for demonstration
+// Requirement reference data mirrored from the backend (artifacts/api-server/src/routes/evidence-mapping.ts).
 const MOCK_REQUIREMENTS = [
   {
     id: 'sbu-admin-1',
@@ -50,76 +46,200 @@ const MOCK_REQUIREMENTS = [
   }
 ];
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip the "data:<mime>;base64," prefix.
+      resolve(result.substring(result.indexOf(",") + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function EvidenceMappingPage() {
   const [currentTab, setCurrentTab] = useState("upload");
   const [documents, setDocuments] = useState<DocumentMetadata[]>([]);
   const [mappings, setMappings] = useState<EvidenceMapping[]>([]);
   const [selectedEntity, setSelectedEntity] = useState({
-    id: "entity-001",
-    type: "business_entity" as const,
+    type: "business_entity" as "business_entity" | "personnel" | "tender",
     name: "PT Konstruksi Maju Jaya"
   });
+  // The entity's identity for mapping/compliance purposes is the trimmed name itself
+  // (not a separate id field) so that changing the name always addresses a distinct
+  // entity instead of silently reusing/overwriting a previous entity's mappings.
+  const selectedEntityId = selectedEntity.name.trim();
   const [requirementType, setRequirementType] = useState("sbu");
   const [complianceResult, setComplianceResult] = useState<EvidenceMappingResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const workspaceContext = useWorkspaceContext();
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [docsRes, mappingsRes] = await Promise.all([
+        fetch("/api/evidence/documents", { credentials: "include" }),
+        fetch("/api/evidence/mappings", { credentials: "include" }),
+      ]);
+      if (docsRes.ok) {
+        const data = await docsRes.json();
+        setDocuments(data.documents ?? []);
+      }
+      if (mappingsRes.ok) {
+        const data = await mappingsRes.json();
+        setMappings(data.mappings ?? []);
+      }
+    } catch {
+      setErrorMessage("Gagal memuat data eviden tersimpan.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleFileUpload = async (files: FileList) => {
     setIsProcessing(true);
-    const newDocuments: DocumentMetadata[] = [];
+    setErrorMessage(null);
 
     for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       try {
-        const processedDoc = await processDocument(files[i]);
-        newDocuments.push(processedDoc);
+        const base64 = await fileToBase64(file);
+        const res = await fetch("/api/evidence/documents", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filename: file.name, type: file.type, data: base64 }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setErrorMessage(data.error || `Gagal memproses ${file.name}`);
+          continue;
+        }
+        setDocuments(prev => [...prev, data.document]);
       } catch (error) {
-        console.error(`Error processing ${files[i].name}:`, error);
+        console.error(`Error processing ${file.name}:`, error);
+        setErrorMessage(`Gagal mengupload ${file.name}`);
       }
     }
 
-    setDocuments(prev => [...prev, ...newDocuments]);
     setIsProcessing(false);
   };
 
-  const handleAutoMapping = () => {
-    const requirements = MOCK_REQUIREMENTS.filter(req => req.type === requirementType);
-    const newMappings = mapEvidenceToRequirements(
-      documents.filter(doc => doc.status === 'processed'),
-      requirements,
-      selectedEntity.id,
-      selectedEntity.type
-    );
-
-    setMappings(prev => [...prev, ...newMappings]);
-  };
-
-  const handleValidateMapping = (mappingId: string, status: 'valid' | 'invalid' | 'partial', notes: string) => {
-    setMappings(prev => prev.map(mapping => {
-      if (mapping.id === mappingId) {
-        return validateEvidenceMapping(
-          mapping,
-          'reviewer-001',
-          'Reviewer Name',
-          status,
-          notes
-        );
+  const handleDeleteDocument = async (documentId: string) => {
+    if (!confirm("Hapus dokumen ini beserta mapping eviden terkait?")) return;
+    try {
+      const res = await fetch(`/api/evidence/documents/${encodeURIComponent(documentId)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok && res.status !== 204) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMessage(data.error || "Gagal menghapus dokumen");
+        return;
       }
-      return mapping;
-    }));
+      setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+      setMappings(prev => prev.filter(mapping => mapping.documentId !== documentId));
+    } catch {
+      setErrorMessage("Gagal menghapus dokumen");
+    }
   };
 
-  const handleComplianceAnalysis = () => {
-    const requirements = MOCK_REQUIREMENTS.filter(req => req.type === requirementType);
-    const result = analyzeEvidenceCompliance(
-      selectedEntity.id,
-      selectedEntity.type,
-      requirementType,
-      mappings,
-      requirements
-    );
+  const handleDeleteMapping = async (mappingId: string) => {
+    if (!confirm("Hapus mapping eviden ini?")) return;
+    try {
+      const res = await fetch(`/api/evidence/mappings/${encodeURIComponent(mappingId)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok && res.status !== 204) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMessage(data.error || "Gagal menghapus mapping");
+        return;
+      }
+      setMappings(prev => prev.filter(mapping => mapping.id !== mappingId));
+    } catch {
+      setErrorMessage("Gagal menghapus mapping");
+    }
+  };
 
-    setComplianceResult(result);
-    setCurrentTab("compliance");
+  const handleAutoMapping = async () => {
+    setErrorMessage(null);
+    try {
+      const res = await fetch("/api/evidence/mappings/auto", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entityId: selectedEntityId,
+          entityType: selectedEntity.type,
+          requirementType,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage(data.error || "Gagal membuat mapping otomatis");
+        return;
+      }
+      const newMappings: EvidenceMapping[] = data.mappings ?? [];
+      setMappings(prev => {
+        const byId = new Map(prev.map(m => [m.id, m]));
+        newMappings.forEach(m => byId.set(m.id, m));
+        return Array.from(byId.values());
+      });
+      if (newMappings.length === 0) {
+        setErrorMessage("Tidak ada dokumen yang cocok dengan persyaratan untuk dimapping.");
+      }
+    } catch {
+      setErrorMessage("Gagal membuat mapping otomatis");
+    }
+  };
+
+  const handleValidateMapping = async (mappingId: string, status: 'valid' | 'invalid' | 'partial', notes: string) => {
+    try {
+      const res = await fetch(`/api/evidence/mappings/${encodeURIComponent(mappingId)}/validate`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, notes }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage(data.error || "Gagal memvalidasi mapping");
+        return;
+      }
+      setMappings(prev => prev.map(mapping => mapping.id === mappingId ? data.mapping : mapping));
+    } catch {
+      setErrorMessage("Gagal memvalidasi mapping");
+    }
+  };
+
+  const handleComplianceAnalysis = async () => {
+    setErrorMessage(null);
+    try {
+      const params = new URLSearchParams({
+        entityId: selectedEntityId,
+        entityType: selectedEntity.type,
+        requirementType,
+      });
+      const res = await fetch(`/api/evidence/compliance?${params.toString()}`, { credentials: "include" });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMessage(data.error || "Gagal menganalisis kepatuhan");
+        return;
+      }
+      setComplianceResult(data.result);
+      setCurrentTab("compliance");
+    } catch {
+      setErrorMessage("Gagal menganalisis kepatuhan");
+    }
   };
 
   const renderUploadTab = () => (
@@ -141,10 +261,10 @@ export default function EvidenceMappingPage() {
               onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
               disabled={isProcessing}
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none disabled:opacity-50"
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt,.md,.csv"
             />
             <p className="text-slate-500 text-xs mt-1">
-              Format: PDF, DOCX, JPG, PNG, TXT. Maksimal 10MB per file.
+              Format: PDF, DOCX, JPG, PNG, TXT, MD, CSV. Maksimal 20MB per file.
             </p>
           </div>
 
@@ -247,9 +367,25 @@ export default function EvidenceMappingPage() {
                     Uploaded: {new Date(doc.uploadedAt).toLocaleDateString('id-ID')}
                   </p>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDocumentStatusColor(doc.status)}`}>
-                  {doc.status.toUpperCase()}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDocumentStatusColor(doc.status)}`}>
+                    {doc.status.toUpperCase()}
+                  </span>
+                  <a
+                    href={`/api/evidence/documents/${encodeURIComponent(doc.id)}/content`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded"
+                  >
+                    Unduh
+                  </a>
+                  <button
+                    onClick={() => handleDeleteDocument(doc.id)}
+                    className="px-2 py-1 bg-red-600/80 hover:bg-red-700 text-white text-xs rounded"
+                  >
+                    Hapus
+                  </button>
+                </div>
               </div>
 
               {doc.extractedText && (
@@ -334,6 +470,12 @@ export default function EvidenceMappingPage() {
                         className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded"
                       >
                         ✗ Invalid
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMapping(mapping.id)}
+                        className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded"
+                      >
+                        Hapus
                       </button>
                     </div>
                   </div>
@@ -515,6 +657,13 @@ export default function EvidenceMappingPage() {
           <p className="text-slate-400">Centralized document management dan mapping eviden otomatis</p>
         </div>
 
+        {errorMessage && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start justify-between gap-4">
+            <p className="text-red-400 text-sm">{errorMessage}</p>
+            <button onClick={() => setErrorMessage(null)} className="text-red-400 hover:text-red-300 text-sm">✕</button>
+          </div>
+        )}
+
         {/* Tab Navigation */}
         <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-700 pb-4">
           {TABS.map((tab) => (
@@ -533,10 +682,18 @@ export default function EvidenceMappingPage() {
         </div>
 
         {/* Tab Content */}
-        {currentTab === "upload" && renderUploadTab()}
-        {currentTab === "documents" && renderDocumentsTab()}
-        {currentTab === "mappings" && renderMappingsTab()}
-        {currentTab === "compliance" && renderComplianceTab()}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-24">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+          </div>
+        ) : (
+          <>
+            {currentTab === "upload" && renderUploadTab()}
+            {currentTab === "documents" && renderDocumentsTab()}
+            {currentTab === "mappings" && renderMappingsTab()}
+            {currentTab === "compliance" && renderComplianceTab()}
+          </>
+        )}
       </div>
     </div>
   );

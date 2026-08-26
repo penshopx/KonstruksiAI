@@ -168,6 +168,50 @@ export function initializeDatabase() {
     db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS legal_licenses_entity_requirement_unique
       ON legal_licenses(entity_id, license_requirement_id)`);
 
+    db.run(sql`CREATE TABLE IF NOT EXISTS evidence_documents (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      size INTEGER NOT NULL,
+      checksum TEXT NOT NULL,
+      data BLOB,
+      extracted_text TEXT,
+      status TEXT NOT NULL DEFAULT 'uploaded',
+      processing_error TEXT,
+      uploaded_at INTEGER NOT NULL
+    )`);
+    if (
+      !(db.all(sql`PRAGMA table_info(evidence_documents)`) as Array<{ name: string }>)
+        .some((col) => col.name === "data")
+    ) {
+      db.run(sql.raw("ALTER TABLE evidence_documents ADD COLUMN data BLOB"));
+    }
+
+    db.run(sql`CREATE TABLE IF NOT EXISTS evidence_mappings (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      document_id TEXT NOT NULL REFERENCES evidence_documents(id) ON DELETE CASCADE,
+      entity_id TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      requirement_id TEXT NOT NULL,
+      requirement_type TEXT NOT NULL,
+      mapping_confidence INTEGER NOT NULL DEFAULT 0,
+      extracted_evidence TEXT NOT NULL DEFAULT '[]',
+      validation_status TEXT NOT NULL DEFAULT 'pending',
+      validation_notes TEXT NOT NULL DEFAULT '',
+      mapped_by TEXT NOT NULL DEFAULT 'system',
+      mapped_at INTEGER NOT NULL,
+      last_reviewed_by TEXT,
+      last_reviewed_at INTEGER,
+      audit_trail TEXT NOT NULL DEFAULT '[]'
+    )`);
+    db.run(sql`DROP INDEX IF EXISTS evidence_mappings_document_requirement_unique`);
+    db.run(sql`DROP INDEX IF EXISTS evidence_mappings_document_requirement_entity_unique`);
+    db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS evidence_mappings_document_requirement_entity_type_unique
+      ON evidence_mappings(document_id, requirement_id, entity_id, entity_type)`);
+
     console.log("[DB] Database initialized");
   } catch (err) {
     console.error("[DB] Error initializing database:", err);
