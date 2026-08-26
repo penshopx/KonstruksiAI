@@ -11,3 +11,4 @@
 - [Pinned URL-fetch DNS](pinned-url-fetch-dns.md) — Node may request DNS lookup results with `all: true`; return only the validated address set.
 - [SQLite transaction callbacks](sqlite-transaction-callbacks.md) — Drizzle with this better-sqlite3 driver requires synchronous transaction callbacks.
 - [Attachment size boundary precision](attachment-size-boundary.md) — exact decoded-base64-size math and a file-picker size fallback keep client/server upload limits agreeing at the byte.
+- [Promo video audio sync recipe](promo-audio-sync-recipe.md) — generate/validate a composite music+VO+SFX mix from scene-duration config, don't hand-mix a static file.

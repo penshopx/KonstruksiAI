@@ -1,0 +1,25 @@
+{
+  "sceneDurationsMs": [
+    3500,
+    4500,
+    5500,
+    5000,
+    4500,
+    3500
+  ],
+  "mixLevels": {
+    "music": 0.35,
+    "voiceover": 1,
+    "transitionSfx": 0.8
+  },
+  "stems": {
+    "bg_music.mp3": "d04cc9833d9aa0215453d48acf6fc43b01e02010cd10360960f140f4858960d1",
+    "sfx_scene_transition.mp3": "e7661ffecb1b342a49d6cec2070d27597cd58d3b7c4d7c0d525471f586f584d3",
+    "vo_scene0.mp3": "eb91fc692ff6d3c09d79f37df88bf54d507198e4a8182ecd1691b51415c4e502",
+    "vo_scene1.mp3": "28ea0634d38cb9bfda434a41136daf2b4ee548fa3ca2993a2db031961f60989c",
+    "vo_scene2.mp3": "e9eb48810126756d9610ed8a24b054ca0f035d1be5a4d1b20496029f0771fe98",
+    "vo_scene3.mp3": "dbea54383900e831e916ff7c202f20d40619430a8b72538c7827f67ffc9d9038",
+    "vo_scene4.mp3": "0137491ea5e07a9637071d932581f7a68864aefb11ba1585c38cd149230dbf64",
+    "vo_scene5.mp3": "bb1aa4c9b0f84f11a8042f1a9a8a5112cbb8a95933943c2fcc9c9cef3cc67a14"
+  }
+}
