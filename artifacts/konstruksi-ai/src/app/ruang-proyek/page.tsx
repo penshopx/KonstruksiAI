@@ -22,17 +22,29 @@ import {
   Save,
   ShieldCheck,
   Target,
+  UserPlus,
+  UserRound,
+  X,
   Wrench,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
+  acceptWorkspaceInvitation,
   createProjectWorkspace,
+  createWorkspaceInvitation,
+  getWorkspaceInvitation,
+  listWorkspaceMembers,
   listProjectWorkspaces,
   ProjectWorkspaceApiError,
+  revokeWorkspaceInvitation,
+  revokeWorkspaceMember,
   updateProjectWorkspace,
   type ProjectWorkspace,
+  type ProjectWorkspaceInvitation,
+  type ProjectWorkspaceMember,
 } from "@/lib/project-workspaces";
 import { withWorkspaceContext } from "@/lib/workspace-context";
+import { getSession } from "@/lib/auth";
 
 type Stage = {
   id: string;
@@ -200,9 +212,11 @@ const STAGES: Stage[] = [
 function StageRail({
   activeIndex,
   onSelect,
+  disabled = false,
 }: {
   activeIndex: number;
   onSelect: (index: number) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="space-y-2" aria-label="Tahapan ruang proyek">
@@ -213,9 +227,12 @@ function StageRail({
           <button
             key={stage.id}
             type="button"
-            onClick={() => onSelect(index)}
+            onClick={() => {
+              if (!disabled) onSelect(index);
+            }}
+            disabled={disabled}
             aria-current={active ? "step" : undefined}
-            className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-all ${
+            className={`group flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
               active
                 ? `${stage.softAccent} border-opacity-100`
                 : "border-slate-800 bg-slate-950/30 hover:border-slate-700 hover:bg-slate-900/70"
@@ -257,14 +274,35 @@ export default function ProjectWorkspacePage() {
   const [authRequired, setAuthRequired] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [members, setMembers] = useState<ProjectWorkspaceMember[]>([]);
+  const [invitations, setInvitations] = useState<ProjectWorkspaceInvitation[]>([]);
+  const [memberError, setMemberError] = useState("");
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"viewer" | "editor">("viewer");
+  const [inviteLink, setInviteLink] = useState("");
+  const [invitationToken, setInvitationToken] = useState("");
+  const [invitationInfo, setInvitationInfo] = useState<{
+    invitedEmail: string;
+    role: "viewer" | "editor";
+    expiresAt: string;
+    workspaceName: string;
+  } | null>(null);
+  const [invitationError, setInvitationError] = useState("");
+  const [isLoadingInvitation, setIsLoadingInvitation] = useState(false);
+  const [isAcceptingInvitation, setIsAcceptingInvitation] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const activeStage = STAGES[activeIndex] ?? STAGES[0];
   const ActiveIcon = activeStage.icon;
   const displayName = useMemo(() => projectName.trim() || "Pekerjaan baru", [projectName]);
   const activeWorkspace = workspaces.find((workspace) => workspace.id === activeWorkspaceId) ?? null;
+  const canEditWorkspace = !activeWorkspace || activeWorkspace.accessRole !== "viewer";
   const hasLocalDraftRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
+    setInvitationToken(new URLSearchParams(window.location.search).get("invite")?.trim() ?? "");
 
     listProjectWorkspaces(true)
       .then((savedWorkspaces) => {
@@ -307,6 +345,58 @@ export default function ProjectWorkspacePage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!invitationToken) return;
+    let cancelled = false;
+    setIsLoadingInvitation(true);
+    setInvitationError("");
+    Promise.all([getWorkspaceInvitation(invitationToken), getSession()])
+      .then(([invitation, session]) => {
+        if (cancelled) return;
+        setInvitationInfo(invitation);
+        setCurrentUserEmail(session?.email ?? null);
+      })
+      .catch((reason: unknown) => {
+        if (!cancelled) {
+          setInvitationError(reason instanceof Error ? reason.message : "Undangan tidak tersedia.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingInvitation(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [invitationToken]);
+
+  useEffect(() => {
+    if (!activeWorkspace?.id || !activeWorkspace.isOwner) {
+      setMembers([]);
+      setInvitations([]);
+      setMemberError("");
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingMembers(true);
+    listWorkspaceMembers(activeWorkspace.id)
+      .then(({ members: nextMembers, invitations: nextInvitations }) => {
+        if (!cancelled) {
+          setMembers(nextMembers);
+          setInvitations(nextInvitations);
+          setMemberError("");
+        }
+      })
+      .catch((reason: unknown) => {
+        if (!cancelled) setMemberError(reason instanceof Error ? reason.message : "Anggota belum dapat dimuat.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingMembers(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeWorkspace?.id, activeWorkspace?.isOwner]);
+
   const markDirty = () => {
     hasLocalDraftRef.current = true;
     setIsDirty(true);
@@ -314,6 +404,7 @@ export default function ProjectWorkspacePage() {
   };
 
   const selectStage = (index: number) => {
+    if (!canEditWorkspace) return;
     setActiveIndex(index);
     markDirty();
   };
@@ -357,6 +448,7 @@ export default function ProjectWorkspacePage() {
   };
 
   const saveWorkspace = async () => {
+    if (!canEditWorkspace) return;
     const name = projectName.trim();
     if (!name) {
       setError("Isi nama pekerjaan sebelum menyimpan ruang proyek.");
@@ -397,6 +489,7 @@ export default function ProjectWorkspacePage() {
   };
 
   const archiveWorkspace = async (workspace: ProjectWorkspace) => {
+    if (!workspace.isOwner) return;
     if (activeWorkspaceId === workspace.id && !confirmDiscardChanges("mengarsipkan ruang ini")) return;
     if (!window.confirm(`Arsipkan ruang proyek "${workspace.name}"?`)) return;
 
@@ -416,6 +509,7 @@ export default function ProjectWorkspacePage() {
   };
 
   const restoreWorkspace = async (workspace: ProjectWorkspace) => {
+    if (!workspace.isOwner) return;
     if (!confirmDiscardChanges("memulihkan ruang dari arsip")) return;
 
     setIsSaving(true);
@@ -430,6 +524,92 @@ export default function ProjectWorkspacePage() {
       setError(requestError instanceof Error ? requestError.message : "Ruang proyek gagal dipulihkan.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const refreshMembers = async (workspaceId: string) => {
+    try {
+      const result = await listWorkspaceMembers(workspaceId);
+      setMembers(result.members);
+      setInvitations(result.invitations);
+      setMemberError("");
+    } catch (reason: unknown) {
+      setMemberError(reason instanceof Error ? reason.message : "Anggota belum dapat dimuat.");
+    }
+  };
+
+  const inviteMember = async () => {
+    if (!activeWorkspace?.isOwner || !inviteEmail.trim()) return;
+    setIsInviting(true);
+    setMemberError("");
+    setSuccess("");
+    try {
+      const invitation = await createWorkspaceInvitation(activeWorkspace.id, {
+        email: inviteEmail.trim(),
+        role: inviteRole,
+      });
+      setInviteLink(`${window.location.origin}/ruang-proyek?invite=${encodeURIComponent(invitation.inviteToken ?? "")}`);
+      setInviteEmail("");
+      await refreshMembers(activeWorkspace.id);
+      setSuccess("Undangan dibuat. Bagikan tautan aman ini kepada rekan Anda.");
+    } catch (reason: unknown) {
+      setMemberError(reason instanceof Error ? reason.message : "Undangan gagal dibuat.");
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const copyInviteLink = async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setSuccess("Tautan undangan disalin.");
+    } catch {
+      setMemberError("Tautan siap disalin secara manual dari kotak di atas.");
+    }
+  };
+
+  const removeMember = async (member: ProjectWorkspaceMember) => {
+    if (!activeWorkspace?.isOwner || !window.confirm(`Cabut akses ${member.name} dari ruang ini?`)) return;
+    setIsLoadingMembers(true);
+    try {
+      await revokeWorkspaceMember(activeWorkspace.id, member.id);
+      await refreshMembers(activeWorkspace.id);
+      setSuccess(`Akses ${member.name} dicabut.`);
+    } catch (reason: unknown) {
+      setMemberError(reason instanceof Error ? reason.message : "Akses anggota gagal dicabut.");
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  };
+
+  const cancelInvitation = async (invitation: ProjectWorkspaceInvitation) => {
+    if (!activeWorkspace?.isOwner) return;
+    try {
+      await revokeWorkspaceInvitation(activeWorkspace.id, invitation.id);
+      await refreshMembers(activeWorkspace.id);
+      setSuccess("Undangan dibatalkan.");
+    } catch (reason: unknown) {
+      setMemberError(reason instanceof Error ? reason.message : "Undangan gagal dibatalkan.");
+    }
+  };
+
+  const acceptInvitation = async () => {
+    if (!invitationToken) return;
+    setIsAcceptingInvitation(true);
+    setInvitationError("");
+    try {
+      const acceptedWorkspace = await acceptWorkspaceInvitation(invitationToken);
+      setWorkspaces((current) => [acceptedWorkspace, ...current.filter((workspace) => workspace.id !== acceptedWorkspace.id)]);
+      loadWorkspace(acceptedWorkspace);
+      setInvitationInfo(null);
+      setInvitationToken("");
+      window.history.replaceState({}, "", `/ruang-proyek?workspace=${encodeURIComponent(acceptedWorkspace.id)}`);
+      setSuccess("Undangan diterima. Ruang proyek sekarang tersedia di daftar Anda.");
+    } catch (reason: unknown) {
+      setInvitationError(reason instanceof Error ? reason.message : "Undangan gagal diterima.");
+    } finally {
+      setIsAcceptingInvitation(false);
     }
   };
 
@@ -467,6 +647,60 @@ export default function ProjectWorkspacePage() {
           <span className="text-slate-300">Ruang Proyek</span>
         </div>
 
+        {(isLoadingInvitation || invitationInfo || invitationError) && (
+          <section className="mb-8 rounded-2xl border border-orange-400/25 bg-orange-400/[0.07] p-5">
+            {isLoadingInvitation ? (
+              <p className="flex items-center gap-2 text-sm text-orange-100">
+                <Loader2 className="h-4 w-4 animate-spin" /> Memeriksa undangan…
+              </p>
+            ) : invitationInfo ? (
+              <>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-orange-300">
+                      <UserPlus className="h-3.5 w-3.5" /> Undangan ruang proyek
+                    </p>
+                    <h2 className="mt-1 text-lg font-semibold text-white">{invitationInfo.workspaceName}</h2>
+                    <p className="mt-1 text-sm text-slate-300">
+                      Anda diundang sebagai <strong className="text-white">{invitationInfo.role === "editor" ? "editor" : "viewer"}</strong>.
+                    </p>
+                  </div>
+                  {currentUserEmail ? (
+                    currentUserEmail.toLowerCase() === invitationInfo.invitedEmail ? (
+                      <button
+                        type="button"
+                        onClick={acceptInvitation}
+                        disabled={isAcceptingInvitation}
+                        className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-orange-400 disabled:opacity-60"
+                      >
+                        {isAcceptingInvitation && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                        Terima undangan
+                      </button>
+                    ) : (
+                      <p className="max-w-xs text-right text-xs leading-relaxed text-orange-100">
+                        Masuk sebagai <strong>{invitationInfo.invitedEmail}</strong> untuk menerima undangan ini.
+                      </p>
+                    )
+                  ) : (
+                    <Link
+                      href={`/login?redirect=${encodeURIComponent(`/ruang-proyek?invite=${invitationToken}`)}`}
+                      className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-orange-400"
+                    >
+                      Masuk untuk menerima
+                    </Link>
+                  )}
+                </div>
+                {invitationError && <p role="alert" className="mt-3 text-xs text-red-200">{invitationError}</p>}
+                <p className="mt-3 text-[11px] text-slate-500">
+                  Tautan ini berlaku sampai {new Date(invitationInfo.expiresAt).toLocaleDateString("id-ID")}.
+                </p>
+              </>
+            ) : (
+              <p role="alert" className="text-sm text-red-200">{invitationError}</p>
+            )}
+          </section>
+        )}
+
         <section className="mb-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
           <div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/[0.06] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300">
@@ -498,6 +732,7 @@ export default function ProjectWorkspacePage() {
               id="project-name"
               value={projectName}
               maxLength={160}
+              readOnly={!canEditWorkspace}
               onChange={(event) => {
                 setProjectName(event.target.value);
                 markDirty();
@@ -514,6 +749,7 @@ export default function ProjectWorkspacePage() {
               id="project-notes"
               value={notes}
               maxLength={2000}
+              readOnly={!canEditWorkspace}
               onChange={(event) => {
                 setNotes(event.target.value);
                 markDirty();
@@ -526,9 +762,15 @@ export default function ProjectWorkspacePage() {
               <p className="flex items-center gap-1.5 text-[11px] text-slate-600">
               <Wrench className="h-3 w-3" />
                 {activeWorkspace
-                  ? isDirty
-                    ? "Perubahan belum tersimpan."
-                    : "Ruang proyek tersimpan di akun Anda."
+                  ? activeWorkspace.accessRole === "viewer"
+                    ? "Anda memiliki akses viewer."
+                    : activeWorkspace.isOwner
+                      ? isDirty
+                        ? "Perubahan belum tersimpan."
+                        : "Ruang proyek tersimpan di akun Anda."
+                      : isDirty
+                        ? "Perubahan belum tersimpan."
+                        : "Ruang proyek dibagikan kepada Anda."
                   : isDirty
                     ? "Draf belum tersimpan."
                     : "Simpan agar dapat dilanjutkan setelah masuk kembali."}
@@ -547,17 +789,19 @@ export default function ProjectWorkspacePage() {
                 <button
                   type="button"
                   onClick={saveWorkspace}
-                  disabled={isSaving || (Boolean(activeWorkspace) && !isDirty)}
+                  disabled={isSaving || !canEditWorkspace || (Boolean(activeWorkspace) && !isDirty)}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-500 px-3 py-2 text-xs font-semibold text-slate-950 transition-colors hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-                  {activeWorkspace ? "Simpan perubahan" : "Simpan ruang proyek"}
+                  {!canEditWorkspace ? "Hanya lihat" : activeWorkspace ? "Simpan perubahan" : "Simpan ruang proyek"}
                 </button>
               </div>
             </div>
             <p className="mt-2 text-[11px] text-slate-600">
               {authRequired ? (
                 <>Belum masuk? <Link href="/login" className="text-cyan-400 hover:text-cyan-300">Masuk untuk menyimpan permanen.</Link></>
+              ) : activeWorkspace?.accessRole === "viewer" ? (
+                "Perubahan hanya dapat dilakukan oleh pemilik atau editor."
               ) : (
                 "Nama dan catatan akan tersimpan di akun Anda setelah disimpan."
               )}
@@ -565,13 +809,123 @@ export default function ProjectWorkspacePage() {
           </div>
         </section>
 
+        {activeWorkspace?.isOwner && (
+          <section className="mb-8 rounded-2xl border border-cyan-400/20 bg-slate-900/70 p-5 shadow-xl shadow-cyan-950/10 sm:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-300">
+                  <UserPlus className="h-3.5 w-3.5" /> Kolaborasi tim
+                </p>
+                <h2 className="mt-1 text-lg font-semibold text-white">Undang rekan ke ruang ini</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-400">
+                  Bagikan konteks pekerjaan tanpa memindahkan ownership. Viewer hanya dapat membaca, sedangkan editor dapat memperbarui catatan dan tahap.
+                </p>
+              </div>
+              <span className="rounded-full border border-cyan-400/20 bg-cyan-400/[0.07] px-2.5 py-1 text-[10px] font-semibold text-cyan-200">
+                Pemilik
+              </span>
+            </div>
+            <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_10rem_auto]">
+              <label className="sr-only" htmlFor="invite-email">Email rekan</label>
+              <input
+                id="invite-email"
+                type="email"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                placeholder="nama@perusahaan.com"
+                className="rounded-xl border border-slate-700 bg-slate-950/80 px-3.5 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/10"
+              />
+              <label className="sr-only" htmlFor="invite-role">Peran rekan</label>
+              <select
+                id="invite-role"
+                value={inviteRole}
+                onChange={(event) => setInviteRole(event.target.value as "viewer" | "editor")}
+                className="rounded-xl border border-slate-700 bg-slate-950/80 px-3.5 py-3 text-sm text-white outline-none focus:border-cyan-400/60"
+              >
+                <option value="viewer">Viewer</option>
+                <option value="editor">Editor</option>
+              </select>
+              <button
+                type="button"
+                onClick={inviteMember}
+                disabled={isInviting || !inviteEmail.trim()}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-slate-950 transition-colors hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isInviting ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                Undang
+              </button>
+            </div>
+            {inviteLink && (
+              <div className="mt-3 flex flex-col gap-2 rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-3 sm:flex-row sm:items-center">
+                <input readOnly value={inviteLink} aria-label="Tautan undangan" className="min-w-0 flex-1 bg-transparent text-xs text-emerald-100 outline-none" />
+                <button type="button" onClick={copyInviteLink} className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-emerald-300/30 px-3 py-2 text-xs font-semibold text-emerald-100 hover:bg-emerald-300/10">
+                  Salin tautan
+                </button>
+              </div>
+            )}
+            {memberError && <p role="alert" className="mt-3 text-xs text-red-200">{memberError}</p>}
+            <div className="mt-6 grid gap-6 md:grid-cols-2">
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Anggota aktif</p>
+                  <span className="text-[11px] text-slate-600">{isLoadingMembers ? "…" : members.length}</span>
+                </div>
+                {members.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-slate-800 px-3 py-4 text-xs text-slate-600">Belum ada anggota lain.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {members.map((member) => (
+                      <div key={member.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/30 px-3 py-2.5">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <UserRound className="h-4 w-4 shrink-0 text-slate-500" />
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-200">{member.name}</p>
+                            <p className="truncate text-[11px] text-slate-600">{member.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className="text-[10px] text-cyan-300">{member.role === "editor" ? "Editor" : "Viewer"}</span>
+                          <button type="button" onClick={() => removeMember(member)} className="rounded p-1 text-slate-600 hover:bg-red-400/10 hover:text-red-300" aria-label={`Cabut akses ${member.name}`}>
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Undangan tertunda</p>
+                  <span className="text-[11px] text-slate-600">{invitations.length}</span>
+                </div>
+                {invitations.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-slate-800 px-3 py-4 text-xs text-slate-600">Tidak ada undangan aktif.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {invitations.map((invitation) => (
+                      <div key={invitation.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950/30 px-3 py-2.5">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm text-slate-300">{invitation.invitedEmail}</p>
+                          <p className="text-[11px] text-slate-600">{invitation.role === "editor" ? "Editor" : "Viewer"} · berlaku 7 hari</p>
+                        </div>
+                        <button type="button" onClick={() => cancelInvitation(invitation)} className="shrink-0 text-[11px] text-slate-600 hover:text-red-300">Batalkan</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
         <section className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
           <aside className="lg:sticky lg:top-6 lg:self-start">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Alur pekerjaan</p>
               <span className="text-[11px] text-slate-600">5 tahap</span>
             </div>
-            <StageRail activeIndex={activeIndex} onSelect={selectStage} />
+            <StageRail activeIndex={activeIndex} onSelect={selectStage} disabled={!canEditWorkspace} />
             {error && (
               <div role="alert" className="mt-4 flex items-start gap-2 rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-xs leading-relaxed text-red-200">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
@@ -622,10 +976,10 @@ export default function ProjectWorkspacePage() {
                       >
                         <span className="block truncate text-sm font-semibold text-slate-200">{workspace.name}</span>
                         <span className="mt-1 block text-[11px] text-slate-600">
-                          {STAGES.find((stage) => stage.id === workspace.stageId)?.title ?? "Tahap awal"}
+                          {workspace.isOwner ? "Pemilik" : `${workspace.accessRole === "editor" ? "Editor" : "Viewer"} · dibagikan`} · {STAGES.find((stage) => stage.id === workspace.stageId)?.title ?? "Tahap awal"}
                         </span>
                       </button>
-                      <button
+                      {workspace.isOwner && <button
                         type="button"
                         onClick={() => archiveWorkspace(workspace)}
                         disabled={isSaving}
@@ -633,7 +987,7 @@ export default function ProjectWorkspacePage() {
                       >
                         <Archive className="h-3 w-3" />
                         Arsipkan
-                      </button>
+                      </button>}
                     </div>
                   ))}
                 </div>
@@ -649,7 +1003,7 @@ export default function ProjectWorkspacePage() {
                   {archivedWorkspaces.map((workspace) => (
                     <div key={workspace.id} className="rounded-xl border border-slate-800/80 bg-slate-950/20 p-3">
                       <span className="block truncate text-sm font-semibold text-slate-500">{workspace.name}</span>
-                      <button
+                      {workspace.isOwner && <button
                         type="button"
                         onClick={() => restoreWorkspace(workspace)}
                         disabled={isSaving}
@@ -657,7 +1011,7 @@ export default function ProjectWorkspacePage() {
                       >
                         <Archive className="h-3 w-3 rotate-180" />
                         Pulihkan
-                      </button>
+                      </button>}
                     </div>
                   ))}
                 </div>

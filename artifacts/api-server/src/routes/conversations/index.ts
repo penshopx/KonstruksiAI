@@ -1,10 +1,18 @@
 import { Router } from "express";
-import { db, conversations, messages, projectWorkspaces } from "../../db";
-import { eq, desc, and } from "drizzle-orm";
+import { db, conversations, messages, projectWorkspaceMembers, projectWorkspaces } from "../../db";
+import { eq, desc, and, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { getSessionFromRequest } from "../../lib/auth";
+import { hasActiveWorkspaceAccess } from "../../lib/workspace-access";
 
 const router = Router();
+
+async function canAccessConversation(
+  conversation: typeof conversations.$inferSelect,
+  userId: number,
+): Promise<boolean> {
+  return !conversation.workspaceId || hasActiveWorkspaceAccess(conversation.workspaceId, userId);
+}
 
 // GET /api/conversations
 router.get("/conversations", async (req, res) => {
@@ -18,7 +26,13 @@ router.get("/conversations", async (req, res) => {
       .where(eq(conversations.userId, session.userId))
       .orderBy(desc(conversations.updatedAt));
 
-    res.json({ conversations: convs });
+    const visibleConversations = [];
+    for (const conversation of convs) {
+      if (await canAccessConversation(conversation, session.userId)) {
+        visibleConversations.push(conversation);
+      }
+    }
+    res.json({ conversations: visibleConversations });
   } catch (err) {
     req.log.error({ err }, "GET /conversations error");
     res.status(500).json({ error: "Internal server error" });
@@ -41,6 +55,10 @@ router.post("/conversations", async (req, res) => {
         .from(conversations)
         .where(and(eq(conversations.id, requestedId), eq(conversations.userId, session.userId)));
       if (existing) {
+        if (!await canAccessConversation(existing, session.userId)) {
+          res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+          return;
+        }
         res.json({
           id: existing.id,
           title: existing.title,
@@ -56,15 +74,11 @@ router.post("/conversations", async (req, res) => {
         res.status(400).json({ error: "Konteks ruang proyek tidak valid" });
         return;
       }
-      const [workspace] = await db
-        .select({ id: projectWorkspaces.id })
-        .from(projectWorkspaces)
-        .where(and(eq(projectWorkspaces.id, workspaceId), eq(projectWorkspaces.userId, session.userId)));
-      if (!workspace) {
+      if (!await hasActiveWorkspaceAccess(workspaceId, session.userId)) {
         res.status(404).json({ error: "Ruang proyek tidak ditemukan" });
         return;
       }
-      validatedWorkspaceId = workspace.id;
+      validatedWorkspaceId = workspaceId;
     }
     const id = requestedId ?? randomUUID();
     const now = new Date();
@@ -121,6 +135,10 @@ router.get("/conversations/:id", async (req, res) => {
       .where(and(eq(conversations.id, req.params.id), eq(conversations.userId, session.userId)));
 
     if (!conv) { res.status(404).json({ error: "Not found" }); return; }
+    if (!await canAccessConversation(conv, session.userId)) {
+      res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+      return;
+    }
 
     const msgs = await db
       .select()
@@ -147,6 +165,10 @@ router.delete("/conversations/:id", async (req, res) => {
       .where(and(eq(conversations.id, req.params.id), eq(conversations.userId, session.userId)));
 
     if (!conv) { res.status(404).json({ error: "Not found" }); return; }
+    if (!await canAccessConversation(conv, session.userId)) {
+      res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+      return;
+    }
 
     await db.delete(messages).where(eq(messages.conversationId, req.params.id));
     await db.delete(conversations).where(eq(conversations.id, req.params.id));
@@ -166,6 +188,16 @@ router.patch("/conversations/:id", async (req, res) => {
   try {
     const { title, label } = req.body;
     const now = new Date();
+
+    const [conversation] = await db
+      .select()
+      .from(conversations)
+      .where(and(eq(conversations.id, req.params.id), eq(conversations.userId, session.userId)));
+    if (!conversation) { res.status(404).json({ error: "Not found" }); return; }
+    if (!await canAccessConversation(conversation, session.userId)) {
+      res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+      return;
+    }
 
     await db
       .update(conversations)
@@ -191,6 +223,10 @@ router.post("/conversations/:id/messages", async (req, res) => {
       .where(and(eq(conversations.id, req.params.id), eq(conversations.userId, session.userId)));
 
     if (!conv) { res.status(404).json({ error: "Not found" }); return; }
+    if (!await canAccessConversation(conv, session.userId)) {
+      res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+      return;
+    }
 
     const {
       role,
@@ -262,6 +298,10 @@ router.get("/conversations/:id/messages", async (req, res) => {
       .where(and(eq(conversations.id, req.params.id), eq(conversations.userId, session.userId)));
 
     if (!conv) { res.status(404).json({ error: "Not found" }); return; }
+    if (!await canAccessConversation(conv, session.userId)) {
+      res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+      return;
+    }
 
     const msgs = await db
       .select()

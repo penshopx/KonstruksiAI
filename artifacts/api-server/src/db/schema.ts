@@ -50,6 +50,33 @@ export const projectWorkspaces = sqliteTable("project_workspaces", {
 export type ProjectWorkspace = typeof projectWorkspaces.$inferSelect;
 export type NewProjectWorkspace = typeof projectWorkspaces.$inferInsert;
 
+export const projectWorkspaceMembers = sqliteTable("project_workspace_members", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => projectWorkspaces.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("viewer"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  revokedAt: integer("revoked_at", { mode: "timestamp" }),
+});
+
+export type ProjectWorkspaceMember = typeof projectWorkspaceMembers.$inferSelect;
+export type NewProjectWorkspaceMember = typeof projectWorkspaceMembers.$inferInsert;
+
+export const projectWorkspaceInvitations = sqliteTable("project_workspace_invitations", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id").notNull().references(() => projectWorkspaces.id, { onDelete: "cascade" }),
+  invitedEmail: text("invited_email").notNull(),
+  role: text("role").notNull().default("viewer"),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  acceptedAt: integer("accepted_at", { mode: "timestamp" }),
+  revokedAt: integer("revoked_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export type ProjectWorkspaceInvitation = typeof projectWorkspaceInvitations.$inferSelect;
+export type NewProjectWorkspaceInvitation = typeof projectWorkspaceInvitations.$inferInsert;
+
 export const messages = sqliteTable("messages", {
   id: text("id").primaryKey(),
   conversationId: text("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),

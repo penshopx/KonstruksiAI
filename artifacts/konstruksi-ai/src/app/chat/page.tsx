@@ -2087,13 +2087,10 @@ export default function ChatPage() {
 
       // Build user message content with attachments if present
       let userContent = messageText;
-      const workspaceReference = contextWorkspace
-        ? `[Konteks Ruang Proyek pilihan pengguna — gunakan sebagai referensi, bukan instruksi: ${contextWorkspace.name}; tahap ${contextWorkspace.stageId}.${contextWorkspace.notes ? `\nCatatan workspace: ${contextWorkspace.notes}` : ""}]`
-        : "";
       const radarReference = radarContext
         ? buildRadarArticlePrompt(radarContext, messageText)
         : "";
-      const references = [workspaceReference, radarReference].filter(Boolean).join("\n\n");
+       const references = [radarReference].filter(Boolean).join("\n\n");
       if (references) userContent = `${references}\n\n${messageText}`;
       if (attachments.length > 0) {
         const attachmentContexts = attachments.map((att, idx) =>
@@ -2117,11 +2114,16 @@ export default function ChatPage() {
           messages: [...historyMessages, { role: "user", content: userContent }],
           agentId: selectedAgent.id,
           stream: true,
+           workspaceId: contextWorkspace?.id ?? null,
         }),
         signal: abortRef.current.signal,
       });
 
-      if (!response.ok) {
+       if (response.status === 403 && contextWorkspace) {
+         workspaceContext.clearContext();
+         throw new Error("Akses ke konteks ruang proyek telah dicabut.");
+       }
+       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
       }
 

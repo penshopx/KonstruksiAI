@@ -1,5 +1,12 @@
 import { db } from "./index";
-import { users, conversations, messages, radarArticles } from "./schema";
+import {
+  users,
+  conversations,
+  messages,
+  radarArticles,
+  projectWorkspaceMembers,
+  projectWorkspaceInvitations,
+} from "./schema";
 import { sql } from "drizzle-orm";
 
 export function initializeDatabase() {
@@ -32,6 +39,28 @@ export function initializeDatabase() {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
       archived_at INTEGER
+    )`);
+
+    db.run(sql`CREATE TABLE IF NOT EXISTS project_workspace_members (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL REFERENCES project_workspaces(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL DEFAULT 'viewer',
+      created_at INTEGER NOT NULL,
+      revoked_at INTEGER
+    )`);
+    db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS project_workspace_members_workspace_user_unique
+      ON project_workspace_members(workspace_id, user_id)`);
+    db.run(sql`CREATE TABLE IF NOT EXISTS project_workspace_invitations (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL REFERENCES project_workspaces(id) ON DELETE CASCADE,
+      invited_email TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'viewer',
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at INTEGER NOT NULL,
+      accepted_at INTEGER,
+      revoked_at INTEGER,
+      created_at INTEGER NOT NULL
     )`);
 
     db.run(sql`CREATE TABLE IF NOT EXISTS messages (

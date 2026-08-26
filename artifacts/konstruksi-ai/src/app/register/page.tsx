@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "@/shims/next-link";
-import { useRouter } from "@/shims/next-navigation";
 
 export default function RegisterPage() {
-  const router = useRouter();
+  const redirect = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("redirect");
+  const safeRedirect = redirect?.startsWith("/") && !redirect.startsWith("//") ? redirect : "/dashboard";
   const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,8 +34,7 @@ export default function RegisterPage() {
       if (!res.ok) {
         setError(data.error || "Registrasi gagal");
       } else {
-        router.push("/dashboard");
-        router.refresh();
+        window.location.assign(safeRedirect);
       }
     } catch {
       setError("Terjadi kesalahan. Coba lagi.");
@@ -142,7 +141,7 @@ export default function RegisterPage() {
           <div className="mt-6 text-center">
             <p className="text-slate-400 text-sm">
               Sudah punya akun?{" "}
-              <Link href="/login" className="text-orange-400 hover:text-orange-300 font-medium">
+                <Link href={safeRedirect !== "/dashboard" ? `/login?redirect=${encodeURIComponent(safeRedirect)}` : "/login"} className="text-orange-400 hover:text-orange-300 font-medium">
                 Masuk di sini
               </Link>
             </p>

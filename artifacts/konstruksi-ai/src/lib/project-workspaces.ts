@@ -6,6 +6,27 @@ export interface ProjectWorkspace {
   createdAt: string;
   updatedAt: string;
   archivedAt: string | null;
+  accessRole?: "owner" | "viewer" | "editor";
+  isOwner?: boolean;
+}
+
+export interface ProjectWorkspaceMember {
+  id: string;
+  userId: number;
+  name: string;
+  email: string;
+  role: "viewer" | "editor";
+  createdAt: string;
+}
+
+export interface ProjectWorkspaceInvitation {
+  id: string;
+  invitedEmail: string;
+  role: "viewer" | "editor";
+  expiresAt: string;
+  createdAt: string;
+  workspaceName?: string;
+  inviteToken?: string;
 }
 
 export interface ProjectWorkspacePayload {
@@ -72,5 +93,61 @@ export async function updateProjectWorkspace(
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+  return data.workspace;
+}
+
+export async function listWorkspaceMembers(id: string): Promise<{
+  members: ProjectWorkspaceMember[];
+  invitations: ProjectWorkspaceInvitation[];
+}> {
+  return request(`/api/project-workspaces/${encodeURIComponent(id)}/members`);
+}
+
+export async function createWorkspaceInvitation(
+  id: string,
+  payload: { email: string; role: "viewer" | "editor" },
+): Promise<ProjectWorkspaceInvitation> {
+  const data = await request<{ invitation: ProjectWorkspaceInvitation }>(
+    `/api/project-workspaces/${encodeURIComponent(id)}/invitations`,
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+  return data.invitation;
+}
+
+export async function revokeWorkspaceMember(id: string, memberId: string): Promise<void> {
+  await request(`/api/project-workspaces/${encodeURIComponent(id)}/members/${encodeURIComponent(memberId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function revokeWorkspaceInvitation(id: string, invitationId: string): Promise<void> {
+  await request(`/api/project-workspaces/${encodeURIComponent(id)}/invitations/${encodeURIComponent(invitationId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getWorkspaceInvitation(token: string): Promise<{
+  invitedEmail: string;
+  role: "viewer" | "editor";
+  expiresAt: string;
+  workspaceName: string;
+}> {
+  const data = await request<{ invitation: {
+    invitedEmail: string;
+    role: "viewer" | "editor";
+    expiresAt: string;
+    workspaceName: string;
+  } }>("/api/project-workspace-invitations/inspect", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+  return data.invitation;
+}
+
+export async function acceptWorkspaceInvitation(token: string): Promise<ProjectWorkspace> {
+  const data = await request<{ workspace: ProjectWorkspace }>(
+    "/api/project-workspace-invitations/accept",
+    { method: "POST", body: JSON.stringify({ token }) },
+  );
   return data.workspace;
 }
