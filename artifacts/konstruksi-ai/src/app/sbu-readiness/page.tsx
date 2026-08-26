@@ -2,15 +2,27 @@
 
 import { useState, useMemo } from "react";
 import {
-  assessSbuReadiness,
   getAvailableClassifications,
   validateSbuApplicationType,
   type BusinessEntityProfile,
   type SbuApplicationType,
-  type SbuClassification,
   type SbuReadinessAssessment
-} from "@/lib/sbu-readiness";
+} from "@workspace/assessment/sbu-readiness";
 import NavbarAuth from "@/components/NavbarAuth";
+
+// File objects can't be sent as JSON; the backend only checks presence/count
+// of uploaded evidence, so we replace File[] entries with lightweight metadata.
+function toJsonSafeEvidence(evidence: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [key, value] of Object.entries(evidence)) {
+    if (Array.isArray(value) && value.length > 0 && typeof File !== "undefined" && value[0] instanceof File) {
+      out[key] = value.map((f: File) => ({ name: f.name, size: f.size }));
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
 
 const STEPS = [
   { id: 'entity', label: 'Profil Badan Usaha', icon: '🏢' },
@@ -34,6 +46,8 @@ export default function SbuReadinessWizardPage() {
   const [selectedClassification, setSelectedClassification] = useState<string>('');
   const [documents, setDocuments] = useState<Record<string, any>>({});
   const [assessment, setAssessment] = useState<SbuReadinessAssessment | null>(null);
+  const [isAssessing, setIsAssessing] = useState(false);
+  const [assessmentError, setAssessmentError] = useState<string | null>(null);
 
   const availableClassifications = useMemo(() => getAvailableClassifications(), []);
 
@@ -49,7 +63,7 @@ export default function SbuReadinessWizardPage() {
     }
   };
 
-  const handleRunAssessment = () => {
+  const handleRunAssessment = async () => {
     if (!entity.name || !selectedClassification) return;
 
     const classification = availableClassifications.find(c => c.subClassification === selectedClassification);
@@ -61,15 +75,31 @@ export default function SbuReadinessWizardPage() {
       return;
     }
 
-    const result = assessSbuReadiness(
-      entity as BusinessEntityProfile,
-      applicationType as SbuApplicationType,
-      classification,
-      documents
-    );
-
-    setAssessment(result);
-    setCurrentStep(STEPS.length - 1);
+    setIsAssessing(true);
+    setAssessmentError(null);
+    try {
+      const res = await fetch("/api/sbu-readiness/assess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          entity,
+          applicationType,
+          classification,
+          evidence: toJsonSafeEvidence(documents),
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Assessment gagal (status ${res.status})`);
+      }
+      const result: SbuReadinessAssessment = await res.json();
+      setAssessment(result);
+      setCurrentStep(STEPS.length - 1);
+    } catch (err) {
+      setAssessmentError(err instanceof Error ? err.message : "Assessment gagal dijalankan. Coba lagi.");
+    } finally {
+      setIsAssessing(false);
+    }
   };
 
   const updateEntity = (field: string, value: any) => {
@@ -504,7 +534,12 @@ export default function SbuReadinessWizardPage() {
         </>
       ) : (
         <div className="text-center py-12">
-          <p className="text-slate-400">Klik &quot;Analyze&quot; untuk menjalankan assessment</p>
+          {assessmentError && (
+            <p className="text-red-400 mb-4">{assessmentError}</p>
+          )}
+          <p className="text-slate-400">
+            {isAssessing ? "Menjalankan assessment..." : 'Klik "Analyze" untuk menjalankan assessment'}
+          </p>
         </div>
       )}
     </div>
@@ -577,9 +612,10 @@ export default function SbuReadinessWizardPage() {
             {currentStep === STEPS.length - 2 && (
               <button
                 onClick={handleRunAssessment}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                disabled={isAssessing}
+                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Analyze Readiness
+                {isAssessing ? "Menganalisis..." : "Analyze Readiness"}
               </button>
             )}
 

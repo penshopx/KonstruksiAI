@@ -1,51 +1,52 @@
 import { Router } from "express";
 import { getSessionFromRequest } from "../lib/auth";
+import {
+  assessSbuReadiness,
+  validateSbuApplicationType,
+  type BusinessEntityProfile,
+  type SbuApplicationType,
+  type SbuClassification,
+} from "@workspace/assessment/sbu-readiness";
+import {
+  assessSkkReadiness,
+  validateSkkApplicationType,
+  type WorkforceProfile,
+  type SkkApplicationType,
+  type JobPosition,
+} from "@workspace/assessment/skk-readiness";
+import {
+  assessTenderEligibility,
+  type TenderDocument,
+} from "@workspace/assessment/tender-eligibility";
 
 const router = Router();
-
-function generateAssessmentResult(type: string, _data: unknown) {
-  if (type === "sbu-readiness") {
-    return {
-      score: 72,
-      status: "partial",
-      recommendations: [
-        "Lengkapi dokumen SBU yang expired",
-        "Update data tenaga ahli bersertifikat",
-        "Pastikan peralatan terdaftar dengan benar",
-      ],
-      details: "Perusahaan Anda memiliki kesiapan 72% untuk SBU. Diperlukan beberapa perbaikan dokumen.",
-    };
-  }
-  if (type === "skk-readiness") {
-    return {
-      score: 85,
-      status: "ready",
-      recommendations: [
-        "Siapkan portofolio proyek 5 tahun terakhir",
-        "Ikuti pelatihan refresher sebelum asesmen",
-      ],
-      details: "Anda memiliki kesiapan 85% untuk SKK. Persiapkan portofolio lengkap.",
-    };
-  }
-  if (type === "tender-eligibility") {
-    return {
-      eligible: true,
-      score: 90,
-      recommendations: [
-        "Pastikan SBU masih berlaku saat pemasukan dokumen",
-        "Siapkan referensi proyek sejenis",
-      ],
-      details: "Perusahaan Anda memenuhi syarat untuk mengikuti tender ini.",
-    };
-  }
-  return { score: 0, status: "unknown", recommendations: [], details: "Assessment type tidak dikenali" };
-}
 
 router.post("/sbu-readiness/assess", async (req, res) => {
   const session = await getSessionFromRequest(req);
   if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { entity, applicationType, classification, evidence } = req.body ?? {};
+  if (!entity || !applicationType || !classification) {
+    res.status(400).json({ error: "entity, applicationType, and classification are required" });
+    return;
+  }
+
   try {
-    const result = generateAssessmentResult("sbu-readiness", req.body);
+    const validation = validateSbuApplicationType(
+      entity as BusinessEntityProfile,
+      applicationType as SbuApplicationType,
+    );
+    if (!validation.valid) {
+      res.status(400).json({ error: "validation_failed", issues: validation.issues });
+      return;
+    }
+
+    const result = assessSbuReadiness(
+      entity as BusinessEntityProfile,
+      applicationType as SbuApplicationType,
+      classification as SbuClassification,
+      (evidence as Record<string, unknown>) ?? {},
+    );
     res.json(result);
   } catch (err) {
     req.log.error({ err }, "POST /sbu-readiness/assess error");
@@ -56,8 +57,29 @@ router.post("/sbu-readiness/assess", async (req, res) => {
 router.post("/skk-readiness/assess", async (req, res) => {
   const session = await getSessionFromRequest(req);
   if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { workforce, applicationType, position, evidence } = req.body ?? {};
+  if (!workforce || !applicationType || !position) {
+    res.status(400).json({ error: "workforce, applicationType, and position are required" });
+    return;
+  }
+
   try {
-    const result = generateAssessmentResult("skk-readiness", req.body);
+    const validation = validateSkkApplicationType(
+      workforce as WorkforceProfile,
+      applicationType as SkkApplicationType,
+    );
+    if (!validation.valid) {
+      res.status(400).json({ error: "validation_failed", issues: validation.issues });
+      return;
+    }
+
+    const result = assessSkkReadiness(
+      workforce as WorkforceProfile,
+      applicationType as SkkApplicationType,
+      position as JobPosition,
+      (evidence as Record<string, unknown>) ?? {},
+    );
     res.json(result);
   } catch (err) {
     req.log.error({ err }, "POST /skk-readiness/assess error");
@@ -68,8 +90,20 @@ router.post("/skk-readiness/assess", async (req, res) => {
 router.post("/tender-eligibility/assess", async (req, res) => {
   const session = await getSessionFromRequest(req);
   if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
+
+  const { businessEntityId, tenderDocument, personnelIds, evidence } = req.body ?? {};
+  if (!businessEntityId || !tenderDocument) {
+    res.status(400).json({ error: "businessEntityId and tenderDocument are required" });
+    return;
+  }
+
   try {
-    const result = generateAssessmentResult("tender-eligibility", req.body);
+    const result = assessTenderEligibility(
+      businessEntityId as string,
+      tenderDocument as TenderDocument,
+      (personnelIds as string[]) ?? [],
+      (evidence as Record<string, unknown>) ?? {},
+    );
     res.json(result);
   } catch (err) {
     req.log.error({ err }, "POST /tender-eligibility/assess error");

@@ -248,11 +248,12 @@ export function assessSkkReadiness(
 
   // Certification Assessment
   const requiredCerts = targetPosition.minimumRequirements.certification || [];
+  const actualCertifications: unknown[] = availableEvidence.certifications || [];
   const certificationEvidence: CompetencyEvidence = {
     category: 'certification',
     requirement: requiredCerts.join(', '),
-    evidence: availableEvidence.certifications || [],
-    status: checkCertificationCompliance(availableEvidence.certifications || [], requiredCerts),
+    evidence: actualCertifications.map(certificationLabel).filter(Boolean),
+    status: checkCertificationCompliance(actualCertifications, requiredCerts),
     notes: 'Sertifikat kompetensi yang diperlukan'
   };
 
@@ -306,7 +307,7 @@ export function assessSkkReadiness(
     education: createReadinessItem('Pendidikan', workforce.education, targetPosition.minimumRequirements.education, educationEvidence),
     experience: createReadinessItem('Pengalaman', `${availableEvidence.experience_years || 0} tahun`, `${targetPosition.minimumRequirements.experience} tahun`, experienceEvidence),
     training: createReadinessItem('Pelatihan', `${availableEvidence.training_hours || 0} jam`, `${targetPosition.minimumRequirements.trainingHours} jam`, trainingEvidence),
-    certification: createReadinessItem('Sertifikasi', (availableEvidence.certifications || []).join(', '), requiredCerts.join(', '), certificationEvidence),
+    certification: createReadinessItem('Sertifikasi', actualCertifications.map(certificationLabel).filter(Boolean).join(', '), requiredCerts.join(', '), certificationEvidence),
     assessment: createReadinessItem('Assessment', availableEvidence.assessment?.length > 0 ? 'Ada' : 'Tidak ada', 'Hasil assessment LSP', assessmentEvidence),
     portfolio: createReadinessItem('Portofolio', availableEvidence.portfolio?.length > 0 ? 'Ada' : 'Tidak ada', 'Dokumentasi pekerjaan', portfolioEvidence)
   };
@@ -381,12 +382,24 @@ function checkTrainingCompliance(actualHours: number, requiredHours: number): 'a
   return 'missing';
 }
 
-function checkCertificationCompliance(actualCerts: string[], requiredCerts: string[]): 'available' | 'partial' | 'missing' {
+// Evidence may arrive as plain certificate name strings, or as uploaded-file
+// metadata (e.g. `{ name, size }`) once files are serialized for the API.
+// Normalize either shape to a matchable string before comparing.
+function certificationLabel(cert: unknown): string {
+  if (typeof cert === 'string') return cert;
+  if (cert && typeof cert === 'object' && typeof (cert as { name?: unknown }).name === 'string') {
+    return (cert as { name: string }).name;
+  }
+  return '';
+}
+
+function checkCertificationCompliance(actualCerts: unknown[], requiredCerts: string[]): 'available' | 'partial' | 'missing' {
   if (!requiredCerts.length) return 'available';
 
+  const actualLabels = actualCerts.map(certificationLabel).filter(Boolean);
   const matchedCerts = requiredCerts.filter(reqCert =>
-    actualCerts.some(actualCert =>
-      actualCert.toLowerCase().includes(reqCert.toLowerCase().split(' ')[0]) // Basic matching
+    actualLabels.some(actualLabel =>
+      actualLabel.toLowerCase().includes(reqCert.toLowerCase().split(' ')[0]) // Basic matching
     )
   );
 

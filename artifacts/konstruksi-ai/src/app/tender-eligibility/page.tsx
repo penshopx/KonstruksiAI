@@ -2,13 +2,26 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  assessTenderEligibility,
   createMockTenderDocument,
   type TenderEligibilityCheck,
   type TenderDocument
-} from "@/lib/tender-eligibility";
+} from "@workspace/assessment/tender-eligibility";
 import NavbarAuth from "@/components/NavbarAuth";
 import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
+
+// File objects can't be sent as JSON; the backend only checks presence/count
+// of uploaded evidence, so we replace File[] entries with lightweight metadata.
+function toJsonSafeEvidence(evidence: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [key, value] of Object.entries(evidence)) {
+    if (Array.isArray(value) && value.length > 0 && typeof File !== "undefined" && value[0] instanceof File) {
+      out[key] = value.map((f: File) => ({ name: f.name, size: f.size }));
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
 
 const TABS = [
   { id: "input", label: "📋 Input Data", icon: "📋" },
@@ -37,6 +50,8 @@ export default function TenderEligibilityCheckerPage() {
   const [personnelIds, setPersonnelIds] = useState<string[]>(["P-001", "P-002", "P-003"]);
   const [evidence, setEvidence] = useState<Record<string, any>>({});
   const [eligibilityCheck, setEligibilityCheck] = useState<TenderEligibilityCheck | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const workspaceContext = useWorkspaceContext();
 
   useEffect(() => {
@@ -44,10 +59,32 @@ export default function TenderEligibilityCheckerPage() {
     setTenderDocument((current) => ({ ...current, title: workspaceContext.workspace!.name }));
   }, [workspaceContext.workspace?.id]);
 
-  const handleRunAnalysis = () => {
-    const result = assessTenderEligibility(businessEntityId, tenderDocument, personnelIds, evidence);
-    setEligibilityCheck(result);
-    setCurrentStep(1);
+  const handleRunAnalysis = async () => {
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    try {
+      const res = await fetch("/api/tender-eligibility/assess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          businessEntityId,
+          tenderDocument,
+          personnelIds,
+          evidence: toJsonSafeEvidence(evidence),
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Analisis gagal (status ${res.status})`);
+      }
+      const result: TenderEligibilityCheck = await res.json();
+      setEligibilityCheck(result);
+      setCurrentStep(1);
+    } catch (err) {
+      setAnalysisError(err instanceof Error ? err.message : "Analisis gagal dijalankan. Coba lagi.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const updateEvidence = (category: string, value: any) => {
@@ -277,7 +314,18 @@ export default function TenderEligibilityCheckerPage() {
   );
 
   const renderAnalysisTab = () => {
-    if (!eligibilityCheck) return null;
+    if (!eligibilityCheck) {
+      return (
+        <div className="text-center py-12">
+          {analysisError && (
+            <p className="text-red-400 mb-4">{analysisError}</p>
+          )}
+          <p className="text-slate-400">
+            {isAnalyzing ? "Menjalankan analisis..." : 'Klik "Run Eligibility Check" untuk menjalankan analisis'}
+          </p>
+        </div>
+      );
+    }
 
     const statusConfig = STATUS_CONFIG[eligibilityCheck.overallStatus];
 
@@ -632,9 +680,10 @@ export default function TenderEligibilityCheckerPage() {
             {currentStep === 0 && (
               <button
                 onClick={handleRunAnalysis}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                disabled={isAnalyzing}
+                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Run Eligibility Check
+                {isAnalyzing ? "Menganalisis..." : "Run Eligibility Check"}
               </button>
             )}
 

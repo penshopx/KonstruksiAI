@@ -2,15 +2,27 @@
 
 import { useState, useMemo } from "react";
 import {
-  assessSkkReadiness,
   getAvailableSkkPositions,
   validateSkkApplicationType,
   type WorkforceProfile,
   type SkkApplicationType,
-  type JobPosition,
   type SkkReadinessAssessment
-} from "@/lib/skk-readiness";
+} from "@workspace/assessment/skk-readiness";
 import NavbarAuth from "@/components/NavbarAuth";
+
+// File objects can't be sent as JSON; the backend only checks presence/count
+// of uploaded evidence, so we replace File[] entries with lightweight metadata.
+function toJsonSafeEvidence(evidence: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [key, value] of Object.entries(evidence)) {
+    if (Array.isArray(value) && value.length > 0 && typeof File !== "undefined" && value[0] instanceof File) {
+      out[key] = value.map((f: File) => ({ name: f.name, size: f.size }));
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
 
 const STEPS = [
   { id: 'workforce', label: '👤 Profil Tenaga Kerja', icon: '👤' },
@@ -38,10 +50,12 @@ export default function SkkReadinessWizardPage() {
   const [selectedPosition, setSelectedPosition] = useState<string>('');
   const [evidence, setEvidence] = useState<Record<string, any>>({});
   const [assessment, setAssessment] = useState<SkkReadinessAssessment | null>(null);
+  const [isAssessing, setIsAssessing] = useState(false);
+  const [assessmentError, setAssessmentError] = useState<string | null>(null);
 
   const availablePositions = useMemo(() => getAvailableSkkPositions(), []);
 
-  const handleRunAssessment = () => {
+  const handleRunAssessment = async () => {
     if (!workforce.name || !selectedPosition) return;
 
     const position = availablePositions.find(p => p.code === selectedPosition);
@@ -53,15 +67,31 @@ export default function SkkReadinessWizardPage() {
       return;
     }
 
-    const result = assessSkkReadiness(
-      workforce as WorkforceProfile,
-      applicationType as SkkApplicationType,
-      position,
-      evidence
-    );
-
-    setAssessment(result);
-    setCurrentStep(STEPS.length - 1);
+    setIsAssessing(true);
+    setAssessmentError(null);
+    try {
+      const res = await fetch("/api/skk-readiness/assess", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workforce,
+          applicationType,
+          position,
+          evidence: toJsonSafeEvidence(evidence),
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Assessment gagal (status ${res.status})`);
+      }
+      const result: SkkReadinessAssessment = await res.json();
+      setAssessment(result);
+      setCurrentStep(STEPS.length - 1);
+    } catch (err) {
+      setAssessmentError(err instanceof Error ? err.message : "Assessment gagal dijalankan. Coba lagi.");
+    } finally {
+      setIsAssessing(false);
+    }
   };
 
   const updateWorkforce = (field: string, value: any) => {
@@ -474,7 +504,18 @@ export default function SkkReadinessWizardPage() {
   );
 
   const renderAssessmentStep = () => {
-    if (!assessment) return null;
+    if (!assessment) {
+      return (
+        <div className="text-center py-12">
+          {assessmentError && (
+            <p className="text-red-400 mb-4">{assessmentError}</p>
+          )}
+          <p className="text-slate-400">
+            {isAssessing ? "Menjalankan assessment..." : 'Klik "Run Assessment" untuk menjalankan assessment'}
+          </p>
+        </div>
+      );
+    }
 
     return (
       <div className="space-y-6">
@@ -710,10 +751,10 @@ export default function SkkReadinessWizardPage() {
             {currentStep === STEPS.length - 2 && (
               <button
                 onClick={handleRunAssessment}
-                disabled={!workforce.name || !selectedPosition}
+                disabled={!workforce.name || !selectedPosition || isAssessing}
                 className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Run Assessment
+                {isAssessing ? "Menganalisis..." : "Run Assessment"}
               </button>
             )}
 

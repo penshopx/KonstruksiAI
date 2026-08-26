@@ -1,0 +1,11 @@
+{
+  "name": "@workspace/assessment",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./sbu-readiness": "./src/sbu-readiness.ts",
+    "./skk-readiness": "./src/skk-readiness.ts",
+    "./tender-eligibility": "./src/tender-eligibility.ts"
+  }
+}
