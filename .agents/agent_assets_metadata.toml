@@ -76,3 +76,10 @@ mtime_ms = 1787669330508
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:462635f1-9943-4048-97a7-13be5f52febd/f1846855-c920-459f-a4f8-0bd7ac5223d3/13206a97-5bd4-4668-95fc-570deb94676f"
 storage_version_token = "1787669332210867"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "T6Ng1u6shizMsOl5_h9Je"
+uri = "file://artifacts/konstruksi-promo-video/public/audio/sfx_scene_transition.mp3"
+type = "audio"
+title = "scene transition whoosh chime"
+description = "Generated sound effect: Soft futuristic scene-transition whoosh with a delicate glassy chime accent, clean and polished, warm tonal sweep, subtle cinematic lift, short controlled decay, no harsh high…"
