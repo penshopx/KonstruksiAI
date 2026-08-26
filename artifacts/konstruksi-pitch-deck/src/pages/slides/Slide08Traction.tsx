@@ -1,7 +1,7 @@
 export default function Slide08Traction() {
   return (
     <div
-      className="w-screen h-screen overflow-hidden relative"
+      className="deck-slide w-screen h-screen overflow-hidden relative"
       style={{
         backgroundColor: "#F5F2ED",
         color: "#2C2C2C",

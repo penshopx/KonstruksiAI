@@ -1,6 +1,7 @@
 export default function Slide08Tech() {
   return (
     <div
+      className="deck-slide w-screen h-screen overflow-hidden relative"
       style={{
         width: "100vw",
         height: "100vh",

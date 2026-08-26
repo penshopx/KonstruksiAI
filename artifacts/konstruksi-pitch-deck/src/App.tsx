@@ -266,19 +266,46 @@ function SlideViewer() {
 
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   const firstPosition = slides.length > 0 ? slides[0].position : 1;
+  const isPrintTheme =
+    new URLSearchParams(window.location.search).get('theme') === 'print';
+  const themeQuery = isPrintTheme ? '?theme=print' : '';
+  const printHandoutHref = `${base}/allslides?theme=print`;
 
   return (
     <div
-      className="slide-viewer h-screen w-screen overflow-hidden bg-black flex items-center justify-center"
+      className="slide-viewer relative h-screen w-screen overflow-hidden bg-black flex items-center justify-center"
       onClick={() => iframeRef.current?.focus()}
     >
       <iframe
         ref={iframeRef}
-        src={`${base}/slide${firstPosition}`}
+        src={`${base}/slide${firstPosition}${themeQuery}`}
         style={{ width: dims.width, height: dims.height, border: 'none' }}
         onLoad={() => iframeRef.current?.focus()}
         title="Slide viewer"
       />
+      <a
+        href={printHandoutHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(event) => event.stopPropagation()}
+        style={{
+          position: 'absolute',
+          right: '20px',
+          bottom: '20px',
+          zIndex: 1,
+          color: '#F5F2ED',
+          background: 'rgba(23, 23, 23, 0.88)',
+          border: '1px solid rgba(245, 242, 237, 0.45)',
+          borderRadius: '999px',
+          padding: '10px 14px',
+          fontFamily: "'Inter', sans-serif",
+          fontSize: '12px',
+          letterSpacing: '0.04em',
+          textDecoration: 'none',
+        }}
+      >
+        Handout cetak · buka lalu simpan sebagai PDF
+      </a>
     </div>
   );
 }

@@ -3,6 +3,7 @@ const base = import.meta.env.BASE_URL;
 export default function Slide01Title() {
   return (
     <div
+      className="deck-slide w-screen h-screen overflow-hidden relative"
       style={{
         width: "100vw",
         height: "100vh",

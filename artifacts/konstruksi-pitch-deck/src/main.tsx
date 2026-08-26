@@ -5,6 +5,7 @@ import { Router } from 'wouter';
 import App from './App';
 
 import './index.css';
+import './theme';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

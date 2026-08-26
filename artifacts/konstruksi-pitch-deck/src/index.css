@@ -11,13 +11,42 @@
 }
 
 :root {
-  --slide-primary: #C45B28;
-  --slide-accent: #C45B28;
-  --slide-bg: #F5F2ED;
-  --slide-text: #2C2C2C;
-  --slide-muted: #8C8C8C;
+  --deck-bg: #171717;
+  --deck-text: #F5F2ED;
+  --deck-body: #E3DCD4;
+  --deck-muted: #B9B0A5;
+  --deck-accent: #E07038;
+  --deck-bg-rgb: 23, 23, 23;
+  --deck-text-rgb: 245, 242, 237;
+  --deck-body-rgb: 227, 220, 212;
+  --deck-muted-rgb: 185, 176, 165;
+  --deck-accent-rgb: 224, 112, 56;
+  --slide-primary: var(--deck-accent);
+  --slide-accent: var(--deck-accent);
+  --slide-bg: var(--deck-bg);
+  --slide-text: var(--deck-text);
+  --slide-muted: var(--deck-muted);
   --font-display-family: 'Playfair Display', Georgia, serif;
   --font-body-family: 'Inter', system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+:root[data-deck-theme="print"] {
+  --deck-bg: #F5F2ED;
+  --deck-text: #2C2C2C;
+  --deck-body: #4A4A4A;
+  --deck-muted: #625B54;
+  --deck-accent: #B64A1F;
+  --deck-bg-rgb: 245, 242, 237;
+  --deck-text-rgb: 44, 44, 44;
+  --deck-body-rgb: 74, 74, 74;
+  --deck-muted-rgb: 98, 91, 84;
+  --deck-accent-rgb: 182, 74, 31;
+  --slide-primary: var(--deck-accent);
+  --slide-accent: var(--deck-accent);
+  --slide-bg: var(--deck-bg);
+  --slide-text: var(--deck-text);
+  --slide-muted: var(--deck-muted);
   color-scheme: light;
 }
 
@@ -32,6 +61,127 @@ body,
 body {
   background: var(--slide-bg);
   color: var(--slide-text);
+}
+
+.deck-slide {
+  background-color: var(--deck-bg) !important;
+  color: var(--deck-text) !important;
+}
+
+/*
+ * Slides are intentionally static JSX with inline visual values so the
+ * workspace editor can map each element back to source. These narrow
+ * selectors remap the shared palette at render time without duplicating
+ * the ten-slide deck for print output.
+ */
+.deck-slide [style*="background-color: rgb(245"],
+.deck-slide [style*="background-color: rgb(44"],
+.deck-slide [style*="background-color: rgba(44"] {
+  background-color: var(--deck-bg) !important;
+}
+
+.deck-slide [style*="background-color: rgb(196"],
+.deck-slide [style*="background-color: rgba(196"] {
+  background-color: var(--deck-accent) !important;
+}
+
+.deck-slide [style*="background-color: rgba(245"] {
+  background-color: rgba(var(--deck-text-rgb), 0.18) !important;
+}
+
+.deck-slide [style*="color: rgb(245"],
+.deck-slide [style*="color: rgba(245"] {
+  color: var(--deck-text) !important;
+}
+
+.deck-slide [style*="color: rgb(44"] {
+  color: var(--deck-text) !important;
+}
+
+.deck-slide [style*="color: rgb(74"] {
+  color: var(--deck-body) !important;
+}
+
+.deck-slide [style*="color: rgb(140"],
+.deck-slide [style*="color: rgba(140"] {
+  color: var(--deck-muted) !important;
+}
+
+.deck-slide [style*="color: rgb(196"],
+.deck-slide [style*="color: rgba(196"] {
+  color: var(--deck-accent) !important;
+}
+
+.deck-slide [style*="color: rgba(44"] {
+  color: rgba(var(--deck-bg-rgb), 0.7) !important;
+}
+
+.deck-slide [style*="border: 1px solid rgb(196"],
+.deck-slide [style*="border: 3px solid rgb(196"],
+.deck-slide [style*="border: 1px solid rgba(196"] {
+  border-color: var(--deck-accent) !important;
+}
+
+.deck-slide [style*="border: 1px solid rgb(44"],
+.deck-slide [style*="border: 3px solid rgb(44"] {
+  border-color: var(--deck-text) !important;
+}
+
+.deck-slide [style*="border-bottom: 1px solid rgba(140"],
+.deck-slide [style*="border-top: 1px solid rgba(140"],
+.deck-slide [style*="border-left: 1px solid rgba(140"],
+.deck-slide [style*="border: 1px solid rgba(140"] {
+  border-color: rgba(var(--deck-muted-rgb), 0.6) !important;
+}
+
+.deck-slide [style*="border-top: 1px solid rgba(44"] {
+  border-color: rgba(var(--deck-text-rgb), 0.6) !important;
+}
+
+.deck-slide [style*="background: linear-gradient"] {
+  background: linear-gradient(
+    to right,
+    var(--deck-bg) 0%,
+    color-mix(in srgb, var(--deck-bg) 55%, transparent) 40%,
+    transparent 100%
+  ) !important;
+}
+
+@media print {
+  @page {
+    size: 16in 9in;
+    margin: 0;
+  }
+
+  :root {
+    --deck-bg: #F5F2ED;
+    --deck-text: #2C2C2C;
+    --deck-body: #4A4A4A;
+    --deck-muted: #625B54;
+    --deck-accent: #B64A1F;
+    --deck-bg-rgb: 245, 242, 237;
+    --deck-text-rgb: 44, 44, 44;
+    --deck-body-rgb: 74, 74, 74;
+    --deck-muted-rgb: 98, 91, 84;
+    --deck-accent-rgb: 182, 74, 31;
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .slide {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .slide:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
 }
 
 .slide {
