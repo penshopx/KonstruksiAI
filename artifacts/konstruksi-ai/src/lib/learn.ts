@@ -65,6 +65,65 @@ export interface UserProgress {
   score?: number;
 }
 
+export type LearningFocusId = 'teknik' | 'tender' | 'manajemen' | 'perijinan' | 'energi';
+
+export interface LearningFocus {
+  id: LearningFocusId;
+  label: string;
+  description: string;
+  categories: LearningPath['category'][];
+  stages: string[];
+}
+
+export const LEARNING_FOCUSES: LearningFocus[] = [
+  {
+    id: 'teknik',
+    label: 'Teknik konstruksi',
+    description: 'Bangun dasar teknis, struktur, material, dan metode kerja.',
+    categories: ['konstruksi'],
+    stages: ['planning', 'execution', 'handover'],
+  },
+  {
+    id: 'tender',
+    label: 'Tender & pengadaan',
+    description: 'Pahami kelayakan, dokumen, dan keputusan sebelum penawaran.',
+    categories: ['tender'],
+    stages: ['tender'],
+  },
+  {
+    id: 'manajemen',
+    label: 'Manajemen proyek',
+    description: 'Latih perencanaan, koordinasi, risiko, dan pengendalian pekerjaan.',
+    categories: ['manajemen'],
+    stages: ['planning', 'execution', 'monitoring', 'handover'],
+  },
+  {
+    id: 'perijinan',
+    label: 'Perijinan & kepatuhan',
+    description: 'Kenali rujukan perijinan dan kepatuhan yang perlu diverifikasi.',
+    categories: ['perijinan'],
+    stages: ['tender', 'monitoring'],
+  },
+  {
+    id: 'energi',
+    label: 'Energi & keselamatan',
+    description: 'Perluas kompetensi energi, kelistrikan, dan keselamatan kerja.',
+    categories: ['energi', 'migas'],
+    stages: ['execution', 'monitoring'],
+  },
+];
+
+export function getLearningFocusForStage(stageId?: string | null): LearningFocus | undefined {
+  return LEARNING_FOCUSES.find((focus) => focus.stages.includes(stageId ?? ''));
+}
+
+export function getLearningPathsForStage(stageId?: string | null): LearningPath[] {
+  const categories = LEARNING_FOCUSES.filter((focus) => focus.stages.includes(stageId ?? ''))
+    .flatMap((focus) => focus.categories);
+  const uniqueCategories = new Set(categories);
+  return LEARNING_PATHS.filter((path) => uniqueCategories.has(path.category));
+}
+
 // ============================================================
 // LEARNING PATHS DATA
 // ============================================================

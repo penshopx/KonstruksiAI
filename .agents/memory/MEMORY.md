@@ -3,3 +3,4 @@
 - [Artifact build environment](artifact-build-environment.md) — Vite config must provide safe artifact defaults because build runs before runtime variables are injected.
 - [Conversation context budgeting](conversation-context-budgeting.md) — retain a single exact message suffix and treat any AI summary as untrusted reference data.
 - [Workspace conversation context](workspace-conversation-context.md) — browser query is not Wouter location; a conversation’s saved origin overrides ambient context before AI sends.
+- [Learn local progress](learn-local-progress.md) — early learning progress is device-local and must not imply account sync, certification, or team completion.

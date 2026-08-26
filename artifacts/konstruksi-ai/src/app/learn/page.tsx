@@ -1,51 +1,71 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from '@/shims/next-link';
 import { 
   LEARNING_PATHS, 
+  LEARNING_FOCUSES,
   getCategoryColor, 
   getLevelBadge,
   getCategoryLabel,
+  getLearningFocusForStage,
+  getLearningPathsForStage,
   getTotalLessons,
+  type LearningFocusId,
   type LearningPath
 } from '@/lib/learn';
 import { 
   BookOpen, 
   Clock, 
-  Users, 
-  Star, 
   Search,
   Filter,
   ChevronRight,
   PlayCircle,
-  Award,
-  BarChart3
+  BarChart3,
+  Compass,
+  Route,
+  Target
 } from 'lucide-react';
+import { WorkspaceContextBanner, useWorkspaceContext, withWorkspaceContext } from '@/lib/workspace-context';
 
 export default function LearnPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
+  const [selectedFocus, setSelectedFocus] = useState<LearningFocusId | 'all' | null>(null);
+  const workspaceContext = useWorkspaceContext();
 
   const categories = ['all', 'konstruksi', 'energi', 'migas', 'tender', 'manajemen', 'perijinan'] as const;
   const levels = ['all', 'beginner', 'intermediate', 'advanced', 'expert'] as const;
+  const stageFocus = getLearningFocusForStage(workspaceContext.workspace?.stageId);
+  const activeFocusId = selectedFocus ?? stageFocus?.id ?? 'all';
+  const activeFocus = activeFocusId === 'all'
+    ? null
+    : LEARNING_FOCUSES.find((focus) => focus.id === activeFocusId);
 
-  const filteredPaths = LEARNING_PATHS.filter(path => {
+  const filteredPaths = useMemo(() => LEARNING_PATHS.filter(path => {
+    const query = searchQuery.trim().toLowerCase();
     const matchesSearch =
-      path.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      path.description.toLowerCase().includes(searchQuery.toLowerCase());
+      !query ||
+      path.title.toLowerCase().includes(query) ||
+      path.description.toLowerCase().includes(query) ||
+      path.outcomes.some((outcome) => outcome.toLowerCase().includes(query));
     const matchesCategory = selectedCategory === 'all' || path.category === selectedCategory;
     const matchesLevel = selectedLevel === 'all' || path.level === selectedLevel;
-    return matchesSearch && matchesCategory && matchesLevel;
-  });
+    const matchesFocus = !activeFocus || activeFocus.categories.includes(path.category);
+    return matchesSearch && matchesCategory && matchesLevel && matchesFocus;
+  }), [activeFocus, searchQuery, selectedCategory, selectedLevel]);
 
   const stats = {
     totalPaths: LEARNING_PATHS.length,
     totalModules: LEARNING_PATHS.reduce((sum, p) => sum + p.modules.length, 0),
-    totalStudents: LEARNING_PATHS.reduce((sum, p) => sum + p.enrolledCount, 0),
-    avgRating: (LEARNING_PATHS.reduce((sum, p) => sum + p.rating, 0) / LEARNING_PATHS.length).toFixed(1)
+    totalFocuses: LEARNING_FOCUSES.length,
+    totalStages: 5,
   };
+  const recommendedPaths = workspaceContext.workspace
+    ? getLearningPathsForStage(workspaceContext.workspace.stageId).slice(0, 3)
+    : [];
+  const workspaceId = workspaceContext.workspace?.id;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -71,17 +91,17 @@ export default function LearnPage() {
           </h1>
           
           <p className="text-lg md:text-xl text-blue-100 max-w-3xl mx-auto mb-10">
-            Jalur pembelajaran terstruktur dari fundamental hingga expert. Sertifikasi resmi 
-            untuk membangun karir engineering Anda.
+            Pilih hal yang perlu dipelajari, praktikkan bersama materi KonstruksiAI, lalu bawa
+            pemahaman itu kembali ke pekerjaan Anda.
           </p>
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-4xl mx-auto">
             {[
-              { icon: BookOpen, value: stats.totalPaths, label: 'Learning Paths' },
+              { icon: Route, value: stats.totalPaths, label: 'Jalur tersedia' },
               { icon: PlayCircle, value: stats.totalModules, label: 'Modul' },
-              { icon: Users, value: `${(stats.totalStudents / 1000).toFixed(1)}K+`, label: 'Peserta' },
-              { icon: Star, value: stats.avgRating, label: 'Rating' }
+              { icon: Compass, value: stats.totalFocuses, label: 'Dimensi belajar' },
+              { icon: Target, value: stats.totalStages, label: 'Tahap pekerjaan' }
             ].map((stat, i) => (
               <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
                 <stat.icon className="w-6 h-6 text-yellow-300 mx-auto mb-2" />
@@ -90,6 +110,69 @@ export default function LearnPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+        <WorkspaceContextBanner context={workspaceContext} />
+      </div>
+
+      {/* Learning orientation */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2 pb-8">
+        <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-6 md:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
+                <Compass className="h-4 w-4" />
+                Orientasi belajar
+              </div>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">Belajar sesuai kebutuhan pekerjaan</h2>
+              <p className="mt-2 text-slate-600">
+                Pilih dimensi yang ingin diperkuat. Materi tetap berasal dari katalog Learn yang
+                tersedia, sementara konteks pekerjaan hanya membantu memilih titik mulai.
+              </p>
+            </div>
+            {stageFocus && workspaceContext.workspace && (
+              <div className="rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm text-slate-600">
+                <span className="font-semibold text-slate-900">Saran untuk tahap ini:</span>{' '}
+                {stageFocus.label}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 flex gap-2 overflow-x-auto pb-1" aria-label="Dimensi belajar">
+            <button
+              type="button"
+              onClick={() => setSelectedFocus('all')}
+              className={`whitespace-nowrap rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                activeFocusId === 'all'
+                  ? 'border-blue-600 bg-blue-600 text-white'
+                  : 'border-blue-200 bg-white text-slate-700 hover:border-blue-400'
+              }`}
+            >
+              Semua dimensi
+            </button>
+            {LEARNING_FOCUSES.map((focus) => (
+              <button
+                key={focus.id}
+                type="button"
+                onClick={() => setSelectedFocus(focus.id)}
+                className={`whitespace-nowrap rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  activeFocusId === focus.id
+                    ? 'border-blue-600 bg-blue-600 text-white'
+                    : 'border-blue-200 bg-white text-slate-700 hover:border-blue-400'
+                }`}
+              >
+                {focus.label}
+              </button>
+            ))}
+          </div>
+          {activeFocus && (
+            <p className="mt-4 text-sm text-slate-600">
+              <span className="font-semibold text-slate-900">{activeFocus.label}:</span>{' '}
+              {activeFocus.description}
+            </p>
+          )}
         </div>
       </section>
 
@@ -146,6 +229,31 @@ export default function LearnPage() {
         </div>
       </section>
 
+      {workspaceContext.workspace && recommendedPaths.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
+          <div className="flex items-end justify-between gap-4 mb-5">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">Berangkat dari konteks Anda</p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">Materi yang relevan untuk tahap ini</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Rekomendasi ini mengikuti tahap workspace, bukan status atau hasil pekerjaan.
+              </p>
+            </div>
+            <Link
+              href={withWorkspaceContext('/ruang-proyek', workspaceId)}
+              className="hidden items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700 sm:inline-flex"
+            >
+              Kembali ke ruang <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {recommendedPaths.map((path) => (
+              <LearningPathCard key={path.id} path={path} workspaceId={workspaceId} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Learning Paths Grid */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-center justify-between mb-8">
@@ -170,7 +278,7 @@ export default function LearnPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPaths.map((path) => (
-              <LearningPathCard key={path.id} path={path} />
+              <LearningPathCard key={path.id} path={path} workspaceId={workspaceId} />
             ))}
           </div>
         )}
@@ -179,28 +287,26 @@ export default function LearnPage() {
       {/* CTA Section */}
       <section className="bg-gradient-to-br from-slate-900 to-slate-800 py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Award className="w-16 h-16 text-yellow-400 mx-auto mb-6" />
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Dapatkan Sertifikat Resmi
-          </h2>
+          <BookOpen className="w-16 h-16 text-yellow-400 mx-auto mb-6" />
+          <h2 className="text-3xl font-bold text-white mb-4">Belajar, lalu terapkan</h2>
           <p className="text-lg text-slate-300 mb-8">
-            Setiap learning path memberikan sertifikat digital yang dapat diverifikasi. 
-            Tingkatkan kredibilitas profesional Anda.
+            Setelah memahami konsep, lanjutkan ke fitur KonstruksiAI yang sesuai untuk menguji
+            pertanyaan, dokumen, dan keputusan pekerjaan Anda.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/learn/certificates"
+              href={withWorkspaceContext('/ruang-proyek', workspaceId)}
               className="inline-flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-slate-900 px-8 py-4 rounded-xl font-semibold transition-colors"
             >
-              <Award className="w-5 h-5" />
-              Lihat Sertifikat
+              <Route className="w-5 h-5" />
+              Kembali ke Ruang Proyek
             </Link>
             <Link
-              href="/register"
+              href={withWorkspaceContext('/chat', workspaceId)}
               className="inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-8 py-4 rounded-xl font-semibold transition-colors"
             >
-              <Users className="w-5 h-5" />
-              Daftar Gratis
+              <Target className="w-5 h-5" />
+              Konsultasi dengan AI
             </Link>
           </div>
         </div>
@@ -209,12 +315,12 @@ export default function LearnPage() {
   );
 }
 
-function LearningPathCard({ path }: { path: LearningPath }) {
+function LearningPathCard({ path, workspaceId }: { path: LearningPath; workspaceId?: string }) {
   const levelBadge = getLevelBadge(path.level);
   const totalLessons = getTotalLessons(path);
 
   return (
-    <Link href={`/learn/${path.slug}`}>
+    <Link href={withWorkspaceContext(`/learn/${path.slug}`, workspaceId)}>
       <div className="group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl hover:border-blue-300 transition-all duration-300 h-full flex flex-col">
         {/* Header with Gradient */}
         <div className={`h-32 bg-gradient-to-br ${getCategoryColor(path.category)} relative p-6`}>
@@ -262,20 +368,14 @@ function LearningPathCard({ path }: { path: LearningPath }) {
 
           {/* Footer */}
           <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <Users className="w-4 h-4 text-slate-400" />
-                <span className="text-sm text-slate-600">{path.enrolledCount.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                <span className="text-sm text-slate-600">{path.rating}</span>
-              </div>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <BookOpen className="w-4 h-4 text-slate-400" />
+              <span>{path.modules.length} modul terstruktur</span>
             </div>
-            {path.certificationAwarded && (
+            {path.modules.some((module) => module.quiz.questions.length > 0) && (
               <div className="flex items-center gap-1 text-blue-600">
-                <Award className="w-4 h-4" />
-                <span className="text-xs font-medium">Sertifikat</span>
+                <Target className="w-4 h-4" />
+                <span className="text-xs font-medium">Ada evaluasi</span>
               </div>
             )}
           </div>

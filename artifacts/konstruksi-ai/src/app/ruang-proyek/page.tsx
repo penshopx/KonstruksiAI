@@ -106,6 +106,12 @@ const STAGES: Stage[] = [
         href: "/chat",
         icon: MessagesSquare,
       },
+      {
+        label: "Belajar perencanaan",
+        description: "Pilih materi teknis dan manajemen yang relevan sebelum menyusun keputusan.",
+        href: "/learn",
+        icon: BookOpen,
+      },
     ],
   },
   {

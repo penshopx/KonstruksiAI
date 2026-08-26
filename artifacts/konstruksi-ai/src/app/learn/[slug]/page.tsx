@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from '@/shims/next-link';
 import { useParams } from '@/shims/next-navigation';
 import { 
@@ -13,11 +13,11 @@ import {
   type LearningModule,
   type Lesson
 } from '@/lib/learn';
+import { markLocalLessonComplete, readLocalLearningProgress } from '@/lib/learn-progress';
+import { WorkspaceContextBanner, useWorkspaceContext, withWorkspaceContext } from '@/lib/workspace-context';
 import { 
   BookOpen, 
   Clock, 
-  Users, 
-  Star, 
   ChevronLeft,
   ChevronRight,
   CheckCircle,
@@ -25,10 +25,10 @@ import {
   PlayCircle,
   FileText,
   Lightbulb,
-  Award,
   Target,
   ArrowRight,
-  BookOpenCheck
+  BookOpenCheck,
+  Compass
 } from 'lucide-react';
 
 export default function LearningPathPage() {
@@ -39,6 +39,31 @@ export default function LearningPathPage() {
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(() => new Set());
+  const [progressReady, setProgressReady] = useState(false);
+  const [progressError, setProgressError] = useState<string | null>(null);
+  const workspaceContext = useWorkspaceContext();
+
+  useEffect(() => {
+    const stored = readLocalLearningProgress();
+    setCompletedLessonIds(
+      new Set(
+        stored.progress
+          .filter((record) => record.pathId === path?.id)
+          .map((record) => record.lessonId),
+      ),
+    );
+    setProgressError(stored.error);
+    setProgressReady(true);
+  }, [path?.id]);
+
+  const completedCount = useMemo(
+    () => (path ? path.modules.reduce(
+      (total, module) => total + module.lessons.filter((lesson) => completedLessonIds.has(lesson.id)).length,
+      0,
+    ) : 0),
+    [completedLessonIds, path],
+  );
 
   if (!path) {
     return (
@@ -67,10 +92,28 @@ export default function LearningPathPage() {
         path={path} 
         module={activeModule!} 
         lesson={activeLesson}
+        isCompleted={completedLessonIds.has(activeLesson.id)}
         onBack={() => setActiveLessonId(null)}
         onComplete={() => {
-          // Mark lesson as complete and move to next
+          const result = markLocalLessonComplete({
+            pathId: path.id,
+            moduleId: activeModule!.id,
+            lessonId: activeLesson.id,
+          });
+          if (result.error) {
+            setProgressError(result.error);
+            return false;
+          }
+          setCompletedLessonIds(
+            new Set(
+              result.progress
+                .filter((record) => record.pathId === path.id)
+                .map((record) => record.lessonId),
+            ),
+          );
+          setProgressError(null);
           setActiveLessonId(null);
+          return true;
         }}
       />
     );
@@ -96,7 +139,7 @@ export default function LearningPathPage() {
       <div className={`bg-gradient-to-br ${getCategoryColor(path.category)}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Link 
-            href="/learn" 
+            href={withWorkspaceContext("/learn", workspaceContext.workspace?.id)}
             className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -113,11 +156,6 @@ export default function LearningPathPage() {
                 <span className="bg-white/20 text-white px-3 py-1 rounded-full text-xs font-medium">
                   {getCategoryLabel(path.category)}
                 </span>
-                <div className="flex items-center gap-1 text-white/90">
-                  <Star className="w-4 h-4 fill-yellow-300 text-yellow-300" />
-                  <span className="text-sm font-medium">{path.rating}</span>
-                  <span className="text-white/60">({path.reviewCount} ulasan)</span>
-                </div>
               </div>
               
               <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">{path.title}</h1>
@@ -132,19 +170,22 @@ export default function LearningPathPage() {
                   <BookOpen className="w-5 h-5" />
                   <span>{path.modules.length} modul</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  <span>{path.enrolledCount.toLocaleString()} peserta</span>
-                </div>
               </div>
             </div>
             
             <div className="flex flex-col gap-3">
-              <button className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-colors">
-                Mulai Belajar
-              </button>
-              <button className="bg-white/20 text-white px-8 py-3 rounded-xl font-semibold hover:bg-white/30 transition-colors">
-                Preview Gratis
+              <button
+                type="button"
+                disabled={!path.modules[0]?.lessons[0]}
+                onClick={() => {
+                  const firstLesson = path.modules[0]?.lessons[0];
+                  if (!firstLesson) return;
+                  setActiveModuleId(path.modules[0].id);
+                  setActiveLessonId(firstLesson.id);
+                }}
+                className="bg-white text-blue-600 px-8 py-3 rounded-xl font-semibold hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
+              >
+                {completedCount > 0 ? "Lanjutkan belajar" : "Mulai belajar"}
               </button>
             </div>
           </div>
@@ -153,6 +194,7 @@ export default function LearningPathPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <WorkspaceContextBanner context={workspaceContext} />
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
@@ -201,6 +243,7 @@ export default function LearningPathPage() {
                     module={module} 
                     index={index}
                     isActive={activeModuleId === module.id}
+                    completedLessonIds={completedLessonIds}
                     onClick={() => setActiveModuleId(activeModuleId === module.id ? null : module.id)}
                     onStartLesson={(lessonId) => {
                       setActiveModuleId(module.id);
@@ -218,38 +261,61 @@ export default function LearningPathPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Certification */}
-            {path.certificationAwarded && (
-              <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-6 border border-yellow-200">
-                <div className="flex items-center gap-3 mb-4">
-                  <Award className="w-8 h-8 text-yellow-600" />
-                  <h3 className="font-bold text-slate-900">Sertifikat Tersedia</h3>
-                </div>
-                <p className="text-slate-700 mb-4">
-                  Selesaikan learning path ini untuk mendapatkan:
-                </p>
-                <div className="bg-white rounded-xl p-4 border border-yellow-200">
-                  <p className="font-semibold text-slate-900">{path.certificationAwarded}</p>
-                  <p className="text-sm text-slate-500 mt-1">Diterbitkan oleh KonstruksiAI</p>
-                </div>
-              </div>
-            )}
-
             {/* Progress Card */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200">
               <h3 className="font-bold text-slate-900 mb-4">Progress Anda</h3>
               <div className="mb-4">
                 <div className="flex justify-between text-sm mb-2">
-                  <span className="text-slate-600">0% Selesai</span>
-                  <span className="text-slate-900 font-medium">0/{getTotalLessons(path)} pelajaran</span>
+                  <span className="text-slate-600">
+                    {progressReady ? `${Math.round((completedCount / getTotalLessons(path)) * 100)}% selesai` : "Memuat progress…"}
+                  </span>
+                  <span className="text-slate-900 font-medium">
+                    {completedCount}/{getTotalLessons(path)} pelajaran
+                  </span>
                 </div>
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-600 rounded-full" style={{ width: '0%' }} />
+                  <div
+                    className="h-full bg-blue-600 rounded-full transition-all"
+                    style={{ width: `${getTotalLessons(path) ? (completedCount / getTotalLessons(path)) * 100 : 0}%` }}
+                  />
                 </div>
               </div>
               <p className="text-sm text-slate-500">
-                Daftar untuk melacak progress belajar Anda
+                Progress ini tersimpan di perangkat Anda dan hanya berubah saat pelajaran ditandai selesai.
               </p>
+              {progressError && (
+                <p className="mt-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs leading-relaxed text-orange-800">
+                  {progressError}
+                </p>
+              )}
+            </div>
+
+            {/* Continue with KonstruksiAI */}
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
+              <div className="flex items-center gap-2 text-blue-700">
+                <Compass className="h-5 w-5" />
+                <h3 className="font-bold">Lanjutkan ke pekerjaan</h3>
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                Terapkan pemahaman ini melalui fitur KonstruksiAI yang sudah tersedia.
+              </p>
+              <div className="mt-4 space-y-2">
+                {[
+                  { label: "Buka Knowledge", href: "/knowledge" },
+                  { label: "Buka Bimtek", href: "/bimtek" },
+                  { label: "Buka Simulasi", href: "/simulasi" },
+                  { label: "Konsultasi dengan AI", href: "/chat" },
+                ].map((action) => (
+                  <Link
+                    key={action.href}
+                    href={withWorkspaceContext(action.href, workspaceContext.workspace?.id)}
+                    className="flex items-center justify-between rounded-lg bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-blue-100 hover:text-blue-700"
+                  >
+                    {action.label}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                ))}
+              </div>
             </div>
 
             {/* Instructor */}
@@ -276,6 +342,7 @@ function ModuleCard({
   module, 
   index, 
   isActive, 
+  completedLessonIds,
   onClick,
   onStartLesson,
   onStartQuiz
@@ -283,6 +350,7 @@ function ModuleCard({
   module: LearningModule; 
   index: number; 
   isActive: boolean;
+  completedLessonIds: Set<string>;
   onClick: () => void;
   onStartLesson: (lessonId: string) => void;
   onStartQuiz: () => void;
@@ -337,7 +405,11 @@ function ModuleCard({
                   <p className="font-medium text-slate-900 group-hover:text-blue-700">{lesson.title}</p>
                   <p className="text-xs text-slate-500">{lesson.duration}</p>
                 </div>
-                <Circle className="w-5 h-5 text-slate-300" />
+                  {completedLessonIds.has(lesson.id) ? (
+                    <CheckCircle className="w-5 h-5 text-green-500" aria-label="Selesai" />
+                  ) : (
+                    <Circle className="w-5 h-5 text-slate-300" aria-label="Belum selesai" />
+                  )}
               </button>
             ))}
 
@@ -366,16 +438,33 @@ function LessonPlayer({
   path, 
   module, 
   lesson, 
+  isCompleted: initiallyCompleted,
   onBack,
   onComplete 
 }: { 
   path: LearningPath;
   module: LearningModule;
   lesson: Lesson;
+  isCompleted: boolean;
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: () => boolean;
 }) {
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(initiallyCompleted);
+  const [completionError, setCompletionError] = useState<string | null>(null);
+
+  const completeLesson = () => {
+    if (isCompleted) {
+      onBack();
+      return;
+    }
+
+    if (onComplete()) {
+      setIsCompleted(true);
+      return;
+    }
+
+    setCompletionError("Progress belum tersimpan. Periksa penyimpanan perangkat lalu coba lagi.");
+  };
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -397,10 +486,7 @@ function LessonPlayer({
             </div>
             
             <button
-              onClick={() => {
-                setIsCompleted(true);
-                onComplete();
-              }}
+              onClick={completeLesson}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                 isCompleted 
                   ? 'bg-green-600 text-white' 
@@ -450,6 +536,12 @@ function LessonPlayer({
             )}
           </div>
 
+          {completionError && (
+            <p className="mt-6 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+              {completionError}
+            </p>
+          )}
+
           {/* Navigation */}
           <div className="flex items-center justify-between mt-12 pt-8 border-t border-slate-200">
             <button
@@ -460,10 +552,7 @@ function LessonPlayer({
               Pelajaran Sebelumnya
             </button>
             <button
-              onClick={() => {
-                setIsCompleted(true);
-                onComplete();
-              }}
+              onClick={completeLesson}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors"
             >
               Pelajaran Selanjutnya
