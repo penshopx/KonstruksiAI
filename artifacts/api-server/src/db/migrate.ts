@@ -123,6 +123,18 @@ export function initializeDatabase() {
     )`);
     db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS radar_articles_fingerprint_unique ON radar_articles(fingerprint)`);
 
+    db.run(sql`CREATE TABLE IF NOT EXISTS radar_source_status (
+      id TEXT PRIMARY KEY,
+      status TEXT NOT NULL DEFAULT 'pending',
+      last_attempt_at INTEGER,
+      last_success_at INTEGER,
+      items_found INTEGER NOT NULL DEFAULT 0,
+      items_added INTEGER NOT NULL DEFAULT 0,
+      error TEXT,
+      consecutive_failures INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL
+    )`);
+
     db.run(sql`CREATE TABLE IF NOT EXISTS legal_entities (
       id TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

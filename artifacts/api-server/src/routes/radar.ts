@@ -1,9 +1,11 @@
 import { Router } from "express";
 import {
   getRadarArticles,
+  getRadarSourceAlerts,
   getRadarSourceStatuses,
   RADAR_CATEGORIES,
   refreshRadar,
+  type RadarSourceAlert,
 } from "../lib/radar";
 import { getSessionFromRequest } from "../lib/auth";
 
@@ -11,6 +13,13 @@ const router = Router();
 
 function serializeDate(value: Date | null): string | null {
   return value ? value.toISOString() : null;
+}
+
+function serializeAlert(alert: RadarSourceAlert) {
+  return {
+    ...alert,
+    lastSuccessAt: serializeDate(alert.lastSuccessAt),
+  };
 }
 
 router.get("/radar/articles", (_req, res) => {
@@ -37,6 +46,7 @@ router.get("/radar/articles", (_req, res) => {
         lastAttemptAt: serializeDate(source.lastAttemptAt),
         lastSuccessAt: serializeDate(source.lastSuccessAt),
       })),
+      alerts: getRadarSourceAlerts().map(serializeAlert),
     });
   } catch (error) {
     res.status(500).json({ error: "Feed Radar Konstruksi tidak dapat dimuat" });
@@ -61,6 +71,7 @@ router.post("/radar/refresh", async (req, res) => {
         lastAttemptAt: serializeDate(source.lastAttemptAt),
         lastSuccessAt: serializeDate(source.lastSuccessAt),
       })),
+      alerts: result.alerts.map(serializeAlert),
     });
   } catch (error) {
     req.log.error({ err: error }, "POST /radar/refresh error");

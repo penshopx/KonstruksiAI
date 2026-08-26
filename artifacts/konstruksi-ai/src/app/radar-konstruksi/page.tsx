@@ -6,6 +6,7 @@ import Link from "@/shims/next-link";
 import NavbarAuth from "@/components/NavbarAuth";
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowRight,
   Building2,
   CalendarDays,
@@ -50,6 +51,19 @@ type SourceStatus = {
   itemsFound: number;
   itemsAdded: number;
   error: string | null;
+  consecutiveFailures: number;
+};
+
+type SourceAlert = {
+  sourceId: string;
+  sourceName: string;
+  category: RadarCategory;
+  sourceUrl: string;
+  reason: "repeated_failures" | "stale";
+  message: string;
+  error: string | null;
+  consecutiveFailures: number;
+  lastSuccessAt: string | null;
 };
 
 const CATEGORY_META: Record<CategoryFilter, { label: string; shortLabel: string; icon: typeof Radar; tone: string }> = {
@@ -167,8 +181,17 @@ function SourceStatus({ source }: { source: SourceStatus }) {
       )}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-xs font-medium text-slate-300">{source.name}</span>
-        <span className="block text-[11px] text-slate-500">
-          {failed ? "Sumber belum dapat diambil" : success ? `${source.itemsFound} update ditemukan` : "Menunggu pembaruan"}
+        <span className={`block text-[11px] ${failed && source.consecutiveFailures >= 2 ? "text-orange-300" : "text-slate-500"}`}>
+          {failed
+            ? source.consecutiveFailures >= 2
+              ? `Gagal ${source.consecutiveFailures}x berturut-turut`
+              : "Sumber belum dapat diambil"
+            : success
+              ? `${source.itemsFound} update ditemukan`
+              : "Menunggu pembaruan"}
+        </span>
+        <span className="block text-[11px] text-slate-600">
+          Terakhir berhasil: {formatDateTime(source.lastSuccessAt)}
         </span>
       </span>
       <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-600" />
@@ -180,6 +203,7 @@ export default function RadarKonstruksiPage() {
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [articles, setArticles] = useState<RadarArticle[]>([]);
   const [sources, setSources] = useState<SourceStatus[]>([]);
+  const [alerts, setAlerts] = useState<SourceAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -191,9 +215,10 @@ export default function RadarKonstruksiPage() {
     const query = category === "all" ? "" : `?category=${encodeURIComponent(category)}`;
     const response = await fetch(`/api/radar/articles${query}`, { signal });
     if (!response.ok) throw new Error("Feed Radar belum dapat dimuat.");
-    const payload = await response.json() as { articles: RadarArticle[]; sources: SourceStatus[] };
+    const payload = await response.json() as { articles: RadarArticle[]; sources: SourceStatus[]; alerts: SourceAlert[] };
     setArticles(payload.articles);
     setSources(payload.sources);
+    setAlerts(payload.alerts ?? []);
   };
 
   useEffect(() => {
@@ -216,10 +241,31 @@ export default function RadarKonstruksiPage() {
     setError(null);
     try {
       const response = await fetch("/api/radar/refresh", { method: "POST" });
-      const payload = await response.json() as { error?: string; itemsAdded?: number };
+      const payload = await response.json() as {
+        error?: string;
+        itemsAdded?: number;
+        sources?: SourceStatus[];
+      };
       if (!response.ok) throw new Error(payload.error || "Sumber belum dapat diperbarui.");
       await loadArticles();
-      setNotice(`${payload.itemsAdded ?? 0} update baru berhasil ditambahkan.`);
+
+      const failedSources = (payload.sources ?? []).filter((source) => source.status === "error");
+      const itemsAdded = payload.itemsAdded ?? 0;
+
+      if (failedSources.length > 0) {
+        // Never claim success for a source that actually failed: report the
+        // failure explicitly instead of an "update added" message.
+        setError(
+          `${failedSources.length} dari ${payload.sources?.length ?? failedSources.length} sumber resmi gagal diambil (${failedSources.map((source) => source.name).join(", ")}). Lihat detail di panel "Sumber dipantau".`,
+        );
+        if (itemsAdded > 0) {
+          setNotice(`${itemsAdded} update baru dari sumber lain berhasil ditambahkan.`);
+        }
+      } else if (itemsAdded > 0) {
+        setNotice(`${itemsAdded} update baru berhasil ditambahkan.`);
+      } else {
+        setNotice("Semua sumber berhasil diperiksa, tidak ada update baru saat ini.");
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Sumber belum dapat diperbarui.");
     } finally {
@@ -259,6 +305,33 @@ export default function RadarKonstruksiPage() {
         <section className="border-b border-slate-800 bg-[radial-gradient(circle_at_top_right,_rgba(8,145,178,0.16),_transparent_42%),linear-gradient(135deg,#020617,#0f172a_55%,#172033)]">
           <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
             <WorkspaceContextBanner context={workspaceContext} />
+
+            {alerts.length > 0 && (
+              <div className="mb-8 rounded-2xl border border-red-400/30 bg-red-500/10 p-5" role="alert">
+                <div className="flex items-center gap-2 text-sm font-semibold text-red-200">
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  {alerts.length === 1
+                    ? "1 sumber resmi butuh perhatian tim"
+                    : `${alerts.length} sumber resmi butuh perhatian tim`}
+                </div>
+                <ul className="mt-3 space-y-2">
+                  {alerts.map((alert) => (
+                    <li key={alert.sourceId} className="rounded-xl border border-red-400/20 bg-slate-950/40 p-3 text-xs leading-relaxed text-red-100">
+                      <span className="font-semibold text-white">{alert.sourceName}</span>
+                      {" — "}
+                      {alert.message}
+                      {alert.error ? ` Penyebab: ${alert.error}.` : ""}
+                      {" "}
+                      Pembaruan terakhir berhasil: {alert.lastSuccessAt ? formatDateTime(alert.lastSuccessAt) : "belum pernah berhasil"}.
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-[11px] text-red-200/70">
+                  Selama sumber ini bermasalah, artikel yang ditampilkan bisa jadi tidak mencakup update terbaru dari sumber tersebut.
+                </p>
+              </div>
+            )}
+
             <div className="grid gap-10 lg:grid-cols-[1fr_340px] lg:items-end">
               <div>
                 <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">

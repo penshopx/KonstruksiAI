@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { db, radarArticles, type RadarArticle } from "../db";
+import { eq } from "drizzle-orm";
+import { db, radarArticles, radarSourceStatus, type RadarArticle } from "../db";
 
 export const RADAR_CATEGORIES = [
   "kementerian",
@@ -40,6 +41,27 @@ export type RadarSourceStatus = {
   itemsFound: number;
   itemsAdded: number;
   error: string | null;
+  consecutiveFailures: number;
+};
+
+/**
+ * A source is flagged for the team once it has failed this many refresh
+ * cycles in a row (the daily scheduler runs once per day, so this is two
+ * missed days) or once it has gone this long without a successful refresh.
+ */
+const FAILURE_STREAK_ALERT_THRESHOLD = 2;
+const STALE_SUCCESS_ALERT_MS = 36 * 60 * 60 * 1_000;
+
+export type RadarSourceAlert = {
+  sourceId: string;
+  sourceName: string;
+  category: RadarCategory;
+  sourceUrl: string;
+  reason: "repeated_failures" | "stale";
+  message: string;
+  error: string | null;
+  consecutiveFailures: number;
+  lastSuccessAt: Date | null;
 };
 
 export type RadarRefreshResult = {
@@ -48,6 +70,7 @@ export type RadarRefreshResult = {
   itemsFound: number;
   itemsAdded: number;
   sources: RadarSourceStatus[];
+  alerts: RadarSourceAlert[];
 };
 
 /**
@@ -105,23 +128,66 @@ export const APPROVED_RADAR_SOURCES: RadarSource[] = [
   },
 ];
 
+function loadPersistedStatus(sourceId: string) {
+  try {
+    return db.select().from(radarSourceStatus).where(eq(radarSourceStatus.id, sourceId)).get() ?? null;
+  } catch {
+    // Table may not exist yet on a fresh database before migrations run;
+    // fall back to the default in-memory status below.
+    return null;
+  }
+}
+
 const sourceStatuses = new Map<string, RadarSourceStatus>(
-  APPROVED_RADAR_SOURCES.map((source) => [
-    source.id,
-    {
-      id: source.id,
-      name: source.name,
-      category: source.category,
-      sourceUrl: source.sourceUrl,
-      status: "pending",
-      lastAttemptAt: null,
-      lastSuccessAt: null,
-      itemsFound: 0,
-      itemsAdded: 0,
-      error: null,
-    },
-  ]),
+  APPROVED_RADAR_SOURCES.map((source) => {
+    const persisted = loadPersistedStatus(source.id);
+    return [
+      source.id,
+      {
+        id: source.id,
+        name: source.name,
+        category: source.category,
+        sourceUrl: source.sourceUrl,
+        status: persisted?.status === "success" || persisted?.status === "error" ? persisted.status : "pending",
+        lastAttemptAt: persisted?.lastAttemptAt ?? null,
+        lastSuccessAt: persisted?.lastSuccessAt ?? null,
+        itemsFound: persisted?.itemsFound ?? 0,
+        itemsAdded: persisted?.itemsAdded ?? 0,
+        error: persisted?.error ?? null,
+        consecutiveFailures: persisted?.consecutiveFailures ?? 0,
+      } satisfies RadarSourceStatus,
+    ];
+  }),
 );
+
+function persistSourceStatus(status: RadarSourceStatus): void {
+  db.insert(radarSourceStatus)
+    .values({
+      id: status.id,
+      status: status.status,
+      lastAttemptAt: status.lastAttemptAt,
+      lastSuccessAt: status.lastSuccessAt,
+      itemsFound: status.itemsFound,
+      itemsAdded: status.itemsAdded,
+      error: status.error,
+      consecutiveFailures: status.consecutiveFailures,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: radarSourceStatus.id,
+      set: {
+        status: status.status,
+        lastAttemptAt: status.lastAttemptAt,
+        lastSuccessAt: status.lastSuccessAt,
+        itemsFound: status.itemsFound,
+        itemsAdded: status.itemsAdded,
+        error: status.error,
+        consecutiveFailures: status.consecutiveFailures,
+        updatedAt: new Date(),
+      },
+    })
+    .run();
+}
 
 let refreshInFlight: Promise<RadarRefreshResult> | null = null;
 
@@ -397,6 +463,50 @@ export function getRadarSourceStatuses(): RadarSourceStatus[] {
   return APPROVED_RADAR_SOURCES.map((source) => sourceStatuses.get(source.id)!);
 }
 
+/**
+ * Detects sources the team needs to fix: either the daily curator has failed
+ * to fetch them repeatedly in a row, or the source has gone well past its
+ * daily schedule without a single successful refresh. Both checks rely on
+ * status + lastSuccessAt persisted across restarts, not just the in-memory
+ * result of the most recent single attempt.
+ */
+export function deriveSourceAlert(status: RadarSourceStatus, now: Date = new Date()): RadarSourceAlert | null {
+  const base = {
+    sourceId: status.id,
+    sourceName: status.name,
+    category: status.category,
+    sourceUrl: status.sourceUrl,
+    error: status.error,
+    consecutiveFailures: status.consecutiveFailures,
+    lastSuccessAt: status.lastSuccessAt,
+  };
+
+  if (status.consecutiveFailures >= FAILURE_STREAK_ALERT_THRESHOLD) {
+    return {
+      ...base,
+      reason: "repeated_failures",
+      message: `Gagal diperbarui ${status.consecutiveFailures}x berturut-turut.`,
+    };
+  }
+
+  const staleMs = status.lastSuccessAt ? now.getTime() - status.lastSuccessAt.getTime() : null;
+  if (staleMs !== null && staleMs > STALE_SUCCESS_ALERT_MS) {
+    return {
+      ...base,
+      reason: "stale",
+      message: "Belum ada pembaruan berhasil melebihi jadwal harian.",
+    };
+  }
+
+  return null;
+}
+
+export function getRadarSourceAlerts(now: Date = new Date()): RadarSourceAlert[] {
+  return getRadarSourceStatuses()
+    .map((status) => deriveSourceAlert(status, now))
+    .filter((alert): alert is RadarSourceAlert => alert !== null);
+}
+
 export async function refreshRadar(): Promise<RadarRefreshResult> {
   if (refreshInFlight) return refreshInFlight;
 
@@ -421,12 +531,16 @@ export async function refreshRadar(): Promise<RadarRefreshResult> {
         current.lastSuccessAt = new Date();
         current.itemsFound = items.length;
         current.itemsAdded = added;
+        current.consecutiveFailures = 0;
         itemsFound += items.length;
         itemsAdded += added;
       } catch (error) {
         current.status = "error";
         current.error = error instanceof Error ? error.message : "Sumber tidak dapat diambil";
+        current.consecutiveFailures += 1;
       }
+
+      persistSourceStatus(current);
     }
 
     return {
@@ -435,6 +549,7 @@ export async function refreshRadar(): Promise<RadarRefreshResult> {
       itemsFound,
       itemsAdded,
       sources: getRadarSourceStatuses(),
+      alerts: getRadarSourceAlerts(),
     };
   })();
 

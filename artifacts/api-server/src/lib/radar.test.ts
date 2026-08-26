@@ -2,14 +2,34 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   APPROVED_RADAR_SOURCES,
+  deriveSourceAlert,
   mapRadarItemToArticle,
   parseRadarSourceBody,
+  type RadarSourceStatus,
 } from "./radar";
 
 function sourceFor(id: string) {
   const source = APPROVED_RADAR_SOURCES.find((candidate) => candidate.id === id);
   assert.ok(source, `Expected approved Radar source ${id}`);
   return source;
+}
+
+function statusFor(overrides: Partial<RadarSourceStatus>): RadarSourceStatus {
+  const source = APPROVED_RADAR_SOURCES[0];
+  return {
+    id: source.id,
+    name: source.name,
+    category: source.category,
+    sourceUrl: source.sourceUrl,
+    status: "pending",
+    lastAttemptAt: null,
+    lastSuccessAt: null,
+    itemsFound: 0,
+    itemsAdded: 0,
+    error: null,
+    consecutiveFailures: 0,
+    ...overrides,
+  };
 }
 
 function assertSourceMapping({
@@ -140,4 +160,57 @@ test("keeps SPSE tender schedules attributed to LKPP without inventing a publica
   assert.equal(article.sourceName, "SPSE ICB LKPP — Tender");
   assert.match(article.summary, /Instansi: Kementerian Pekerjaan Umum/);
   assert.match(article.summary, /Jadwal unduh dokumen: 26 Aug - 9 Sep 2026/);
+});
+
+test("flags a source that has failed two refresh cycles in a row", () => {
+  const status = statusFor({
+    status: "error",
+    error: "Sumber merespons HTTP 503",
+    consecutiveFailures: 2,
+    lastSuccessAt: new Date("2026-08-24T00:00:00.000Z"),
+  });
+
+  const alert = deriveSourceAlert(status, new Date("2026-08-26T00:00:00.000Z"));
+  assert.ok(alert, "Two consecutive failures should raise an alert");
+  assert.equal(alert.reason, "repeated_failures");
+  assert.match(alert.message, /2x berturut-turut/);
+  assert.equal(alert.lastSuccessAt?.toISOString(), "2026-08-24T00:00:00.000Z");
+  assert.equal(alert.error, "Sumber merespons HTTP 503");
+});
+
+test("does not flag a single failed attempt as a repeated failure", () => {
+  const status = statusFor({
+    status: "error",
+    error: "fetch failed",
+    consecutiveFailures: 1,
+    lastSuccessAt: new Date(),
+  });
+
+  assert.equal(deriveSourceAlert(status, new Date()), null);
+});
+
+test("flags a source that has gone past its daily schedule without a successful refresh, even if the last attempt reported success", () => {
+  const status = statusFor({
+    status: "success",
+    consecutiveFailures: 0,
+    lastSuccessAt: new Date("2026-08-20T00:00:00.000Z"),
+  });
+
+  const alert = deriveSourceAlert(status, new Date("2026-08-26T00:00:00.000Z"));
+  assert.ok(alert, "A stale last-success date should raise an alert");
+  assert.equal(alert.reason, "stale");
+});
+
+test("does not flag a source that has never run and never failed", () => {
+  const status = statusFor({ status: "pending", consecutiveFailures: 0, lastSuccessAt: null });
+  assert.equal(deriveSourceAlert(status, new Date()), null);
+});
+
+test("clears once a source recovers: zero consecutive failures and a recent success produce no alert", () => {
+  const status = statusFor({
+    status: "success",
+    consecutiveFailures: 0,
+    lastSuccessAt: new Date(),
+  });
+  assert.equal(deriveSourceAlert(status, new Date()), null);
 });

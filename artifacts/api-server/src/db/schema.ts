@@ -130,6 +130,23 @@ export const radarArticles = sqliteTable("radar_articles", {
 export type RadarArticle = typeof radarArticles.$inferSelect;
 export type NewRadarArticle = typeof radarArticles.$inferInsert;
 
+export const radarSourceStatus = sqliteTable("radar_source_status", {
+  id: text("id").primaryKey(),
+  status: text("status").notNull().default("pending"),
+  lastAttemptAt: integer("last_attempt_at", { mode: "timestamp" }),
+  lastSuccessAt: integer("last_success_at", { mode: "timestamp" }),
+  itemsFound: integer("items_found").notNull().default(0),
+  itemsAdded: integer("items_added").notNull().default(0),
+  error: text("error"),
+  consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .$defaultFn(() => new Date())
+    .notNull(),
+});
+
+export type RadarSourceStatusRow = typeof radarSourceStatus.$inferSelect;
+export type NewRadarSourceStatusRow = typeof radarSourceStatus.$inferInsert;
+
 export const legalEntities = sqliteTable("legal_entities", {
   id: text("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
