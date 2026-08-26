@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import Link from "@/shims/next-link";
 import NavbarAuth from "@/components/NavbarAuth";
 import {
@@ -13,12 +14,14 @@ import {
   ExternalLink,
   Gavel,
   Landmark,
+  MessageSquare,
   Newspaper,
   Radar,
   RefreshCw,
   ShieldCheck,
 } from "lucide-react";
-import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
+import { withWorkspaceContext, WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
+import { saveRadarArticleHandoff } from "@/lib/radar-context";
 
 type RadarCategory = "kementerian" | "lpjk-regulasi" | "infrastruktur" | "tender-pengadaan";
 type CategoryFilter = "all" | RadarCategory;
@@ -80,7 +83,13 @@ function formatDateTime(value: string | null): string {
   }).format(date);
 }
 
-function ArticleCard({ article }: { article: RadarArticle }) {
+function ArticleCard({
+  article,
+  onElaborate,
+}: {
+  article: RadarArticle;
+  onElaborate: (article: RadarArticle) => void;
+}) {
   const category = CATEGORY_META[article.category];
   const CategoryIcon = category.icon;
 
@@ -105,7 +114,7 @@ function ArticleCard({ article }: { article: RadarArticle }) {
       <p className="mb-5 line-clamp-3 text-sm leading-relaxed text-slate-400">{article.summary}</p>
 
       <div className="mt-auto space-y-3 border-t border-slate-800 pt-4">
-        <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs text-slate-500">
           <span className="flex min-w-0 items-center gap-1.5 truncate">
             <Newspaper className="h-3.5 w-3.5 shrink-0 text-slate-600" />
             <span className="truncate">{article.sourceName}</span>
@@ -115,15 +124,25 @@ function ArticleCard({ article }: { article: RadarArticle }) {
             {article.publishedAt ? `Terbit ${formatDate(article.publishedAt)}` : `Dipantau ${formatDate(article.fetchedAt)}`}
           </span>
         </div>
-        <a
-          href={article.articleUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-300 transition-colors hover:text-cyan-200"
-        >
-          Buka sumber asli
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <a
+            href={article.articleUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-300 transition-colors hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+          >
+            Buka sumber asli
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+          <button
+            type="button"
+            onClick={() => onElaborate(article)}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-orange-300 transition-colors hover:text-orange-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+          >
+            Tanya di Chat
+            <MessageSquare className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -166,6 +185,7 @@ export default function RadarKonstruksiPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const workspaceContext = useWorkspaceContext();
+  const [, setLocation] = useLocation();
 
   const loadArticles = async (signal?: AbortSignal) => {
     const query = category === "all" ? "" : `?category=${encodeURIComponent(category)}`;
@@ -205,6 +225,22 @@ export default function RadarKonstruksiPage() {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleArticleElaboration = (article: RadarArticle) => {
+    const saved = saveRadarArticleHandoff({
+      id: article.id,
+      title: article.title,
+      summary: article.summary,
+      sourceName: article.sourceName,
+      articleUrl: article.articleUrl,
+      publishedAt: article.publishedAt,
+    });
+    if (!saved) {
+      setError("Update belum dapat dibawa ke Chat. Periksa izin penyimpanan browser lalu coba lagi.");
+      return;
+    }
+    setLocation(withWorkspaceContext("/chat?radar=1", workspaceContext.workspaceId));
   };
 
   const lastUpdated = useMemo(() => {
@@ -322,7 +358,9 @@ export default function RadarKonstruksiPage() {
             </div>
           ) : articles.length > 0 ? (
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {articles.map((article) => <ArticleCard key={article.id} article={article} />)}
+              {articles.map((article) => (
+                <ArticleCard key={article.id} article={article} onElaborate={handleArticleElaboration} />
+              ))}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 px-6 py-16 text-center">
