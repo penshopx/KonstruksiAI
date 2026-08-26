@@ -84,7 +84,18 @@ export interface ChatResponse {
 
 export interface ChatAttachment {
   name: string;
-  type: string;
+  /** Supported document and camera scan MIME types. */
+  type:
+    | 'application/pdf'
+    | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    | 'application/msword'
+    | 'text/plain'
+    | 'text/markdown'
+    | 'text/csv'
+    | 'image/jpeg'
+    | 'image/png'
+    | 'image/webp'
+    | (string & {});
   base64: string;
 }
 
@@ -150,6 +161,7 @@ export async function apiAddMessage(
   content: string,
   attachmentName?: string,
   clientMessageId?: string,
+  attachmentType?: string,
 ): Promise<{ id: string }> {
   return request<{ id: string }>(`/conversations/${conversationId}/messages`, {
     method: 'POST',
@@ -157,6 +169,7 @@ export async function apiAddMessage(
       role,
       content,
       attachmentName: attachmentName ?? null,
+      attachmentType: attachmentType ?? null,
       clientMessageId,
     }),
   });

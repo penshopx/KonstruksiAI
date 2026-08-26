@@ -45,13 +45,14 @@ export interface Message {
   timestamp: Date;
   isLoading?: boolean;
   attachmentName?: string;
+  attachmentType?: string;
 }
 
 interface ChatContextValue {
   selectedAgent: Agent;
   setSelectedAgent: (agent: Agent) => void;
   messages: Message[];
-  addUserMessage: (content: string, attachmentName?: string) => Message;
+  addUserMessage: (content: string, attachmentName?: string, attachmentType?: string) => Message;
   addAssistantMessage: (content: string, replaceLoadingId?: string) => void;
   addLoadingMessage: () => string;
   clearMessages: () => void;
@@ -75,6 +76,7 @@ interface PendingSyncMessage {
   role: 'user' | 'assistant';
   content: string;
   attachmentName?: string;
+  attachmentType?: string;
   createdAt: number;
 }
 
@@ -242,6 +244,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             item.content,
             item.attachmentName,
             item.id,
+            item.attachmentType,
           );
           await persistPendingQueue(
             pendingQueueRef.current.filter(queued => queued.id !== item.id),
@@ -349,6 +352,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           content: m.content,
           timestamp: parseServerDate(m.createdAt),
           attachmentName: m.attachmentName,
+          attachmentType: m.attachmentType,
         }));
         setMessages(clientMsgs);
       } catch {
@@ -390,13 +394,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // ── Message helpers ─────────────────────────────────────────────────────────
 
   const addUserMessage = useCallback(
-    (content: string, attachmentName?: string): Message => {
+    (content: string, attachmentName?: string, attachmentType?: string): Message => {
       const msg: Message = {
         id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
         role: 'user',
         content,
         timestamp: new Date(),
         attachmentName,
+        attachmentType,
       };
       setMessages(prev => [...prev, msg]);
 
@@ -435,6 +440,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           role: 'user',
           content,
           attachmentName,
+          attachmentType,
           createdAt: msg.timestamp.getTime(),
         });
       }
@@ -527,6 +533,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           content: item.content,
           timestamp: new Date(item.createdAt),
           attachmentName: item.attachmentName,
+          attachmentType: item.attachmentType,
         })),
       );
       setIsSyncing(false);
@@ -554,6 +561,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           content: m.content,
           timestamp: parseServerDate(m.createdAt),
           attachmentName: m.attachmentName,
+          attachmentType: m.attachmentType,
         })),
       );
     } finally {

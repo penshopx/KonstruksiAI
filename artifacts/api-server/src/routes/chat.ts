@@ -311,6 +311,17 @@ interface Attachment {
   base64: string;
 }
 
+const VISION_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+const OCR_SYSTEM_PROMPT = [
+  "Ekstrak seluruh teks yang terlihat pada foto dokumen ini.",
+  "Pertahankan urutan baca, baris, judul, dan struktur tabel semaksimal mungkin.",
+  "Pertahankan angka, satuan, tanggal, kode, dan tanda baca persis seperti yang terlihat.",
+  "Tandai bagian yang tidak terbaca sebagai [tidak terbaca].",
+  "Jangan menebak, merangkum, menerjemahkan, atau menambahkan komentar.",
+  "Kembalikan hanya hasil transkripsi teks.",
+].join(" ");
+
 async function extractAttachmentText(attachment: Attachment): Promise<string> {
   const buffer = Buffer.from(attachment.base64, "base64");
   if (buffer.length > MAX_ATTACHMENT_SIZE) {
@@ -318,6 +329,38 @@ async function extractAttachmentText(attachment: Attachment): Promise<string> {
   }
 
   const { type, name } = attachment;
+
+  if (VISION_IMAGE_TYPES.has(type)) {
+    try {
+      const completion = await getOpenAI().chat.completions.create({
+        model: "gpt-4o",
+        max_tokens: 6_000,
+        temperature: 0,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: OCR_SYSTEM_PROMPT },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${type};base64,${attachment.base64}`,
+                detail: "high",
+              },
+            },
+          ],
+        }],
+        stream: false,
+      });
+      let text = completion.choices[0]?.message?.content?.trim() ?? "";
+      if (!text) return `[Foto dokumen: ${name} tidak berisi teks yang dapat dibaca]`;
+      if (text.length > 50_000) {
+        text = text.substring(0, 50_000) + "\n\n[... dipotong karena terlalu panjang ...]";
+      }
+      return `[Hasil scan dokumen: ${name}]\n\n${text}`;
+    } catch {
+      return `[Gagal membaca teks dari scan: ${name}]`;
+    }
+  }
 
   if (type === "application/pdf") {
     const parser = new _PDFParse({ data: buffer });

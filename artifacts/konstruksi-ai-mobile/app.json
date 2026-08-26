@@ -30,7 +30,13 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Izinkan KonstruksiAI menggunakan kamera untuk memindai dokumen proyek."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

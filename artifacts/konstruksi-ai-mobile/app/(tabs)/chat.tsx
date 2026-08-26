@@ -11,6 +11,7 @@ import {
   Alert,
   Modal,
   Pressable,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +19,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useColors } from '@/hooks/useColors';
 import { useChat, AGENTS, type Message } from '@/context/ChatContext';
@@ -87,6 +89,7 @@ const chipStyles = StyleSheet.create({
 function MessageBubble({ msg }: { msg: Message }) {
   const colors = useColors();
   const isUser = msg.role === 'user';
+  const isImageAttachment = msg.attachmentType?.startsWith('image/') ?? false;
   return (
     <View
       style={[
@@ -113,7 +116,7 @@ function MessageBubble({ msg }: { msg: Message }) {
             ]}
           >
             <Ionicons
-              name="document-attach"
+              name={isImageAttachment ? 'camera' : 'document-attach'}
               size={12}
               color={isUser ? '#fff' : colors.mutedForeground}
             />
@@ -244,15 +247,18 @@ const emptyStyles = StyleSheet.create({
 
 function AttachmentPreview({
   name,
+  type,
   onRemove,
 }: {
   name: string;
+  type?: string;
   onRemove: () => void;
 }) {
   const colors = useColors();
+  const isImageAttachment = type?.startsWith('image/') ?? false;
   return (
     <View style={[attachStyles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Ionicons name="document-attach" size={16} color="#f97316" />
+      <Ionicons name={isImageAttachment ? 'camera' : 'document-attach'} size={16} color="#f97316" />
       <Text numberOfLines={1} style={[attachStyles.name, { color: colors.foreground }]}>
         {name}
       </Text>
@@ -588,6 +594,7 @@ const ALLOWED_MIME_TYPES = [
   'text/markdown',
   'text/csv',
 ];
+const CAMERA_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 export default function ChatScreen() {
   const colors = useColors();
@@ -613,6 +620,7 @@ export default function ChatScreen() {
   const [sending, setSending] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<ChatAttachment | null>(null);
   const [pickingDoc, setPickingDoc] = useState(false);
+  const [scanningDocument, setScanningDocument] = useState(false);
   const [historyVisible, setHistoryVisible] = useState(false);
   const [selectingConversationId, setSelectingConversationId] = useState<string | null>(null);
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
@@ -657,6 +665,61 @@ export default function ChatScreen() {
     }
   }, [pickingDoc]);
 
+  const scanDocument = useCallback(async () => {
+    if (scanningDocument) return;
+    setScanningDocument(true);
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        if (!permission.canAskAgain && Platform.OS !== 'web') {
+          Alert.alert(
+            'Izin kamera diperlukan',
+            'Aktifkan akses kamera di Pengaturan agar dapat memindai dokumen.',
+            [
+              { text: 'Batal', style: 'cancel' },
+              {
+                text: 'Buka Pengaturan',
+                onPress: () => {
+                  void Linking.openSettings().catch(() => undefined);
+                },
+              },
+            ],
+          );
+        } else {
+          Alert.alert('Izin kamera diperlukan', 'Izinkan akses kamera untuk memindai dokumen.');
+        }
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.7,
+        base64: true,
+        exif: false,
+      });
+      if (result.canceled || !result.assets?.[0]) return;
+
+      const asset = result.assets[0];
+      const type = CAMERA_IMAGE_MIME_TYPES.has(asset.mimeType ?? '')
+        ? asset.mimeType!
+        : 'image/jpeg';
+      const base64 = asset.base64 ?? await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: 'base64' as FileSystem.EncodingType,
+      });
+      setPendingAttachment({
+        name: asset.fileName ?? `scan-${Date.now()}.jpg`,
+        type,
+        base64,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Alert.alert('Gagal memindai', 'Tidak dapat mengambil foto dokumen. Coba lagi.');
+    } finally {
+      setScanningDocument(false);
+    }
+  }, [scanningDocument]);
+
   const sendMessage = useCallback(async (text: string, attachment?: ChatAttachment | null) => {
     const attachToSend = attachment ?? pendingAttachment;
     const typedText = text.trim();
@@ -672,7 +735,7 @@ export default function ChatScreen() {
     const apiText = typedText || 'Tolong analisis dokumen ini.';
     // The conversation API requires non-empty content. Use the same default
     // instruction as the AI request when the user attaches a document only.
-    addUserMessage(apiText, attachToSend?.name);
+    addUserMessage(apiText, attachToSend?.name, attachToSend?.type);
     const loadingId = addLoadingMessage();
 
     // Build history for API
@@ -826,6 +889,7 @@ export default function ChatScreen() {
         {pendingAttachment && (
           <AttachmentPreview
             name={pendingAttachment.name}
+            type={pendingAttachment.type}
             onRemove={() => setPendingAttachment(null)}
           />
         )}
@@ -836,7 +900,7 @@ export default function ChatScreen() {
           <TouchableOpacity
             style={[s.attachBtn, { opacity: (sending || isSyncing || pickingDoc) ? 0.4 : 1 }]}
             onPress={pickDocument}
-            disabled={sending || isSyncing || pickingDoc}
+            disabled={sending || isSyncing || pickingDoc || scanningDocument}
             activeOpacity={0.75}
           >
             {pickingDoc ? (
@@ -847,6 +911,32 @@ export default function ChatScreen() {
                 size={22}
                 color={pendingAttachment ? '#f97316' : colors.mutedForeground}
               />
+            )}
+          </TouchableOpacity>
+
+          {/* Scan button */}
+          <TouchableOpacity
+            testID="scan-document-button"
+            style={[
+              s.scanBtn,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+                opacity: (sending || isSyncing || pickingDoc || scanningDocument) ? 0.4 : 1,
+              },
+            ]}
+            onPress={scanDocument}
+            disabled={sending || isSyncing || pickingDoc || scanningDocument}
+            activeOpacity={0.75}
+            accessibilityLabel="Scan dokumen dengan kamera"
+          >
+            {scanningDocument ? (
+              <ActivityIndicator size="small" color="#f97316" />
+            ) : (
+              <>
+                <Ionicons name="camera-outline" size={17} color="#f97316" />
+                <Text style={[s.scanText, { color: colors.foreground }]}>Scan</Text>
+              </>
             )}
           </TouchableOpacity>
 
@@ -958,6 +1048,19 @@ const styles = (colors: ReturnType<typeof useColors>, insets: ReturnType<typeof 
       justifyContent: 'center',
       flexShrink: 0,
     },
+    scanBtn: {
+      height: 36,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      borderRadius: 18,
+      borderWidth: 1,
+      flexShrink: 0,
+      marginBottom: 3,
+    },
+    scanText: { fontSize: 12, fontFamily: 'Inter_500Medium', fontWeight: '500' },
     textInput: {
       flex: 1,
       backgroundColor: colors.card,
