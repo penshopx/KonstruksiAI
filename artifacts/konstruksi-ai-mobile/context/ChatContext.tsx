@@ -6,6 +6,8 @@ import React, {
   useRef,
   useEffect,
 } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import {
   apiGetConversations,
@@ -54,10 +56,26 @@ interface ChatContextValue {
   addLoadingMessage: () => string;
   clearMessages: () => void;
   isSyncing: boolean;
+  pendingSyncCount: number;
   conversations: ConversationSummary[];
   activeConversationId: string | null;
   selectConversation: (conversationId: string) => Promise<void>;
   deleteConversation: (conversationId: string) => Promise<void>;
+}
+
+const PENDING_SYNC_STORAGE_KEY = 'konstruksi_pending_chat_sync_v1';
+
+interface PendingSyncMessage {
+  id: string;
+  ownerId: number;
+  localConversationId: string;
+  serverConversationId?: string;
+  title: string;
+  agentId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  attachmentName?: string;
+  createdAt: number;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -82,10 +100,12 @@ function sortConversations(items: ConversationSummary[]): ConversationSummary[] 
 }
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [selectedAgent, setSelectedAgentState] = useState<Agent>(AGENTS[0]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
@@ -96,12 +116,185 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Tracks the in-flight conversation-creation promise so addAssistantMessage
   // can wait for it before persisting the AI reply.
   const pendingConvRef = useRef<Promise<string | null>>(Promise.resolve(null));
+  const pendingQueueRef = useRef<PendingSyncMessage[]>([]);
+  const pendingQueueReadyRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingQueueWriteRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingFlushRef = useRef<Promise<void> | null>(null);
+  const activeLocalConversationIdRef = useRef<string | null>(null);
+  const serverConversationIdsRef = useRef(new Map<string, string>());
   // Keep a ref to selectedAgent so callbacks can read its current value.
   const selectedAgentRef = useRef<Agent>(AGENTS[0]);
 
   useEffect(() => {
     selectedAgentRef.current = selectedAgent;
   }, [selectedAgent]);
+
+  // Load the durable outbox before any message can be enqueued. The queue is
+  // intentionally kept separate from the displayed conversation state so a
+  // failed request can never remove the user's message from local storage.
+  useEffect(() => {
+    pendingQueueReadyRef.current = AsyncStorage.getItem(PENDING_SYNC_STORAGE_KEY)
+      .then(raw => {
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as PendingSyncMessage[];
+        if (!Array.isArray(parsed)) return;
+        pendingQueueRef.current = parsed.filter(
+          item =>
+            item &&
+            typeof item.id === 'string' &&
+            typeof item.ownerId === 'number' &&
+            typeof item.localConversationId === 'string' &&
+            typeof item.title === 'string' &&
+            typeof item.agentId === 'string' &&
+            (item.role === 'user' || item.role === 'assistant') &&
+            typeof item.content === 'string',
+        );
+        setPendingSyncCount(pendingQueueRef.current.length);
+        // Recreate pending conversations in history after an app restart.
+        setConversations(prev => {
+          const next = [...prev];
+          for (const item of pendingQueueRef.current) {
+            const conversationId = item.serverConversationId ?? item.localConversationId;
+            if (!next.some(conversation => conversation.id === conversationId)) {
+              const now = Math.floor(item.createdAt / 1000);
+              next.push({
+                id: conversationId,
+                title: item.title,
+                agentId: item.agentId,
+                createdAt: now,
+                updatedAt: now,
+              });
+            }
+          }
+          return sortConversations(next);
+        });
+      })
+      .catch(() => {
+        setSyncError('Pesan tertunda belum dapat dibaca dari penyimpanan perangkat.');
+      });
+  }, []);
+
+  const persistPendingQueue = useCallback((next: PendingSyncMessage[]) => {
+    pendingQueueRef.current = next;
+    setPendingSyncCount(next.length);
+    pendingQueueWriteRef.current = pendingQueueWriteRef.current
+      .catch(() => undefined)
+      .then(() => AsyncStorage.setItem(PENDING_SYNC_STORAGE_KEY, JSON.stringify(next)))
+      .catch(() => {
+        setSyncError('Pesan tertunda belum tersimpan di perangkat.');
+      });
+    return pendingQueueWriteRef.current;
+  }, []);
+
+  const flushPendingSync = useCallback((): Promise<void> => {
+    if (pendingFlushRef.current) return pendingFlushRef.current;
+
+    const run = (async () => {
+      await pendingQueueReadyRef.current;
+      await pendingQueueWriteRef.current;
+      if (!isAuthenticated || !user) return;
+
+      try {
+        while (pendingQueueRef.current.length > 0) {
+          const item = pendingQueueRef.current.find(queued => queued.ownerId === user.id);
+          if (!item) {
+            setSyncError('Ada pesan tertunda dari akun lain.');
+            return;
+          }
+          // A queued message belongs to the account that created it. Keep it
+          // durable rather than sending it to a different account after logout.
+          let serverConversationId = item.serverConversationId;
+          if (!serverConversationId) {
+            const created = await apiCreateConversation(
+              item.title,
+              item.agentId,
+              item.localConversationId,
+            );
+            serverConversationId = created.id;
+            serverConversationIdsRef.current.set(item.localConversationId, serverConversationId);
+            serverConversationIdsRef.current.set(serverConversationId, serverConversationId);
+            const updatedQueue = pendingQueueRef.current.map(queued =>
+              queued.ownerId === user.id && queued.localConversationId === item.localConversationId
+                ? { ...queued, serverConversationId }
+                : queued,
+            );
+            await persistPendingQueue(updatedQueue);
+
+            if (conversationIdRef.current === item.localConversationId) {
+              conversationIdRef.current = serverConversationId;
+              activeLocalConversationIdRef.current = serverConversationId;
+              setActiveConversationId(serverConversationId);
+            }
+            setConversations(prev =>
+              sortConversations(
+                prev.map(conversation =>
+                  conversation.id === item.localConversationId
+                    ? { ...conversation, id: serverConversationId! }
+                    : conversation,
+                ),
+              ),
+            );
+          }
+
+          await apiAddMessage(
+            serverConversationId,
+            item.role,
+            item.content,
+            item.attachmentName,
+            item.id,
+          );
+          await persistPendingQueue(
+            pendingQueueRef.current.filter(queued => queued.id !== item.id),
+          );
+          setSyncError(null);
+          setConversations(prev =>
+            sortConversations(
+              prev.map(conversation =>
+                conversation.id === serverConversationId
+                  ? { ...conversation, updatedAt: Math.floor(Date.now() / 1000) }
+                  : conversation,
+              ),
+            ),
+          );
+        }
+      } catch (error) {
+        setSyncError(error instanceof Error ? error.message : 'Sinkronisasi pesan tertunda gagal.');
+        // Keep the current item at the head of the outbox for the next retry.
+      }
+    })().finally(() => {
+      pendingFlushRef.current = null;
+    });
+
+    pendingFlushRef.current = run;
+    return run;
+  }, [isAuthenticated, persistPendingQueue, user]);
+
+  const enqueuePendingMessage = useCallback(
+    async (item: PendingSyncMessage) => {
+      await pendingQueueReadyRef.current;
+      await persistPendingQueue([...pendingQueueRef.current, item]);
+      void flushPendingSync();
+    },
+    [flushPendingSync, persistPendingQueue],
+  );
+
+  // Retry on app foreground and periodically while the app is open. The
+  // foreground event covers the common "airplane mode → reconnect → return"
+  // path without adding a native networking dependency.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void flushPendingSync();
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') void flushPendingSync();
+    });
+    const interval = setInterval(() => {
+      if (pendingQueueRef.current.length > 0) void flushPendingSync();
+    }, 15000);
+    return () => {
+      subscription.remove();
+      clearInterval(interval);
+    };
+  }, [flushPendingSync, isAuthenticated]);
 
   // ── Clear all state on logout ───────────────────────────────────────────────
   useEffect(() => {
@@ -110,6 +303,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       setSelectedAgentState(AGENTS[0]);
       selectedAgentRef.current = AGENTS[0];
       conversationIdRef.current = null;
+      activeLocalConversationIdRef.current = null;
       conversationRequestRef.current += 1;
       setActiveConversationId(null);
       setConversations([]);
@@ -128,6 +322,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       try {
+        await flushPendingSync();
         const { conversations: serverConversations } = await apiGetConversations();
         const sortedConversations = sortConversations(serverConversations);
         if (cancelled || conversationRequestRef.current !== requestId) return;
@@ -144,6 +339,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         selectedAgentRef.current = agent;
         conversationIdRef.current = latest.id;
         setActiveConversationId(latest.id);
+        activeLocalConversationIdRef.current = latest.id;
+        serverConversationIdsRef.current.set(latest.id, latest.id);
         pendingConvRef.current = Promise.resolve(latest.id);
 
         const clientMsgs: Message[] = serverMsgs.map(m => ({
@@ -167,41 +364,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, authLoading]);
 
-  // ── Ensure a server conversation exists, creating one if needed ─────────────
-  const ensureConversation = useCallback(
-    (firstMessage: string): Promise<string | null> => {
-      if (conversationIdRef.current) {
-        return Promise.resolve(conversationIdRef.current);
-      }
-      if (!isAuthenticated) {
-        return Promise.resolve(null);
-      }
-      const title = firstMessage.trim().split(' ').slice(0, 6).join(' ') || 'Percakapan Baru';
-      const promise = apiCreateConversation(title, selectedAgentRef.current.id)
-        .then(({ id }) => {
-          conversationIdRef.current = id;
-          setActiveConversationId(id);
-          const now = Math.floor(Date.now() / 1000);
-          setConversations(prev =>
-            sortConversations([
-              ...prev.filter(conversation => conversation.id !== id),
-              {
-                id,
-                title,
-                agentId: selectedAgentRef.current.id,
-                createdAt: now,
-                updatedAt: now,
-              },
-            ]),
-          );
-          return id as string | null;
-        })
-        .catch(() => null as string | null);
-      return promise;
-    },
-    [isAuthenticated],
-  );
-
   const touchConversation = useCallback((conversationId: string) => {
     setConversations(prev =>
       sortConversations(
@@ -220,6 +382,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     selectedAgentRef.current = agent;
     setMessages([]);
     conversationIdRef.current = null;
+    activeLocalConversationIdRef.current = null;
     setActiveConversationId(null);
     pendingConvRef.current = Promise.resolve(null);
   }, []);
@@ -237,19 +400,48 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       };
       setMessages(prev => [...prev, msg]);
 
-      // Create conversation (if needed) then persist the user message
-      pendingConvRef.current = (async () => {
-        const convId = await ensureConversation(content);
-        if (convId) {
-          await apiAddMessage(convId, 'user', content).catch(() => {});
-          touchConversation(convId);
+      if (isAuthenticated && user) {
+        const localConversationId =
+          conversationIdRef.current ??
+          activeLocalConversationIdRef.current ??
+          `local_${msg.id}`;
+        activeLocalConversationIdRef.current = localConversationId;
+        if (!conversationIdRef.current) {
+          conversationIdRef.current = localConversationId;
         }
-        return convId;
-      })();
+        const title = content.trim().split(' ').slice(0, 6).join(' ') || 'Percakapan Baru';
+        if (!serverConversationIdsRef.current.has(localConversationId)) {
+          setActiveConversationId(localConversationId);
+          setConversations(prev =>
+            sortConversations([
+              ...prev.filter(conversation => conversation.id !== localConversationId),
+              {
+                id: localConversationId,
+                title,
+                agentId: selectedAgentRef.current.id,
+                createdAt: Math.floor(msg.timestamp.getTime() / 1000),
+                updatedAt: Math.floor(msg.timestamp.getTime() / 1000),
+              },
+            ]),
+          );
+        }
+        void enqueuePendingMessage({
+          id: `${msg.id}:user`,
+          ownerId: user.id,
+          localConversationId,
+          serverConversationId: serverConversationIdsRef.current.get(localConversationId),
+          title,
+          agentId: selectedAgentRef.current.id,
+          role: 'user',
+          content,
+          attachmentName,
+          createdAt: msg.timestamp.getTime(),
+        });
+      }
 
       return msg;
     },
-    [ensureConversation, touchConversation],
+    [enqueuePendingMessage, isAuthenticated, user],
   );
 
   const addLoadingMessage = useCallback((): string => {
@@ -280,21 +472,32 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setMessages(prev => [...prev, msg]);
       }
 
-      // Persist after the conversation (and user message) are saved
-      (async () => {
-        const convId = await pendingConvRef.current;
-        if (convId) {
-          await apiAddMessage(convId, 'assistant', content).catch(() => {});
-          touchConversation(convId);
+      if (isAuthenticated && user) {
+        const localConversationId =
+          conversationIdRef.current ?? activeLocalConversationIdRef.current;
+        if (localConversationId) {
+          const conversation = conversations.find(item => item.id === localConversationId);
+          void enqueuePendingMessage({
+            id: `${msg.id}:assistant`,
+            ownerId: user.id,
+            localConversationId,
+            serverConversationId: serverConversationIdsRef.current.get(localConversationId),
+            title: conversation?.title ?? 'Percakapan Baru',
+            agentId: selectedAgentRef.current.id,
+            role: 'assistant',
+            content,
+            createdAt: msg.timestamp.getTime(),
+          });
         }
-      })();
+      }
     },
-    [touchConversation],
+    [conversations, enqueuePendingMessage, isAuthenticated, user],
   );
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     conversationIdRef.current = null;
+    activeLocalConversationIdRef.current = null;
     setActiveConversationId(null);
     pendingConvRef.current = Promise.resolve(null);
   }, []);
@@ -303,6 +506,33 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     const requestId = conversationRequestRef.current + 1;
     conversationRequestRef.current = requestId;
     setIsSyncing(true);
+
+    const pendingMessages = pendingQueueRef.current.filter(
+      item =>
+        item.localConversationId === conversationId ||
+        item.serverConversationId === conversationId,
+    );
+    if (pendingMessages.length > 0 && !serverConversationIdsRef.current.has(conversationId)) {
+      const summary = conversations.find(conversation => conversation.id === conversationId);
+      const agent = AGENTS.find(a => a.id === summary?.agentId) ?? AGENTS[0];
+      setSelectedAgentState(agent);
+      selectedAgentRef.current = agent;
+      conversationIdRef.current = conversationId;
+      activeLocalConversationIdRef.current = conversationId;
+      setActiveConversationId(conversationId);
+      setMessages(
+        pendingMessages.map(item => ({
+          id: item.id,
+          role: item.role,
+          content: item.content,
+          timestamp: new Date(item.createdAt),
+          attachmentName: item.attachmentName,
+        })),
+      );
+      setIsSyncing(false);
+      void flushPendingSync();
+      return;
+    }
 
     try {
       const { messages: serverMsgs } = await apiGetConversationMessages(conversationId);
@@ -313,6 +543,8 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       setSelectedAgentState(agent);
       selectedAgentRef.current = agent;
       conversationIdRef.current = conversationId;
+      activeLocalConversationIdRef.current = conversationId;
+      serverConversationIdsRef.current.set(conversationId, conversationId);
       setActiveConversationId(conversationId);
       pendingConvRef.current = Promise.resolve(conversationId);
       setMessages(
@@ -329,7 +561,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setIsSyncing(false);
       }
     }
-  }, [conversations]);
+  }, [conversations, flushPendingSync]);
 
   const deleteConversation = useCallback(async (conversationId: string) => {
     await apiDeleteConversation(conversationId);
@@ -338,6 +570,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     if (conversationIdRef.current === conversationId) {
       conversationRequestRef.current += 1;
       conversationIdRef.current = null;
+      activeLocalConversationIdRef.current = null;
       setActiveConversationId(null);
       setMessages([]);
       setSelectedAgentState(AGENTS[0]);
@@ -357,6 +590,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         addLoadingMessage,
         clearMessages,
         isSyncing,
+        pendingSyncCount,
         conversations,
         activeConversationId,
         selectConversation,

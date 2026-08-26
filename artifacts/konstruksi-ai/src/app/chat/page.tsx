@@ -6,9 +6,9 @@ import { extractPdfFromFile, extractPdfFromBase64 } from "@/lib/pdf-client";
 import DOMPurify from "dompurify";
 import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
 
-// ============================================================
+// ----------------------------------------------------------------
 // TYPES
-// ============================================================
+// ----------------------------------------------------------------
 
 interface FileAttachment {
   name: string;
@@ -33,6 +33,25 @@ interface Message {
   wordCount?: number;
   starred?: boolean;
   attachment?: FileAttachment;
+}
+
+const PENDING_SYNC_STORAGE_KEY = "konstruksi_pending_chat_sync_v1";
+
+interface PendingSyncMessage {
+  id: string;
+  ownerId?: number;
+  localConversationId: string;
+  serverConversationId?: string;
+  title: string;
+  agentId: string;
+  workspaceId?: string | null;
+  role: "user" | "assistant";
+  content: string;
+  attachmentName?: string | null;
+  attachmentType?: string | null;
+  responseAgentId?: string;
+  domainFit?: Message["domainFit"];
+  createdAt: number;
 }
 
 interface Conversation {
@@ -68,9 +87,9 @@ interface Agent {
   color: string;
 }
 
-// ============================================================
+// ----------------------------------------------------------------
 // CONSTANTS
-// ============================================================
+// ----------------------------------------------------------------
 
 const AGENTS: Agent[] = [
   { id: "general", name: "KonstruksiAI", icon: "🏗️", description: "Asisten umum konstruksi & engineering", color: "orange" },
@@ -141,9 +160,9 @@ const LABEL_CONFIG: Record<ConversationLabel, { color: string; bg: string; borde
 
 type FontSize = "sm" | "base" | "lg";
 
-// ============================================================
+// ----------------------------------------------------------------
 // HELPERS
-// ============================================================
+// ----------------------------------------------------------------
 
 function formatRelativeTime(date: Date): string {
   const now = new Date();
@@ -286,9 +305,9 @@ function renderMarkdown(content: string, highlight?: string): string {
   });
 }
 
-// ============================================================
+// ----------------------------------------------------------------
 // STORAGE HELPERS
-// ============================================================
+// ----------------------------------------------------------------
 
 function saveConversations(conversations: Conversation[]) {
   try {
@@ -313,6 +332,26 @@ function loadConversations(): Conversation[] {
       createdAt: new Date(c.createdAt as string),
       updatedAt: new Date(c.updatedAt as string),
     }));
+  } catch {
+    return [];
+  }
+}
+
+function loadPendingSyncMessages(): PendingSyncMessage[] {
+  try {
+    const raw = localStorage.getItem(PENDING_SYNC_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is PendingSyncMessage =>
+      Boolean(item) &&
+      typeof item.id === "string" &&
+      typeof item.localConversationId === "string" &&
+      typeof item.title === "string" &&
+      typeof item.agentId === "string" &&
+      (item.role === "user" || item.role === "assistant") &&
+      typeof item.content === "string",
+    );
   } catch {
     return [];
   }
@@ -503,9 +542,9 @@ function exportConversation(conv: Conversation, format: "markdown" | "pdf" | "wo
   }
 }
 
-// ============================================================
+// ----------------------------------------------------------------
 // WELCOME SCREEN
-// ============================================================
+// ----------------------------------------------------------------
 
 function WelcomeScreen({ onPrompt, selectedAgent }: { onPrompt: (text: string) => void; selectedAgent: Agent }) {
   const [activeCategory, setActiveCategory] = useState(0);
@@ -586,9 +625,9 @@ function WelcomeScreen({ onPrompt, selectedAgent }: { onPrompt: (text: string) =
   );
 }
 
-// ============================================================
+// ----------------------------------------------------------------
 // MESSAGE COMPONENT
-// ============================================================
+// ----------------------------------------------------------------
 
 function MessageBubble({
   message,
@@ -896,9 +935,9 @@ function MessageBubble({
   );
 }
 
-// ============================================================
+// ----------------------------------------------------------------
 // KEYBOARD SHORTCUTS MODAL
-// ============================================================
+// ----------------------------------------------------------------
 
 function ShortcutsModal({ onClose }: { onClose: () => void }) {
   return (
@@ -925,9 +964,9 @@ function ShortcutsModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ============================================================
+// ----------------------------------------------------------------
 // SIDEBAR
-// ============================================================
+// ----------------------------------------------------------------
 
 function Sidebar({
   conversations,
@@ -1206,9 +1245,9 @@ function Sidebar({
   );
 }
 
-// ============================================================
+// ----------------------------------------------------------------
 // AGENT SELECTOR
-// ============================================================
+// ----------------------------------------------------------------
 
 function AgentSelector({ selected, onSelect }: { selected: Agent; onSelect: (agent: Agent) => void }) {
   const [open, setOpen] = useState(false);
@@ -1268,9 +1307,9 @@ function AgentSelector({ selected, onSelect }: { selected: Agent; onSelect: (age
   );
 }
 
-// ============================================================
+// ----------------------------------------------------------------
 // FONT SIZE BUTTON
-// ============================================================
+// ----------------------------------------------------------------
 
 function FontSizeControl({ fontSize, onChange }: { fontSize: FontSize; onChange: (s: FontSize) => void }) {
   const sizes: { value: FontSize; label: string }[] = [
@@ -1298,9 +1337,9 @@ function FontSizeControl({ fontSize, onChange }: { fontSize: FontSize; onChange:
   );
 }
 
-// ============================================================
+// ----------------------------------------------------------------
 // MAIN CHAT PAGE
-// ============================================================
+// ----------------------------------------------------------------
 
 export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -1311,6 +1350,8 @@ export default function ChatPage() {
   const [selectedAgent, setSelectedAgent] = useState<Agent>(AGENTS[0]);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [charCount, setCharCount] = useState(0);
   const [fontSize, setFontSize] = useState<FontSize>("base");
   const [showChatSearch, setShowChatSearch] = useState(false);
@@ -1322,6 +1363,11 @@ export default function ChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const chatSearchRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pendingSyncRef = useRef<PendingSyncMessage[]>([]);
+  const syncInFlightRef = useRef(false);
+  const isLoggedInRef = useRef(false);
+  const syncOwnerRef = useRef<number | null>(null);
+  const conversationIdMapRef = useRef(new Map<string, string>());
   
   // File attachment state - support multiple files
   const [pendingAttachments, setPendingAttachments] = useState<FileAttachment[]>([]);
@@ -1334,6 +1380,134 @@ export default function ChatPage() {
   
   // Draft auto-save key: per conversation
   const draftKey = activeConvId ? `konstruksi_draft_${activeConvId}` : "konstruksi_draft_new";
+
+  const persistPendingSync = useCallback((next: PendingSyncMessage[]) => {
+    pendingSyncRef.current = next;
+    setPendingSyncCount(next.length);
+    try {
+      localStorage.setItem(PENDING_SYNC_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      setSyncError("Pesan belum dapat disimpan di perangkat ini.");
+    }
+  }, []);
+
+  const flushPendingSync = useCallback(async () => {
+    const ownerId = syncOwnerRef.current;
+    if (!isLoggedInRef.current || ownerId === null || syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
+
+    try {
+      while (pendingSyncRef.current.length > 0) {
+        const item = pendingSyncRef.current.find(queued => queued.ownerId === ownerId);
+        if (!item) {
+          setSyncError("Ada pesan tertunda dari akun lain.");
+          return;
+        }
+
+        let serverConversationId = item.serverConversationId;
+        if (!serverConversationId) {
+          const createResponse = await fetch("/api/conversations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: item.title,
+              agentId: item.agentId,
+              workspaceId: item.workspaceId ?? undefined,
+              clientConversationId: item.localConversationId,
+            }),
+          });
+          if (!createResponse.ok) {
+            throw new Error(`Gagal menyimpan percakapan (${createResponse.status})`);
+          }
+          const savedConversation = await createResponse.json() as {
+            id: string;
+            workspaceId?: string | null;
+          };
+          serverConversationId = savedConversation.id;
+          conversationIdMapRef.current.set(item.localConversationId, serverConversationId);
+          const remappedQueue = pendingSyncRef.current.map(queued =>
+            queued.ownerId === ownerId && queued.localConversationId === item.localConversationId
+              ? { ...queued, serverConversationId }
+              : queued,
+          );
+          persistPendingSync(remappedQueue);
+          setConversations(prev => prev.map(conversation =>
+            conversation.id === item.localConversationId
+              ? {
+                  ...conversation,
+                  id: serverConversationId!,
+                  workspaceId: savedConversation.workspaceId ?? conversation.workspaceId ?? null,
+                }
+              : conversation,
+          ));
+          setActiveConvId(current =>
+            current === item.localConversationId ? serverConversationId! : current,
+          );
+        }
+
+        const messageResponse = await fetch(`/api/conversations/${serverConversationId}/messages`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: item.role,
+            content: item.content,
+            attachmentName: item.attachmentName ?? null,
+            attachmentType: item.attachmentType ?? null,
+            agentId: item.responseAgentId,
+            domainFit: item.domainFit,
+            clientMessageId: item.id,
+          }),
+        });
+        if (!messageResponse.ok) {
+          throw new Error(`Gagal menyimpan pesan (${messageResponse.status})`);
+        }
+
+        persistPendingSync(pendingSyncRef.current.filter(queued => queued.id !== item.id));
+        setSyncError(null);
+      }
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : "Pesan belum tersimpan.");
+    } finally {
+      syncInFlightRef.current = false;
+    }
+  }, [persistPendingSync]);
+
+  const enqueuePendingSync = useCallback((item: PendingSyncMessage) => {
+    persistPendingSync([...pendingSyncRef.current, item]);
+    void flushPendingSync();
+  }, [flushPendingSync, persistPendingSync]);
+
+  useEffect(() => {
+    const pending = loadPendingSyncMessages();
+    pendingSyncRef.current = pending;
+    setPendingSyncCount(pending.length);
+  }, []);
+
+  useEffect(() => {
+    isLoggedInRef.current = isLoggedIn;
+    if (isLoggedIn) void flushPendingSync();
+  }, [flushPendingSync, isLoggedIn]);
+
+  useEffect(() => {
+    const handleOnline = () => void flushPendingSync();
+    const handleBeforeUnload = () => {
+      try {
+        localStorage.setItem(PENDING_SYNC_STORAGE_KEY, JSON.stringify(pendingSyncRef.current));
+      } catch {
+        // The pending indicator has already notified the user if storage fails.
+      }
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    const interval = window.setInterval(() => {
+      if (pendingSyncRef.current.length > 0) void flushPendingSync();
+    }, 15000);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.clearInterval(interval);
+    };
+  }, [flushPendingSync]);
 
   // Load from localStorage + check login + setup global functions
   useEffect(() => {
@@ -1375,6 +1549,7 @@ export default function ChatPage() {
         const meRes = await fetch("/api/auth/me");
         const meData = await meRes.json();
         if (meRes.ok && meData.user) {
+          syncOwnerRef.current = meData.user.id;
           setIsLoggedIn(true);
           // Load conversations from DB
           const convRes = await fetch("/api/conversations");
@@ -1406,6 +1581,7 @@ export default function ChatPage() {
           }
         }
       } catch {
+        syncOwnerRef.current = null;
         // Not logged in or network error — fall back to localStorage
       }
       // Fallback: load from localStorage
@@ -1686,7 +1862,7 @@ export default function ChatPage() {
     abortRef.current = new AbortController();
 
     const userMsg: Message = {
-      id: Date.now().toString(),
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
       role: "user",
       content: messageText || (attachment ? `[Dokumen: ${attachment.name}]` : ""),
       timestamp: new Date(),
@@ -1697,11 +1873,9 @@ export default function ChatPage() {
     // Create or update conversation
     let convId = activeConvId;
     let currentConv: Conversation | undefined;
-    let serverConversationReady = !isLoggedIn;
     
     if (!convId) {
-      const localConvId = `conv_${Date.now()}`;
-      convId = localConvId;
+      convId = `conv_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       const convTitle = generateTitle(messageText);
       currentConv = {
         id: convId,
@@ -1714,31 +1888,6 @@ export default function ChatPage() {
       };
       setConversations(prev => [currentConv!, ...prev]);
       setActiveConvId(convId);
-      if (isLoggedIn) {
-        try {
-          const res = await fetch("/api/conversations", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: convTitle,
-              agentId: selectedAgent.id,
-              workspaceId: contextWorkspace?.id ?? undefined,
-            }),
-          });
-          if (res.ok) {
-            const savedConversation = await res.json() as { id: string; workspaceId?: string | null };
-            convId = savedConversation.id;
-            currentConv = { ...currentConv, id: convId, workspaceId: savedConversation.workspaceId ?? null };
-            serverConversationReady = true;
-            setConversations(prev => prev.map(c =>
-              c.id === localConvId ? { ...c, id: convId!, workspaceId: savedConversation.workspaceId ?? null } : c
-            ));
-            setActiveConvId(convId);
-          }
-        } catch {
-          // Keep the local conversation usable; the user can retry later.
-        }
-      }
     } else {
       const existingConv = conversations.find(c => c.id === convId);
       currentConv = existingConv
@@ -1749,20 +1898,24 @@ export default function ChatPage() {
           ? { ...c, messages: [...c.messages, userMsg], updatedAt: new Date() }
           : c
       ));
-      serverConversationReady = !isLoggedIn || Boolean(existingConv);
     }
 
-    if (isLoggedIn && serverConversationReady && convId) {
-      fetch(`/api/conversations/${convId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: userMsg.role,
-          content: userMsg.content,
-          attachmentName: userMsg.attachment?.name || null,
-          attachmentType: userMsg.attachment?.type || null,
-        }),
-      }).catch(() => {});
+    if (isLoggedIn && syncOwnerRef.current !== null && convId && currentConv) {
+      enqueuePendingSync({
+        id: `${userMsg.id}:user`,
+        ownerId: syncOwnerRef.current,
+        localConversationId: convId,
+        serverConversationId: conversationIdMapRef.current.get(convId) ??
+          (convId.startsWith("conv_") ? undefined : convId),
+        title: currentConv.title,
+        agentId: currentConv.agentId ?? selectedAgent.id,
+        workspaceId: currentConv.workspaceId ?? null,
+        role: "user",
+        content: userMsg.content,
+        attachmentName: userMsg.attachment?.name ?? null,
+        attachmentType: userMsg.attachment?.type ?? null,
+        createdAt: userMsg.timestamp.getTime(),
+      });
     }
 
     // Add streaming placeholder
@@ -1965,18 +2118,23 @@ export default function ChatPage() {
             }
           : c
       ));
-      // Save AI response to DB if logged in
-      if (isLoggedIn && convId) {
-        fetch(`/api/conversations/${convId}/messages`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            role: "assistant",
-            content: responseText,
-            agentId: respondingAgentId,
-            domainFit: responseDomainFit,
-          }),
-        }).catch(() => {});
+      if (isLoggedIn && syncOwnerRef.current !== null && convId) {
+        const conversationTitle = currentConv?.title ?? generateTitle(messageText);
+        enqueuePendingSync({
+          id: `${streamingMsgId}:assistant`,
+          ownerId: syncOwnerRef.current,
+          localConversationId: convId,
+          serverConversationId: conversationIdMapRef.current.get(convId) ??
+            (convId.startsWith("conv_") ? undefined : convId),
+          title: conversationTitle,
+          agentId: currentConv?.agentId ?? selectedAgent.id,
+          workspaceId: currentConv?.workspaceId ?? contextWorkspace?.id ?? null,
+          role: "assistant",
+          content: responseText,
+          responseAgentId: respondingAgentId,
+          domainFit: responseDomainFit,
+          createdAt: Date.now(),
+        });
       }
     } catch (err) {
       if ((err as Error).name === "AbortError") return;
@@ -2373,9 +2531,21 @@ export default function ChatPage() {
             </button>
 
             {/* Status */}
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-              <span className="text-green-400 text-xs hidden sm:block">Online</span>
+            <div className="flex items-center gap-2">
+              {pendingSyncCount > 0 && (
+                <span
+                  data-testid="pending-sync-indicator"
+                  title={syncError ?? "Pesan akan dicoba lagi saat koneksi tersedia."}
+                  className="flex items-center gap-1 text-amber-300 text-xs"
+                >
+                  <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+                  <span className="hidden sm:block">{pendingSyncCount} belum tersimpan</span>
+                </span>
+              )}
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                <span className="text-green-400 text-xs hidden sm:block">Online</span>
+              </div>
             </div>
           </div>
         </header>

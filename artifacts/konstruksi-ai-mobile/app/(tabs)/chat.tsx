@@ -602,6 +602,7 @@ export default function ChatScreen() {
     addAssistantMessage,
     clearMessages,
     isSyncing,
+    pendingSyncCount,
     conversations,
     activeConversationId,
     selectConversation,
@@ -669,8 +670,9 @@ export default function ChatScreen() {
 
     // API message: use typed text, or a default prompt when attachment-only
     const apiText = typedText || 'Tolong analisis dokumen ini.';
-    // Display shows typed text (attachment chip shows regardless via attachmentName)
-    addUserMessage(typedText, attachToSend?.name);
+    // The conversation API requires non-empty content. Use the same default
+    // instruction as the AI request when the user attaches a document only.
+    addUserMessage(apiText, attachToSend?.name);
     const loadingId = addLoadingMessage();
 
     // Build history for API
@@ -737,6 +739,15 @@ export default function ChatScreen() {
             <Text style={[s.screenSubtitle, { color: colors.mutedForeground }]}>
               Pilih agen untuk mulai berdiskusi
             </Text>
+            {pendingSyncCount > 0 && (
+              <Text
+                testID="pending-sync-indicator"
+                accessibilityLabel={`${pendingSyncCount} pesan belum tersimpan`}
+                style={[s.screenSubtitle, { color: colors.primary, marginTop: 4 }]}
+              >
+                {pendingSyncCount} pesan belum tersimpan · akan dicoba lagi otomatis
+              </Text>
+            )}
           </View>
           <TouchableOpacity
             testID="conversation-history-button"

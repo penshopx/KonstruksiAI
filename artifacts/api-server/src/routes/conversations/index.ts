@@ -31,7 +31,25 @@ router.post("/conversations", async (req, res) => {
   if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   try {
-    const { title, agentId, workspaceId } = req.body;
+    const { title, agentId, workspaceId, clientConversationId } = req.body;
+    const requestedId = typeof clientConversationId === "string" && clientConversationId.length <= 128
+      ? clientConversationId
+      : null;
+    if (requestedId) {
+      const [existing] = await db
+        .select()
+        .from(conversations)
+        .where(and(eq(conversations.id, requestedId), eq(conversations.userId, session.userId)));
+      if (existing) {
+        res.json({
+          id: existing.id,
+          title: existing.title,
+          agentId: existing.agentId,
+          workspaceId: existing.workspaceId,
+        });
+        return;
+      }
+    }
     let validatedWorkspaceId: string | null = null;
     if (workspaceId !== undefined && workspaceId !== null) {
       if (typeof workspaceId !== "string" || !workspaceId.trim()) {
@@ -48,7 +66,7 @@ router.post("/conversations", async (req, res) => {
       }
       validatedWorkspaceId = workspace.id;
     }
-    const id = randomUUID();
+    const id = requestedId ?? randomUUID();
     const now = new Date();
 
     await db.insert(conversations).values({
@@ -174,10 +192,36 @@ router.post("/conversations/:id/messages", async (req, res) => {
 
     if (!conv) { res.status(404).json({ error: "Not found" }); return; }
 
-    const { role, content, agentId, domainFit, attachmentName, attachmentType } = req.body;
+    const {
+      role,
+      content,
+      agentId,
+      domainFit,
+      attachmentName,
+      attachmentType,
+      clientMessageId,
+    } = req.body;
     if (!role || !content) { res.status(400).json({ error: "role and content are required" }); return; }
 
-    const msgId = randomUUID();
+    const requestedId = typeof clientMessageId === "string" && clientMessageId.length <= 128
+      ? clientMessageId
+      : null;
+    if (requestedId) {
+      const [existing] = await db
+        .select({ id: messages.id, conversationId: messages.conversationId })
+        .from(messages)
+        .where(eq(messages.id, requestedId));
+      if (existing) {
+        if (existing.conversationId !== req.params.id) {
+          res.status(409).json({ error: "Message id belongs to another conversation" });
+          return;
+        }
+        res.json({ id: existing.id });
+        return;
+      }
+    }
+
+    const msgId = requestedId ?? randomUUID();
     const now = new Date();
 
     await db.insert(messages).values({

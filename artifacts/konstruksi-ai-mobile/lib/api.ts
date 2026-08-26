@@ -130,10 +130,11 @@ export async function apiGetConversations(): Promise<{ conversations: Conversati
 export async function apiCreateConversation(
   title: string,
   agentId: string,
+  clientConversationId?: string,
 ): Promise<{ id: string; title: string; agentId: string }> {
   return request<{ id: string; title: string; agentId: string }>('/conversations', {
     method: 'POST',
-    body: JSON.stringify({ title, agentId }),
+    body: JSON.stringify({ title, agentId, clientConversationId }),
   });
 }
 
@@ -147,10 +148,17 @@ export async function apiAddMessage(
   conversationId: string,
   role: string,
   content: string,
+  attachmentName?: string,
+  clientMessageId?: string,
 ): Promise<{ id: string }> {
   return request<{ id: string }>(`/conversations/${conversationId}/messages`, {
     method: 'POST',
-    body: JSON.stringify({ role, content }),
+    body: JSON.stringify({
+      role,
+      content,
+      attachmentName: attachmentName ?? null,
+      clientMessageId,
+    }),
   });
 }
 
