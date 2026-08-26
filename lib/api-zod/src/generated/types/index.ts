@@ -7,3 +7,8 @@
  */
 
 export * from "./healthStatus";
+export * from "./learningProgress";
+export * from "./learningProgressCompletion";
+export * from "./learningProgressInput";
+export * from "./learningProgressList";
+export * from "./learningProgressSyncInput";

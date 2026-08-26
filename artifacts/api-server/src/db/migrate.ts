@@ -30,6 +30,17 @@ export function initializeDatabase() {
       updated_at INTEGER NOT NULL
     )`);
 
+    db.run(sql`CREATE TABLE IF NOT EXISTS learning_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      path_id TEXT NOT NULL,
+      module_id TEXT NOT NULL,
+      lesson_id TEXT NOT NULL,
+      completed_at INTEGER NOT NULL
+    )`);
+    db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS learning_progress_user_lesson_unique
+      ON learning_progress(user_id, path_id, module_id, lesson_id)`);
+
     db.run(sql`CREATE TABLE IF NOT EXISTS project_workspaces (
       id TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

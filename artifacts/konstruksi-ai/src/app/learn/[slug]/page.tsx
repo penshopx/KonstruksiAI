@@ -13,7 +13,16 @@ import {
   type LearningModule,
   type Lesson
 } from '@/lib/learn';
-import { markLocalLessonComplete, readLocalLearningProgress } from '@/lib/learn-progress';
+import { getSessionLookup, type JWTPayload } from '@/lib/auth';
+import {
+  clearLocalLearningProgress,
+  completeAccountLesson,
+  fetchAccountLearningProgress,
+  markLocalLessonComplete,
+  mergeLocalLearningProgress,
+  readLocalLearningProgress,
+  type LocalLearningProgress,
+} from '@/lib/learn-progress';
 import { WorkspaceContextBanner, useWorkspaceContext, withWorkspaceContext } from '@/lib/workspace-context';
 import { 
   BookOpen, 
@@ -31,6 +40,16 @@ import {
   Compass
 } from 'lucide-react';
 
+type ProgressMode = 'checking' | 'local' | 'account' | 'error';
+
+function getCompletedLessonIds(pathId: string | undefined, progress: LocalLearningProgress[]): Set<string> {
+  return new Set(
+    progress
+      .filter((record) => record.pathId === pathId)
+      .map((record) => record.lessonId),
+  );
+}
+
 export default function LearningPathPage() {
   const params = useParams();
   const slug = params.slug as string;
@@ -42,19 +61,71 @@ export default function LearningPathPage() {
   const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(() => new Set());
   const [progressReady, setProgressReady] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
+  const [progressMode, setProgressMode] = useState<ProgressMode>('checking');
+  const [accountSession, setAccountSession] = useState<JWTPayload | null>(null);
+  const [localProgressToImport, setLocalProgressToImport] = useState<LocalLearningProgress[]>([]);
+  const [migrationHandled, setMigrationHandled] = useState(false);
+  const [progressSyncing, setProgressSyncing] = useState(false);
   const workspaceContext = useWorkspaceContext();
 
   useEffect(() => {
-    const stored = readLocalLearningProgress();
-    setCompletedLessonIds(
-      new Set(
-        stored.progress
-          .filter((record) => record.pathId === path?.id)
-          .map((record) => record.lessonId),
-      ),
-    );
-    setProgressError(stored.error);
-    setProgressReady(true);
+    let cancelled = false;
+
+    async function loadProgress() {
+      setProgressReady(false);
+      setProgressMode('checking');
+      setProgressError(null);
+      setLocalProgressToImport([]);
+      setMigrationHandled(false);
+
+      const stored = readLocalLearningProgress();
+      const session = await getSessionLookup();
+      if (cancelled) return;
+
+      if (session.status === 'anonymous') {
+        setAccountSession(null);
+        setCompletedLessonIds(getCompletedLessonIds(path?.id, stored.progress));
+        setProgressError(stored.error);
+        setProgressMode('local');
+        setProgressReady(true);
+        return;
+      }
+
+      if (session.status === 'error') {
+        setAccountSession(null);
+        setCompletedLessonIds(new Set());
+        setProgressMode('error');
+        setProgressError(session.error);
+        setProgressReady(true);
+        return;
+      }
+
+      setAccountSession(session.user);
+      try {
+        const accountProgress = await fetchAccountLearningProgress();
+        if (cancelled) return;
+        setCompletedLessonIds(getCompletedLessonIds(path?.id, accountProgress));
+        setLocalProgressToImport(stored.progress);
+        setProgressMode('account');
+        setProgressError(stored.error);
+      } catch (error) {
+        if (cancelled) return;
+        setCompletedLessonIds(new Set());
+        setProgressMode('error');
+        setProgressError(
+          error instanceof Error
+            ? error.message
+            : 'Progress akun belum dapat dimuat. Progress belum berubah.',
+        );
+      } finally {
+        if (!cancelled) setProgressReady(true);
+      }
+    }
+
+    void loadProgress();
+    return () => {
+      cancelled = true;
+    };
   }, [path?.id]);
 
   const completedCount = useMemo(
@@ -85,6 +156,10 @@ export default function LearningPathPage() {
   const activeLesson = activeModule && activeLessonId
     ? activeModule.lessons.find(l => l.id === activeLessonId)
     : null;
+  const completionBlocked = progressMode !== 'local' && progressMode !== 'account';
+  const completionBlockedMessage = progressMode === 'checking'
+    ? 'Memastikan status akun sebelum menyimpan progress…'
+    : 'Progress belum dapat disimpan sampai status akun dapat diperiksa.';
 
   if (activeLesson) {
     return (
@@ -94,7 +169,41 @@ export default function LearningPathPage() {
         lesson={activeLesson}
         isCompleted={completedLessonIds.has(activeLesson.id)}
         onBack={() => setActiveLessonId(null)}
-        onComplete={() => {
+        isSaving={progressSyncing}
+        completionBlocked={completionBlocked}
+        completionBlockedMessage={completionBlockedMessage}
+        onComplete={async () => {
+          if (completionBlocked) {
+            setProgressError((current) => current ?? completionBlockedMessage);
+            return false;
+          }
+
+          if (accountSession) {
+            setProgressSyncing(true);
+            try {
+              const completed = await completeAccountLesson({
+                pathId: path.id,
+                moduleId: activeModule!.id,
+                lessonId: activeLesson.id,
+              });
+              setCompletedLessonIds((current) => new Set(current).add(completed.lessonId));
+              setProgressError(null);
+              setProgressMode('account');
+              setActiveLessonId(null);
+              return true;
+            } catch (error) {
+              setProgressError(
+                error instanceof Error
+                  ? error.message
+                  : 'Progress belum berhasil disimpan ke akun.',
+              );
+              setProgressMode('error');
+              return false;
+            } finally {
+              setProgressSyncing(false);
+            }
+          }
+
           const result = markLocalLessonComplete({
             pathId: path.id,
             moduleId: activeModule!.id,
@@ -104,13 +213,7 @@ export default function LearningPathPage() {
             setProgressError(result.error);
             return false;
           }
-          setCompletedLessonIds(
-            new Set(
-              result.progress
-                .filter((record) => record.pathId === path.id)
-                .map((record) => record.lessonId),
-            ),
-          );
+          setCompletedLessonIds(getCompletedLessonIds(path.id, result.progress));
           setProgressError(null);
           setActiveLessonId(null);
           return true;
@@ -281,11 +384,77 @@ export default function LearningPathPage() {
                 </div>
               </div>
               <p className="text-sm text-slate-500">
-                Progress ini tersimpan di perangkat Anda dan hanya berubah saat pelajaran ditandai selesai.
+                {progressMode === 'account'
+                  ? 'Progress ini tersimpan di akun Anda agar dapat dilanjutkan di browser atau perangkat lain.'
+                  : progressMode === 'error'
+                    ? 'Progress belum dapat diubah sampai status akun dapat diperiksa.'
+                  : 'Progress ini tersimpan di perangkat Anda dan hanya berubah saat pelajaran ditandai selesai.'}
               </p>
+              {accountSession && localProgressToImport.length > 0 && !migrationHandled && (
+                <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-4">
+                  <p className="text-sm font-semibold text-blue-950">
+                    Ditemukan {localProgressToImport.length} progress dari perangkat ini
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-blue-800">
+                    Gabungkan ke akun agar progress ini tersedia di perangkat lain. Penyelesaian yang
+                    sudah ada tidak akan digandakan.
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      disabled={progressSyncing}
+                      onClick={async () => {
+                        setProgressSyncing(true);
+                        try {
+                          const merged = await mergeLocalLearningProgress(localProgressToImport);
+                          const clearResult = clearLocalLearningProgress();
+                          setCompletedLessonIds(getCompletedLessonIds(path.id, merged));
+                          setLocalProgressToImport([]);
+                          setMigrationHandled(true);
+                          setProgressMode('account');
+                          setProgressError(clearResult.error);
+                        } catch (error) {
+                          setProgressError(
+                            error instanceof Error
+                              ? error.message
+                              : 'Progress perangkat belum berhasil dipindahkan ke akun.',
+                          );
+                          setProgressMode('error');
+                        } finally {
+                          setProgressSyncing(false);
+                        }
+                      }}
+                      className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {progressSyncing ? 'Memindahkan…' : 'Gabungkan ke akun'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={progressSyncing}
+                      onClick={() => {
+                        setMigrationHandled(true);
+                      }}
+                      className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Jangan pindahkan sekarang
+                    </button>
+                  </div>
+                </div>
+              )}
               {progressError && (
                 <p className="mt-3 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs leading-relaxed text-orange-800">
                   {progressError}
+                </p>
+              )}
+              {progressMode === 'error' && accountSession && (
+                <p className="mt-3 text-xs text-slate-500">
+                  Progress akun tidak berubah. Coba lagi setelah koneksi pulih.
+                </p>
+              )}
+              {progressMode === 'local' && (
+                <p className="mt-3 text-xs text-slate-500">
+                  Masuk untuk membawa progress ini ke browser atau perangkat lain. Progress Learn
+                  bukan sertifikat, status proyek, atau capaian anggota tim.
                 </p>
               )}
             </div>
@@ -439,6 +608,9 @@ function LessonPlayer({
   module, 
   lesson, 
   isCompleted: initiallyCompleted,
+  isSaving,
+  completionBlocked,
+  completionBlockedMessage,
   onBack,
   onComplete 
 }: { 
@@ -446,24 +618,35 @@ function LessonPlayer({
   module: LearningModule;
   lesson: Lesson;
   isCompleted: boolean;
+  isSaving: boolean;
+  completionBlocked: boolean;
+  completionBlockedMessage: string;
   onBack: () => void;
-  onComplete: () => boolean;
+  onComplete: () => Promise<boolean>;
 }) {
   const [isCompleted, setIsCompleted] = useState(initiallyCompleted);
   const [completionError, setCompletionError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const completeLesson = () => {
+  const completeLesson = async () => {
+    if (isSubmitting || isSaving || completionBlocked) return;
+
     if (isCompleted) {
       onBack();
       return;
     }
 
-    if (onComplete()) {
-      setIsCompleted(true);
-      return;
-    }
+    setIsSubmitting(true);
+    try {
+      if (await onComplete()) {
+        setIsCompleted(true);
+        return;
+      }
 
-    setCompletionError("Progress belum tersimpan. Periksa penyimpanan perangkat lalu coba lagi.");
+      setCompletionError("Progress belum tersimpan. Periksa koneksi lalu coba lagi.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -487,14 +670,15 @@ function LessonPlayer({
             
             <button
               onClick={completeLesson}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              disabled={isSubmitting || isSaving || completionBlocked}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                 isCompleted 
                   ? 'bg-green-600 text-white' 
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
             >
               <CheckCircle className="w-4 h-4" />
-              {isCompleted ? 'Selesai' : 'Tandai Selesai'}
+              {isSubmitting || isSaving ? 'Menyimpan…' : completionBlocked ? 'Progress belum siap' : isCompleted ? 'Selesai' : 'Tandai Selesai'}
             </button>
           </div>
         </div>
@@ -541,6 +725,11 @@ function LessonPlayer({
               {completionError}
             </p>
           )}
+          {completionBlocked && (
+            <p className="mt-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+              {completionBlockedMessage}
+            </p>
+          )}
 
           {/* Navigation */}
           <div className="flex items-center justify-between mt-12 pt-8 border-t border-slate-200">
@@ -553,7 +742,8 @@ function LessonPlayer({
             </button>
             <button
               onClick={completeLesson}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors"
+              disabled={isSubmitting || isSaving || completionBlocked}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
               Pelajaran Selanjutnya
               <ChevronRight className="w-5 h-5" />

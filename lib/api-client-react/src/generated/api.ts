@@ -5,18 +5,27 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  HealthStatus,
+  LearningProgressCompletion,
+  LearningProgressInput,
+  LearningProgressList,
+  LearningProgressSyncInput,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -99,3 +108,254 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Get personal learning progress
+ */
+export const getGetLearnProgressUrl = () => {
+  return `/api/learn/progress`;
+};
+
+export const getLearnProgress = async (
+  options?: RequestInit,
+): Promise<LearningProgressList> => {
+  return customFetch<LearningProgressList>(getGetLearnProgressUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetLearnProgressQueryKey = () => {
+  return [`/api/learn/progress`] as const;
+};
+
+export const getGetLearnProgressQueryOptions = <
+  TData = Awaited<ReturnType<typeof getLearnProgress>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLearnProgress>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetLearnProgressQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getLearnProgress>>
+  > = ({ signal }) => getLearnProgress({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getLearnProgress>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetLearnProgressQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getLearnProgress>>
+>;
+export type GetLearnProgressQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get personal learning progress
+ */
+
+export function useGetLearnProgress<
+  TData = Awaited<ReturnType<typeof getLearnProgress>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getLearnProgress>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetLearnProgressQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Merge device learning progress into the signed-in account
+ */
+export const getMergeLearnProgressUrl = () => {
+  return `/api/learn/progress/sync`;
+};
+
+export const mergeLearnProgress = async (
+  learningProgressSyncInput: LearningProgressSyncInput,
+  options?: RequestInit,
+): Promise<LearningProgressList> => {
+  return customFetch<LearningProgressList>(getMergeLearnProgressUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(learningProgressSyncInput),
+  });
+};
+
+export const getMergeLearnProgressMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof mergeLearnProgress>>,
+    TError,
+    { data: BodyType<LearningProgressSyncInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof mergeLearnProgress>>,
+  TError,
+  { data: BodyType<LearningProgressSyncInput> },
+  TContext
+> => {
+  const mutationKey = ["mergeLearnProgress"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof mergeLearnProgress>>,
+    { data: BodyType<LearningProgressSyncInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return mergeLearnProgress(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MergeLearnProgressMutationResult = NonNullable<
+  Awaited<ReturnType<typeof mergeLearnProgress>>
+>;
+export type MergeLearnProgressMutationBody =
+  BodyType<LearningProgressSyncInput>;
+export type MergeLearnProgressMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Merge device learning progress into the signed-in account
+ */
+export const useMergeLearnProgress = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof mergeLearnProgress>>,
+    TError,
+    { data: BodyType<LearningProgressSyncInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof mergeLearnProgress>>,
+  TError,
+  { data: BodyType<LearningProgressSyncInput> },
+  TContext
+> => {
+  return useMutation(getMergeLearnProgressMutationOptions(options));
+};
+
+/**
+ * @summary Mark one lesson complete for the signed-in account
+ */
+export const getCompleteLearnProgressUrl = () => {
+  return `/api/learn/progress/complete`;
+};
+
+export const completeLearnProgress = async (
+  learningProgressInput: LearningProgressInput,
+  options?: RequestInit,
+): Promise<LearningProgressCompletion> => {
+  return customFetch<LearningProgressCompletion>(
+    getCompleteLearnProgressUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(learningProgressInput),
+    },
+  );
+};
+
+export const getCompleteLearnProgressMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeLearnProgress>>,
+    TError,
+    { data: BodyType<LearningProgressInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof completeLearnProgress>>,
+  TError,
+  { data: BodyType<LearningProgressInput> },
+  TContext
+> => {
+  const mutationKey = ["completeLearnProgress"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof completeLearnProgress>>,
+    { data: BodyType<LearningProgressInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return completeLearnProgress(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CompleteLearnProgressMutationResult = NonNullable<
+  Awaited<ReturnType<typeof completeLearnProgress>>
+>;
+export type CompleteLearnProgressMutationBody = BodyType<LearningProgressInput>;
+export type CompleteLearnProgressMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark one lesson complete for the signed-in account
+ */
+export const useCompleteLearnProgress = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeLearnProgress>>,
+    TError,
+    { data: BodyType<LearningProgressInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof completeLearnProgress>>,
+  TError,
+  { data: BodyType<LearningProgressInput> },
+  TContext
+> => {
+  return useMutation(getCompleteLearnProgressMutationOptions(options));
+};

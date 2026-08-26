@@ -24,6 +24,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /learn/progress:
+    get:
+      operationId: getLearnProgress
+      tags: [learn]
+      summary: Get personal learning progress
+      responses:
+        "200":
+          description: Personal learning progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningProgressList"
+  /learn/progress/sync:
+    post:
+      operationId: mergeLearnProgress
+      tags: [learn]
+      summary: Merge device learning progress into the signed-in account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LearningProgressSyncInput"
+      responses:
+        "200":
+          description: Merged personal learning progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningProgressList"
+  /learn/progress/complete:
+    post:
+      operationId: completeLearnProgress
+      tags: [learn]
+      summary: Mark one lesson complete for the signed-in account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LearningProgressInput"
+      responses:
+        "200":
+          description: Saved personal learning progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LearningProgressCompletion"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +81,52 @@ components:
           type: string
       required:
         - status
+    LearningProgressInput:
+      type: object
+      required: [pathId, moduleId, lessonId]
+      properties:
+        pathId:
+          type: string
+          minLength: 1
+          maxLength: 160
+        moduleId:
+          type: string
+          minLength: 1
+          maxLength: 160
+        lessonId:
+          type: string
+          minLength: 1
+          maxLength: 160
+    LearningProgressSyncInput:
+      type: object
+      required: [progress]
+      properties:
+        progress:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: "#/components/schemas/LearningProgressInput"
+    LearningProgress:
+      allOf:
+        - $ref: "#/components/schemas/LearningProgressInput"
+        - type: object
+          required: [completedAt]
+          properties:
+            completedAt:
+              type: string
+              format: date-time
+    LearningProgressList:
+      type: object
+      required: [progress]
+      properties:
+        progress:
+          type: array
+          items:
+            $ref: "#/components/schemas/LearningProgress"
+    LearningProgressCompletion:
+      type: object
+      required: [progress]
+      properties:
+        progress:
+          $ref: "#/components/schemas/LearningProgress"
 

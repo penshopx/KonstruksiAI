@@ -14,3 +14,144 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary Get personal learning progress
+ */
+export const getLearnProgressResponseProgressItemOnePathIdMax = 160;
+
+export const getLearnProgressResponseProgressItemOneModuleIdMax = 160;
+
+export const getLearnProgressResponseProgressItemOneLessonIdMax = 160;
+
+export const GetLearnProgressResponse = zod.object({
+  progress: zod.array(
+    zod
+      .object({
+        pathId: zod
+          .string()
+          .min(1)
+          .max(getLearnProgressResponseProgressItemOnePathIdMax),
+        moduleId: zod
+          .string()
+          .min(1)
+          .max(getLearnProgressResponseProgressItemOneModuleIdMax),
+        lessonId: zod
+          .string()
+          .min(1)
+          .max(getLearnProgressResponseProgressItemOneLessonIdMax),
+      })
+      .and(
+        zod.object({
+          completedAt: zod.coerce.date(),
+        }),
+      ),
+  ),
+});
+
+/**
+ * @summary Merge device learning progress into the signed-in account
+ */
+export const mergeLearnProgressBodyProgressItemPathIdMax = 160;
+
+export const mergeLearnProgressBodyProgressItemModuleIdMax = 160;
+
+export const mergeLearnProgressBodyProgressItemLessonIdMax = 160;
+
+export const mergeLearnProgressBodyProgressMax = 1000;
+
+export const MergeLearnProgressBody = zod.object({
+  progress: zod
+    .array(
+      zod.object({
+        pathId: zod
+          .string()
+          .min(1)
+          .max(mergeLearnProgressBodyProgressItemPathIdMax),
+        moduleId: zod
+          .string()
+          .min(1)
+          .max(mergeLearnProgressBodyProgressItemModuleIdMax),
+        lessonId: zod
+          .string()
+          .min(1)
+          .max(mergeLearnProgressBodyProgressItemLessonIdMax),
+      }),
+    )
+    .max(mergeLearnProgressBodyProgressMax),
+});
+
+export const mergeLearnProgressResponseProgressItemOnePathIdMax = 160;
+
+export const mergeLearnProgressResponseProgressItemOneModuleIdMax = 160;
+
+export const mergeLearnProgressResponseProgressItemOneLessonIdMax = 160;
+
+export const MergeLearnProgressResponse = zod.object({
+  progress: zod.array(
+    zod
+      .object({
+        pathId: zod
+          .string()
+          .min(1)
+          .max(mergeLearnProgressResponseProgressItemOnePathIdMax),
+        moduleId: zod
+          .string()
+          .min(1)
+          .max(mergeLearnProgressResponseProgressItemOneModuleIdMax),
+        lessonId: zod
+          .string()
+          .min(1)
+          .max(mergeLearnProgressResponseProgressItemOneLessonIdMax),
+      })
+      .and(
+        zod.object({
+          completedAt: zod.coerce.date(),
+        }),
+      ),
+  ),
+});
+
+/**
+ * @summary Mark one lesson complete for the signed-in account
+ */
+export const completeLearnProgressBodyPathIdMax = 160;
+
+export const completeLearnProgressBodyModuleIdMax = 160;
+
+export const completeLearnProgressBodyLessonIdMax = 160;
+
+export const CompleteLearnProgressBody = zod.object({
+  pathId: zod.string().min(1).max(completeLearnProgressBodyPathIdMax),
+  moduleId: zod.string().min(1).max(completeLearnProgressBodyModuleIdMax),
+  lessonId: zod.string().min(1).max(completeLearnProgressBodyLessonIdMax),
+});
+
+export const completeLearnProgressResponseProgressOnePathIdMax = 160;
+
+export const completeLearnProgressResponseProgressOneModuleIdMax = 160;
+
+export const completeLearnProgressResponseProgressOneLessonIdMax = 160;
+
+export const CompleteLearnProgressResponse = zod.object({
+  progress: zod
+    .object({
+      pathId: zod
+        .string()
+        .min(1)
+        .max(completeLearnProgressResponseProgressOnePathIdMax),
+      moduleId: zod
+        .string()
+        .min(1)
+        .max(completeLearnProgressResponseProgressOneModuleIdMax),
+      lessonId: zod
+        .string()
+        .min(1)
+        .max(completeLearnProgressResponseProgressOneLessonIdMax),
+    })
+    .and(
+      zod.object({
+        completedAt: zod.coerce.date(),
+      }),
+    ),
+});

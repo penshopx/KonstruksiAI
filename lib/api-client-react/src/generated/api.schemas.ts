@@ -8,3 +8,38 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface LearningProgressInput {
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  pathId: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  moduleId: string;
+  /**
+   * @minLength 1
+   * @maxLength 160
+   */
+  lessonId: string;
+}
+
+export interface LearningProgressSyncInput {
+  /** @maxItems 1000 */
+  progress: LearningProgressInput[];
+}
+
+export type LearningProgress = LearningProgressInput & {
+  completedAt: string;
+};
+
+export interface LearningProgressList {
+  progress: LearningProgress[];
+}
+
+export interface LearningProgressCompletion {
+  progress: LearningProgress;
+}

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -13,6 +13,23 @@ export const users = sqliteTable("users", {
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
+
+export const learningProgress = sqliteTable("learning_progress", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  pathId: text("path_id").notNull(),
+  moduleId: text("module_id").notNull(),
+  lessonId: text("lesson_id").notNull(),
+  completedAt: integer("completed_at", { mode: "timestamp" })
+    .$defaultFn(() => new Date())
+    .notNull(),
+}, (table) => ({
+  userLessonUnique: uniqueIndex("learning_progress_user_lesson_unique")
+    .on(table.userId, table.pathId, table.moduleId, table.lessonId),
+}));
+
+export type LearningProgress = typeof learningProgress.$inferSelect;
+export type NewLearningProgress = typeof learningProgress.$inferInsert;
 
 export const conversations = sqliteTable("conversations", {
   id: text("id").primaryKey(),

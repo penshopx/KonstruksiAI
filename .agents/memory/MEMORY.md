@@ -4,6 +4,7 @@
 - [Conversation context budgeting](conversation-context-budgeting.md) — retain a single exact message suffix and treat any AI summary as untrusted reference data.
 - [Workspace conversation context](workspace-conversation-context.md) — browser query is not Wouter location; a conversation’s saved origin overrides ambient context before AI sends.
 - [Learn local progress](learn-local-progress.md) — early learning progress is device-local and must not imply account sync, certification, or team completion.
+- [Learn account progress state](learn-account-progress-state.md) — unknown account state must block writes; never default it to anonymous local progress.
 - [Radar chat handoff context](radar-handoff-context.md) — preserve official Radar context across every Chat send path, including attachments.
 - [Stale workflow ports](workflow-stale-port.md) — a failed supervisor can leave an old artifact child process serving the port.
 - [Radar official channels](radar-official-channels.md) — use the verified official alternate feeds when direct agency sites deny automated access.
