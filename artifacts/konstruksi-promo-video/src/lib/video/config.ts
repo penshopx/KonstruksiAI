@@ -14,3 +14,15 @@ export const SCENE_DURATIONS_RECORD: Record<string, number> = SCENE_DURATIONS.re
   (acc, ms, i) => ({ ...acc, [`scene${i}`]: ms }),
   {} as Record<string, number>,
 );
+
+// Bahasa Indonesia narration used by the matching vo_scene*.mp3 tracks.
+// Keeping the copy beside the scene timing prevents the preview and export
+// compositions from drifting apart.
+export const SCENE_SUBTITLES = [
+  'KonstruksiAI — asisten AI proyek konstruksi.',
+  'Proyek terlambat, anggaran membengkak — masalah nyata.',
+  'Enam domain keahlian, satu platform terintegrasi.',
+  'Multi-agen, sertifikasi, dan analisis tender.',
+  'Unggah dokumen, dapatkan analisis instan.',
+  'Bangun lebih cerdas bersama KonstruksiAI.',
+] as const;

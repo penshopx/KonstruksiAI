@@ -1,7 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useVideoPlayer } from '@/lib/video/hooks';
-import { SCENE_DURATIONS, SCENE_DURATIONS_RECORD } from '@/lib/video/config';
+import {
+  SCENE_DURATIONS,
+  SCENE_DURATIONS_RECORD,
+  SCENE_SUBTITLES,
+} from '@/lib/video/config';
 import { Scene0 } from './video_scenes/Scene0';
 import { Scene1 } from './video_scenes/Scene1';
 import { Scene2 } from './video_scenes/Scene2';
@@ -63,6 +67,27 @@ export default function VideoTemplate({
       <AnimatePresence mode="popLayout">
         <SceneComponent key={currentScene} />
       </AnimatePresence>
+
+      <AnimatePresence mode="sync">
+        <motion.div
+          key={baseSceneKey}
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{
+            opacity: { duration: 0.28, ease: 'easeOut' },
+            y: { duration: 0.42, ease: [0.16, 1, 0.3, 1] },
+          }}
+          className="pointer-events-none absolute inset-x-0 bottom-[10%] z-40 flex justify-center px-6 sm:px-10"
+          aria-live="polite"
+          aria-label="Subtitle"
+        >
+          <span className="max-w-[min(86vw,54rem)] rounded-lg border border-white/15 bg-slate-950/80 px-5 py-3 text-center font-body text-sm font-medium leading-relaxed tracking-wide text-white shadow-[0_8px_30px_rgba(2,6,23,0.45)] backdrop-blur-sm sm:px-7 sm:py-3.5 sm:text-base">
+            {SCENE_SUBTITLES[Number(baseSceneKey.replace('scene', ''))] ?? ''}
+          </span>
+        </motion.div>
+      </AnimatePresence>
+
       <audio
         ref={audioRef}
         src={`${import.meta.env.BASE_URL}audio/composite_audio.mp3`}
