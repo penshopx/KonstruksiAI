@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<!--
+  QA fixture only -- not part of the shipped video experience.
+
+  Reproduces the "preview mode" embedding the real Replit workspace preview
+  pane uses (window.self !== window.top), so VideoWithControls renders its
+  interactive scene controls (jump-to, loop-current-scene, mute) instead of
+  the bare export composition. Used to verify subtitle/scene/audio sync stays
+  correct across scene jumps and the loop-lock feature. Safe to keep -- it
+  only loads the app's own index.html in an iframe and has no other effect.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>QA: preview-mode embed</title>
+    <style>
+      html, body { margin: 0; padding: 0; height: 100%; background: #000; }
+      iframe { display: block; width: 100%; height: 100%; border: 0; }
+    </style>
+  </head>
+  <body>
+    <iframe src="./index.html" title="KonstruksiAI Promo Video (embedded preview)"></iframe>
+  </body>
+</html>

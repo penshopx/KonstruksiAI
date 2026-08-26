@@ -40,10 +40,21 @@ export default function VideoTemplate({
   onSceneChange?: (sceneKey: string) => void;
 } = {}) {
   const { currentScene, currentSceneKey } = useVideoPlayer({ durations, loop });
-  const SceneComponent = scenes[currentScene];
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const baseSceneKey = currentSceneKey.replace(/_r[12]$/, '');
+
+  // Resolve the rendered scene from the LOGICAL scene key (e.g. "scene3"), not
+  // from the hook's local position index. When durations are rotated or locked
+  // (scene-jump / loop-current-scene controls in preview mode), `currentScene`
+  // is only a position within the rotated sequence -- using it directly against
+  // the fixed `scenes` array would show a different scene than the subtitle/
+  // audio, which stay keyed off `currentSceneKey`. Falling back to `currentScene`
+  // keeps this safe even if the key format ever changes.
+  const sceneIndexFromKey = Number(baseSceneKey.replace('scene', ''));
+  const SceneComponent =
+    scenes[Number.isInteger(sceneIndexFromKey) ? sceneIndexFromKey : currentScene] ??
+    scenes[currentScene];
 
   // Notify parent of scene changes
   useEffect(() => {
