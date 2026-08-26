@@ -28,6 +28,10 @@ args = "artifacts/konstruksi-ai: web"
 task = "workflow.run"
 args = "pitch-deck-print-sync"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "url-fetch-security"
+
 [[workflows.workflow]]
 name = "artifacts/api-server: API Server"
 author = "agent"
@@ -59,6 +63,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/konstruksi-pitch-deck run check-print-sync"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "url-fetch-security"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test:upload-security"
 
 [workflows.workflow.metadata]
 isValidation = true
