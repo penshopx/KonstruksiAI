@@ -15,3 +15,4 @@
 - [Headless browser checks in this workspace](headless-browser-checks.md) — `REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE` gives a ready Chromium for `playwright-core` scripts; no browser download needed.
 - [Duplicate artifact detection](duplicate-artifact-detection.md) — grep for an artifact's slug/path across the codebase before assuming which of two similar artifacts is canonical.
 - [Honest coming-soon CTA pattern](honest-coming-soon-cta.md) — never let pricing copy imply an active purchase/trial flow for a tier with no real billing; label it consistently everywhere instead.
+- [api-server HTTP integration tests](api-server-http-integration-tests.md) — bundle app.ts with esbuild + a require-shim banner, use an isolated SQLite path env var, and unref background timers or the test process hangs forever.

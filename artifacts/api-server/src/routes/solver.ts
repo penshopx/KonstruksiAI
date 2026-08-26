@@ -38,6 +38,8 @@ function checkRateLimit(userId: number): boolean {
   return true;
 }
 
+// Unref'd so this background pruning timer never keeps the process (or a
+// test harness) alive.
 setInterval(() => {
   const cutoff = Date.now() - RATE_WINDOW_MS;
   for (const [uid, ts] of userRateMap.entries()) {
@@ -45,7 +47,7 @@ setInterval(() => {
     if (fresh.length === 0) userRateMap.delete(uid);
     else userRateMap.set(uid, fresh);
   }
-}, 300_000);
+}, 300_000).unref();
 
 // ─── Retry policy for transient OpenAI errors ────────────────────────────────
 

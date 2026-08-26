@@ -32,6 +32,10 @@ args = "pitch-deck-print-sync"
 task = "workflow.run"
 args = "url-fetch-security"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "workspace-access-revocation"
+
 [[workflows.workflow]]
 name = "artifacts/api-server: API Server"
 author = "agent"
@@ -74,6 +78,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/api-server run test:upload-security"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "workspace-access-revocation"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test:workspace-access-revocation"
 
 [workflows.workflow.metadata]
 isValidation = true

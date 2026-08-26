@@ -4,7 +4,9 @@ import * as schema from "./schema";
 import path from "path";
 import fs from "fs";
 
-const dbPath = path.join(process.cwd(), "konstruksi.db");
+// Tests set API_SERVER_DB_PATH to a throwaway file so they never read or
+// mutate the real development database that lives at the default path.
+const dbPath = process.env.API_SERVER_DB_PATH || path.join(process.cwd(), "konstruksi.db");
 
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
