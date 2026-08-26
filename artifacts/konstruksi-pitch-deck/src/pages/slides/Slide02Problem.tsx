@@ -80,7 +80,7 @@ export default function Slide02Problem() {
             fontWeight: 500,
           }}
         >
-          Krisis Tersembunyi
+          Krisis Tersembunyi <span style={{ letterSpacing: "0.12em" }}>[S3]</span>
         </div>
         <h2
           style={{

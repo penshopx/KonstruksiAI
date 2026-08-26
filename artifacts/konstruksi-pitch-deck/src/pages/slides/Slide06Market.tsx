@@ -234,8 +234,8 @@ export default function Slide06Market() {
                 lineHeight: 1,
               }}
             >
-              180
-              <span style={{ fontSize: "3vw", color: "#C45B28" }}>rb+</span>
+              186.534
+              <span style={{ fontSize: "1.5vw", color: "#C45B28", marginLeft: "0.6vw" }}>[S1]</span>
             </div>
             <div
               style={{
@@ -248,10 +248,10 @@ export default function Slide06Market() {
                 paddingTop: "1vh",
               }}
             >
-              Perusahaan Konstruksi Terdaftar (LPJK)
+              Perusahaan Konstruksi Indonesia, 2024 (BPS)
             </div>
             <div style={{ fontSize: "0.75vw", color: "rgba(140,140,140,0.7)", marginTop: "0.5vh", fontStyle: "italic" }}>
-              Sumber: LPJK 2024
+              Sumber: BPS — Direktori Perusahaan Konstruksi 2024
             </div>
           </div>
           <div>
@@ -264,7 +264,7 @@ export default function Slide06Market() {
               }}
             >
               800
-              <span style={{ fontSize: "3vw", color: "#C45B28" }}>rb+</span>
+              <span style={{ fontSize: "2.4vw", color: "#C45B28" }}>rb+ [S2]</span>
             </div>
             <div
               style={{
@@ -277,10 +277,10 @@ export default function Slide06Market() {
                 paddingTop: "1vh",
               }}
             >
-              Tenaga Ahli Bersertifikat di Indonesia
+              Tenaga Ahli Bersertifikat (klaim draft)
             </div>
             <div style={{ fontSize: "0.75vw", color: "rgba(140,140,140,0.7)", marginTop: "0.5vh", fontStyle: "italic" }}>
-              Sumber: BNSP / perkiraan industri
+              Status: perlu verifikasi — Dashboard LPJK &amp; Open Data PUPR
             </div>
           </div>
         </div>

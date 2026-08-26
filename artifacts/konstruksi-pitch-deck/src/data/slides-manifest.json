@@ -86,5 +86,13 @@
     "title": "Mari Membangun Bersama",
     "description": "Closing slide with call to action and contact details",
     "speakerNotes": "Close with a specific invitation, bukan sekadar ucapan terima kasih.\n\n- Ulangi proposisi dalam satu napas: 3 sektor industri, 26 sub-bidang, dan 126 koneksi AI yang dirancang untuk Indonesia.\n- Arahkan audiens ke tiga pilihan: coba akses gratis, daftar Pro waitlist, atau bahas early access sebagai mitra strategis.\n- Anticipate: jika ditanya komitmen berikutnya, tawarkan demo singkat dan discovery conversation untuk memetakan satu use case nyata.\n- Beri ruang untuk Q&A, lalu kembali ke kebutuhan audiens: tender, perijinan, keselamatan, atau kalkulasi teknis.\n- Transition: Tutup dengan ajakan membangun workflow keteknikan Indonesia yang lebih cepat dan lebih siap."
+  },
+  {
+    "id": "e1f2a3b4-c5d6-7890-abcd-ef1234567812",
+    "position": 12,
+    "filepath": "src/pages/slides/Slide11Sources.tsx",
+    "title": "Rujukan & Status Verifikasi",
+    "description": "Source appendix mapping market, industry context, and internal product claims to their originating slides",
+    "speakerNotes": ""
   }
 ]
