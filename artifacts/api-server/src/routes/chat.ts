@@ -80,6 +80,12 @@ interface ChatMessage {
   content: string;
 }
 
+function getDecodedBase64Size(base64: string): number {
+  const normalized = base64.replace(/\s/g, "");
+  const padding = normalized.endsWith("==") ? 2 : normalized.endsWith("=") ? 1 : 0;
+  return Math.max(0, Math.floor(normalized.length * 0.75) - padding);
+}
+
 // GPT tokenizers are byte-pair encodings: each token consumes at least one
 // UTF-8 byte. Counting bytes is therefore a conservative upper bound for
 // tokens, including emoji, symbols, CJK, and code-like input. It retains less
@@ -724,9 +730,10 @@ router.post("/chat", async (req: Request, res: Response) => {
         res.status(400).json({ error: "Format attachment tidak valid." });
         return;
       }
-      // base64 is ~4/3 of the binary size; decoded size ≈ base64.length * 0.75
-      const approxBytes = Math.ceil(attachment.base64.length * 0.75);
-      if (approxBytes > MAX_ATTACHMENT_SIZE) {
+      // Check the exact decoded size before allocating a Buffer or calling an
+      // external model. This keeps the client and API on the same 10 MB boundary.
+      const decodedBytes = getDecodedBase64Size(attachment.base64);
+      if (decodedBytes > MAX_ATTACHMENT_SIZE) {
         res.status(413).json({ error: "File terlalu besar untuk diproses (maks 10 MB)." });
         return;
       }

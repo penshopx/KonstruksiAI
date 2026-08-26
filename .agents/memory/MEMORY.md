@@ -10,3 +10,4 @@
 - [Radar official channels](radar-official-channels.md) — use the verified official alternate feeds when direct agency sites deny automated access.
 - [Pinned URL-fetch DNS](pinned-url-fetch-dns.md) — Node may request DNS lookup results with `all: true`; return only the validated address set.
 - [SQLite transaction callbacks](sqlite-transaction-callbacks.md) — Drizzle with this better-sqlite3 driver requires synchronous transaction callbacks.
+- [Attachment size boundary precision](attachment-size-boundary.md) — exact decoded-base64-size math and a file-picker size fallback keep client/server upload limits agreeing at the byte.

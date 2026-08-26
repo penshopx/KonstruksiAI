@@ -299,7 +299,33 @@ function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) {
     return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function getDecodedBase64Size(base64: string): number {
+  const normalized = base64.replace(/\s/g, '');
+  const padding = normalized.endsWith('==') ? 2 : normalized.endsWith('=') ? 1 : 0;
+  return Math.max(0, Math.floor(normalized.length * 0.75) - padding);
+}
+
+async function resolveDocumentSize(uri: string, pickerSize?: number): Promise<number | undefined> {
+  if (typeof pickerSize === 'number' && Number.isFinite(pickerSize) && pickerSize >= 0) {
+    return pickerSize;
+  }
+
+  try {
+    const info = await FileSystem.getInfoAsync(uri);
+    return info.exists && typeof info.size === 'number' ? info.size : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function showOversizedDocumentAlert(): void {
+  Alert.alert(
+    'Dokumen terlalu besar',
+    'Dokumen terlalu besar (maks 10 MB). Coba kompres PDF terlebih dahulu.',
+  );
 }
 
 // ─── Conversation history sheet ───────────────────────────────────────────────
@@ -663,12 +689,10 @@ export default function ChatScreen() {
 
       const asset = result.assets[0];
       const { uri, name, mimeType } = asset;
+      const knownSizeBytes = await resolveDocumentSize(uri, asset.size);
 
-      if (typeof asset.size === 'number' && asset.size > MAX_ATTACHMENT_SIZE) {
-        Alert.alert(
-          'Dokumen terlalu besar',
-          'Dokumen terlalu besar (maks 10 MB). Coba kompres PDF terlebih dahulu.',
-        );
+      if (knownSizeBytes !== undefined && knownSizeBytes > MAX_ATTACHMENT_SIZE) {
+        showOversizedDocumentAlert();
         return;
       }
 
@@ -676,13 +700,10 @@ export default function ChatScreen() {
       const base64 = await FileSystem.readAsStringAsync(uri, {
         encoding: 'base64' as FileSystem.EncodingType,
       });
-      const sizeBytes = asset.size ?? Math.floor(base64.replace(/=+$/, '').length * 0.75);
+      const sizeBytes = knownSizeBytes ?? getDecodedBase64Size(base64);
 
       if (sizeBytes > MAX_ATTACHMENT_SIZE) {
-        Alert.alert(
-          'Dokumen terlalu besar',
-          'Dokumen terlalu besar (maks 10 MB). Coba kompres PDF terlebih dahulu.',
-        );
+        showOversizedDocumentAlert();
         return;
       }
 
@@ -738,13 +759,10 @@ export default function ChatScreen() {
       const base64 = asset.base64 ?? await FileSystem.readAsStringAsync(asset.uri, {
         encoding: 'base64' as FileSystem.EncodingType,
       });
-      const sizeBytes = asset.fileSize ?? Math.floor(base64.replace(/=+$/, '').length * 0.75);
+      const sizeBytes = asset.fileSize ?? getDecodedBase64Size(base64);
 
       if (sizeBytes > MAX_ATTACHMENT_SIZE) {
-        Alert.alert(
-          'Dokumen terlalu besar',
-          'Dokumen terlalu besar (maks 10 MB). Coba kompres PDF terlebih dahulu.',
-        );
+        showOversizedDocumentAlert();
         return;
       }
 
@@ -941,10 +959,13 @@ export default function ChatScreen() {
         <View style={[s.inputBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
           {/* Attach button */}
           <TouchableOpacity
-            style={[s.attachBtn, { opacity: (sending || isSyncing || pickingDoc) ? 0.4 : 1 }]}
+            testID="attach-document-button"
+            style={[s.attachBtn, { opacity: (sending || isSyncing || pickingDoc || scanningDocument) ? 0.4 : 1 }]}
             onPress={pickDocument}
             disabled={sending || isSyncing || pickingDoc || scanningDocument}
             activeOpacity={0.75}
+            accessibilityLabel="Lampirkan dokumen"
+            accessibilityState={{ disabled: sending || isSyncing || pickingDoc || scanningDocument }}
           >
             {pickingDoc ? (
               <ActivityIndicator size="small" color="#f97316" />
