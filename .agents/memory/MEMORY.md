@@ -5,3 +5,4 @@
 - [Workspace conversation context](workspace-conversation-context.md) — browser query is not Wouter location; a conversation’s saved origin overrides ambient context before AI sends.
 - [Learn local progress](learn-local-progress.md) — early learning progress is device-local and must not imply account sync, certification, or team completion.
 - [Radar chat handoff context](radar-handoff-context.md) — preserve official Radar context across every Chat send path, including attachments.
+- [Stale workflow ports](workflow-stale-port.md) — a failed supervisor can leave an old artifact child process serving the port.
