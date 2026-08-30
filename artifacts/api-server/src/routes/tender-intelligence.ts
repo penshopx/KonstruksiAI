@@ -2,6 +2,12 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import { getSessionFromRequest } from "../lib/auth";
 import OpenAI from "openai";
+import {
+  createExecutionRecord,
+  resolveExecutionWorkspace,
+  transitionExecutionRecord,
+  validateRetryReference,
+} from "../lib/execution-history";
 
 const router = Router();
 
@@ -13,7 +19,11 @@ function getOpenAI(): OpenAI {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error("OPENAI_API_KEY environment variable is not set");
     }
-    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    _openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      timeout: 90_000,
+      maxRetries: 0,
+    });
   }
   return _openai;
 }
@@ -290,12 +300,16 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
     return;
   }
 
+  let executionId: string | null = null;
+
   try {
-    const { projectName, tenderType, projectDetails, documents: rawDocuments } = req.body as {
+    const { projectName, tenderType, projectDetails, documents: rawDocuments, workspaceId, retryOfId } = req.body as {
       projectName?: string;
       tenderType?: string;
       projectDetails?: string;
       documents?: unknown;
+      workspaceId?: string | null;
+      retryOfId?: string | null;
     };
 
     if (typeof projectName !== "string" || !projectName.trim()) {
@@ -324,7 +338,41 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
     }
     const { documents } = parsedDocuments;
 
+    const workspaceResolution = await resolveExecutionWorkspace(workspaceId, session.userId);
+    if ("error" in workspaceResolution) {
+      res.status(workspaceResolution.status).json({ error: workspaceResolution.error });
+      return;
+    }
+    const retryResolution = await validateRetryReference(
+      retryOfId,
+      session.userId,
+      "tender",
+      workspaceResolution.workspaceId,
+    );
+    if ("error" in retryResolution) {
+      res.status(400).json({ error: retryResolution.error });
+      return;
+    }
+
     const userContent = buildUserContent(projectName.trim(), resolvedTenderType, resolvedDetails, documents);
+
+    const execution = await createExecutionRecord({
+      userId: session.userId,
+      workspaceId: workspaceResolution.workspaceId,
+      module: "tender",
+      retryOfId: retryResolution.retryOfId,
+      inputSummary: {
+        label: `Tender Intelligence — ${projectName.trim()}`,
+        details: resolvedDetails || "Analisis status dokumen tender",
+        metadata: {
+          tenderType: resolvedTenderType,
+          documentCount: documents.length,
+          availableDocumentCount: documents.filter((document) => document.present).length,
+        },
+      },
+    });
+    executionId = execution.id;
+    await transitionExecutionRecord(executionId, "pending", { status: "running" });
 
     let attempt = 0;
     let raw: string | null = null;
@@ -397,7 +445,17 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
 
     const complianceScore = aiResult.complianceScore ?? Math.max(0, overallCompleteness - risks.length * 5);
 
+    const resultRef = `tender:${executionId}`;
+    await transitionExecutionRecord(executionId, "running", {
+      status: "succeeded",
+      resultRef,
+      completedAt: new Date(),
+      errorMessage: null,
+    });
+
     res.json({
+      executionId,
+      resultRef,
       completenessChecks,
       overallCompleteness,
       risks,
@@ -406,9 +464,22 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       summary: aiResult.summary,
     });
   } catch (err) {
+    if (executionId) {
+      try {
+        await transitionExecutionRecord(executionId, ["pending", "running"], {
+          status: "failed",
+          completedAt: new Date(),
+          errorMessage: "Analisis AI gagal diproses. Silakan coba lagi.",
+        });
+      } catch (historyErr) {
+        req.log.warn({ err: historyErr, executionId }, "Tender execution history update failed");
+      }
+    }
     req.log.error({ err }, "POST /tender-intelligence/analyze error");
-    const errMsg = err instanceof Error ? err.message : "Internal server error";
-    res.status(500).json({ error: errMsg });
+    res.status(500).json({
+      error: "Analisis AI gagal diproses. Silakan coba lagi.",
+      ...(executionId ? { executionId } : {}),
+    });
   }
 });
 

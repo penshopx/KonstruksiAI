@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "@/shims/next-link";
+import ExecutionHistoryPanel from "@/components/ExecutionHistoryPanel";
+import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
 
 // ============================================================
 // SOLVER PAGE — Multi-step Engineering Problem Solver
@@ -27,6 +29,8 @@ interface SolverDomain {
 }
 
 interface SolverResult {
+  executionId?: string;
+  resultRef?: string;
   problem: string;
   domain: string;
   approach: string;
@@ -220,9 +224,16 @@ export default function SolverPage() {
   const [result, setResult] = useState<SolverResult | null>(null);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [retryOfId, setRetryOfId] = useState<string | null>(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const resultRef = useRef<HTMLDivElement>(null);
+  const workspaceContext = useWorkspaceContext();
 
   const selectedDomainObj = SOLVER_DOMAINS.find(d => d.id === selectedDomain);
+
+  useEffect(() => {
+    setRetryOfId(null);
+  }, [workspaceContext.workspaceId]);
 
   const handleGenerate = async () => {
     if (!selectedDomain || !problem.trim()) return;
@@ -244,17 +255,32 @@ export default function SolverPage() {
       const res = await fetch("/api/solver/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: selectedDomain, problem, context, outputType }),
+        body: JSON.stringify({
+          domain: selectedDomain,
+          problem,
+          context,
+          outputType,
+          workspaceId: workspaceContext.workspaceId,
+          retryOfId,
+        }),
       });
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        if (typeof body.executionId === "string") {
+          setRetryOfId(body.executionId);
+          setHistoryRefreshKey((current) => current + 1);
+        } else if (res.status === 400 || res.status === 403 || res.status === 404) {
+          setRetryOfId(null);
+        }
         throw new Error(body.error || `Gagal menghasilkan solusi (status ${res.status})`);
       }
 
       const generatedResult: SolverResult = await res.json();
       setGenerationProgress(100);
       setResult(generatedResult);
+      setRetryOfId(null);
+      setHistoryRefreshKey((current) => current + 1);
 
       setTimeout(() => {
         resultRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -276,6 +302,7 @@ export default function SolverPage() {
     setResult(null);
     setGenerationProgress(0);
     setGenerationError(null);
+    setRetryOfId(null);
   };
 
   const copyToClipboard = () => {
@@ -308,6 +335,7 @@ export default function SolverPage() {
       </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <WorkspaceContextBanner context={workspaceContext} />
         {/* Page Header */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-full px-4 py-1.5 mb-4">
@@ -500,7 +528,7 @@ export default function SolverPage() {
                   disabled={!selectedDomain || !problem.trim() || isGenerating}
                   className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold py-4 rounded-xl text-lg transition-all hover:scale-[1.01] shadow-lg shadow-orange-500/20 disabled:shadow-none disabled:scale-100"
                 >
-                  🚀 Analisis & Selesaikan Masalah
+                  {retryOfId ? "🔄 Coba Lagi & Catat Pengulangan" : "🚀 Analisis & Selesaikan Masalah"}
                 </button>
 
                 {generationError && !isGenerating && (
@@ -509,6 +537,11 @@ export default function SolverPage() {
                     <div>
                       <p className="text-red-300 text-sm font-semibold mb-0.5">Gagal menghasilkan solusi</p>
                       <p className="text-red-300/80 text-sm">{generationError}</p>
+                      {retryOfId && (
+                        <p className="mt-1 text-xs text-red-200/70">
+                          Percobaan berikutnya akan ditautkan ke eksekusi gagal ini.
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -571,6 +604,11 @@ export default function SolverPage() {
                   <div className="flex items-center gap-2 mb-2">
                     <span className="bg-green-500/20 border border-green-500/30 text-green-400 text-xs px-2 py-0.5 rounded-full">✓ Solusi Siap</span>
                     <span className="text-slate-500 text-xs">{selectedDomainObj?.icon} {result.domain}</span>
+                    {result.resultRef && (
+                      <span className="bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs px-2 py-0.5 rounded-full">
+                        ✓ Tercatat
+                      </span>
+                    )}
                   </div>
                   <h2 className="text-white font-bold text-xl mb-1">{result.approach}</h2>
                   <p className="text-slate-400 text-sm">{result.problem}</p>
@@ -673,6 +711,11 @@ export default function SolverPage() {
             </div>
           </div>
         )}
+
+        <ExecutionHistoryPanel
+          workspaceId={workspaceContext.workspaceId}
+          refreshKey={historyRefreshKey}
+        />
       </div>
     </div>
   );

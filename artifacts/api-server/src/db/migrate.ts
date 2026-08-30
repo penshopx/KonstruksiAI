@@ -6,6 +6,7 @@ import {
   radarArticles,
   projectWorkspaceMembers,
   projectWorkspaceInvitations,
+  aiExecutionHistory,
   examSets,
   examQuestions,
 } from "./schema";
@@ -84,6 +85,26 @@ export function initializeDatabase() {
       revoked_at INTEGER,
       created_at INTEGER NOT NULL
     )`);
+
+    db.run(sql`CREATE TABLE IF NOT EXISTS ai_execution_history (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      workspace_id TEXT REFERENCES project_workspaces(id) ON DELETE SET NULL,
+      module TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      input_summary TEXT NOT NULL,
+      result_ref TEXT,
+      retry_of_id TEXT,
+      error_message TEXT,
+      started_at INTEGER NOT NULL,
+      completed_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`);
+    db.run(sql`CREATE INDEX IF NOT EXISTS ai_execution_history_user_created_idx
+      ON ai_execution_history(user_id, created_at)`);
+    db.run(sql`CREATE INDEX IF NOT EXISTS ai_execution_history_workspace_created_idx
+      ON ai_execution_history(workspace_id, created_at)`);
 
     db.run(sql`CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,

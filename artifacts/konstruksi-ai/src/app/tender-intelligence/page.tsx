@@ -9,6 +9,7 @@ import {
   type TenderAnalysisResult,
 } from "@/lib/tender-intelligence";
 import NavbarAuth from "@/components/NavbarAuth";
+import ExecutionHistoryPanel from "@/components/ExecutionHistoryPanel";
 import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
 
 const TABS = [
@@ -73,12 +74,18 @@ export default function TenderIntelligencePage() {
   const [analysis, setAnalysis] = useState<TenderAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [retryOfId, setRetryOfId] = useState<string | null>(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   useEffect(() => {
     if (workspaceContext.workspace) {
       setProjectName(workspaceContext.workspace.name);
     }
   }, [workspaceContext.workspace?.id]);
+
+  useEffect(() => {
+    setRetryOfId(null);
+  }, [workspaceContext.workspaceId]);
 
   const requirementsByCategory = useMemo(
     () =>
@@ -130,6 +137,8 @@ export default function TenderIntelligencePage() {
           projectName: projectName.trim(),
           tenderType: DEFAULT_TENDER_TYPE,
           projectDetails,
+          workspaceId: workspaceContext.workspaceId,
+          retryOfId,
           documents: validDocuments.map(({ documentType, required, present, notes }) => ({
             documentType,
             required,
@@ -141,12 +150,18 @@ export default function TenderIntelligencePage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        if (typeof body.executionId === "string") {
+          setRetryOfId(body.executionId);
+          setHistoryRefreshKey((current) => current + 1);
+        } else if (res.status === 400 || res.status === 403 || res.status === 404) {
+          setRetryOfId(null);
+        }
         throw new Error(body.error || `Gagal menjalankan analisis (status ${res.status})`);
       }
 
       const data = await res.json();
       setAnalysis({
-        id: `analysis-${Date.now()}`,
+        id: data.resultRef ?? `analysis-${Date.now()}`,
         projectName: projectName.trim(),
         tenderType: DEFAULT_TENDER_TYPE,
         analysisDate: new Date().toISOString(),
@@ -158,6 +173,8 @@ export default function TenderIntelligencePage() {
         complianceScore: data.complianceScore,
         summary: data.summary,
       });
+      setRetryOfId(null);
+      setHistoryRefreshKey((current) => current + 1);
       setActiveTab("overview");
     } catch (err) {
       setAnalysisError(err instanceof Error ? err.message : "Gagal menjalankan analisis tender. Silakan coba lagi.");
@@ -328,6 +345,11 @@ export default function TenderIntelligencePage() {
         {analysisError && (
           <div className="mt-4 bg-red-500/10 border border-red-500/40 rounded-lg p-4 text-red-300 text-sm">
             {analysisError}
+            {retryOfId && (
+              <p className="mt-1 text-xs text-red-200/70">
+                Percobaan berikutnya akan ditautkan ke eksekusi gagal ini.
+              </p>
+            )}
           </div>
         )}
 
@@ -336,7 +358,7 @@ export default function TenderIntelligencePage() {
           disabled={isAnalyzing || !projectName.trim()}
           className="mt-6 w-full sm:w-auto px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {isAnalyzing ? "Menganalisis..." : "🚀 Jalankan Analisis AI"}
+          {isAnalyzing ? "Menganalisis..." : retryOfId ? "🔄 Ulangi & Catat Pengulangan" : "🚀 Jalankan Analisis AI"}
         </button>
       </div>
 
@@ -543,6 +565,10 @@ export default function TenderIntelligencePage() {
         {activeTab === "requirements" && renderRequirements()}
         {activeTab === "risks" && renderRisks()}
         {activeTab === "checklist" && renderChecklist()}
+        <ExecutionHistoryPanel
+          workspaceId={workspaceContext.workspaceId}
+          refreshKey={historyRefreshKey}
+        />
       </div>
     </div>
   );

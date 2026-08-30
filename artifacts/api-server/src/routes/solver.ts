@@ -2,6 +2,12 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import { getSessionFromRequest } from "../lib/auth";
 import OpenAI from "openai";
+import {
+  createExecutionRecord,
+  resolveExecutionWorkspace,
+  transitionExecutionRecord,
+  validateRetryReference,
+} from "../lib/execution-history";
 
 const router = Router();
 
@@ -13,7 +19,11 @@ function getOpenAI(): OpenAI {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error("OPENAI_API_KEY environment variable is not set");
     }
-    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    _openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      timeout: 90_000,
+      maxRetries: 0,
+    });
   }
   return _openai;
 }
@@ -192,12 +202,16 @@ router.post("/solver/generate", async (req: Request, res: Response) => {
     return;
   }
 
+  let executionId: string | null = null;
+
   try {
-    const { domain, problem, context, outputType } = req.body as {
+    const { domain, problem, context, outputType, workspaceId, retryOfId } = req.body as {
       domain?: string;
       problem?: string;
       context?: string;
       outputType?: string;
+      workspaceId?: string | null;
+      retryOfId?: string | null;
     };
 
     if (typeof domain !== "string" || !Object.prototype.hasOwnProperty.call(SOLVER_DOMAINS, domain)) {
@@ -218,6 +232,22 @@ router.post("/solver/generate", async (req: Request, res: Response) => {
       return;
     }
 
+    const workspaceResolution = await resolveExecutionWorkspace(workspaceId, session.userId);
+    if ("error" in workspaceResolution) {
+      res.status(workspaceResolution.status).json({ error: workspaceResolution.error });
+      return;
+    }
+    const retryResolution = await validateRetryReference(
+      retryOfId,
+      session.userId,
+      "solver",
+      workspaceResolution.workspaceId,
+    );
+    if ("error" in retryResolution) {
+      res.status(400).json({ error: retryResolution.error });
+      return;
+    }
+
     const resolvedOutputType = getResolvedOutputType(outputType);
     const domainInfo = SOLVER_DOMAINS[domain]!;
     const systemPrompt = buildSystemPrompt(domainInfo.systemPrompt, resolvedOutputType);
@@ -226,6 +256,23 @@ router.post("/solver/generate", async (req: Request, res: Response) => {
       `Permasalahan: ${problem.trim()}`,
       trimmedContext.trim() ? `Konteks tambahan: ${trimmedContext.trim()}` : null,
     ].filter((part): part is string => Boolean(part)).join("\n\n");
+
+    const execution = await createExecutionRecord({
+      userId: session.userId,
+      workspaceId: workspaceResolution.workspaceId,
+      module: "solver",
+      retryOfId: retryResolution.retryOfId,
+      inputSummary: {
+        label: `Solver — ${domainInfo.name}`,
+        details: problem.trim(),
+        metadata: {
+          outputFormat: OUTPUT_FORMAT_LABELS[resolvedOutputType],
+          hasAdditionalContext: Boolean(trimmedContext.trim()),
+        },
+      },
+    });
+    executionId = execution.id;
+    await transitionExecutionRecord(executionId, "pending", { status: "running" });
 
     let attempt = 0;
     let raw: string | null = null;
@@ -270,7 +317,17 @@ router.post("/solver/generate", async (req: Request, res: Response) => {
       throw new Error("AI mengembalikan struktur data yang tidak lengkap. Silakan coba lagi.");
     }
 
+    const resultRef = `solver:${executionId}`;
+    await transitionExecutionRecord(executionId, "running", {
+      status: "succeeded",
+      resultRef,
+      completedAt: new Date(),
+      errorMessage: null,
+    });
+
     res.json({
+      executionId,
+      resultRef,
       problem: problem.trim(),
       domain: domainInfo.name,
       approach: result.approach,
@@ -281,9 +338,22 @@ router.post("/solver/generate", async (req: Request, res: Response) => {
       outputFormat: OUTPUT_FORMAT_LABELS[resolvedOutputType],
     });
   } catch (err) {
+    if (executionId) {
+      try {
+        await transitionExecutionRecord(executionId, ["pending", "running"], {
+          status: "failed",
+          completedAt: new Date(),
+          errorMessage: "Analisis AI gagal diproses. Silakan coba lagi.",
+        });
+      } catch (historyErr) {
+        req.log.warn({ err: historyErr, executionId }, "Solver execution history update failed");
+      }
+    }
     req.log.error({ err }, "POST /solver/generate error");
-    const errMsg = err instanceof Error ? err.message : "Internal server error";
-    res.status(500).json({ error: errMsg });
+    res.status(500).json({
+      error: "Analisis AI gagal diproses. Silakan coba lagi.",
+      ...(executionId ? { executionId } : {}),
+    });
   }
 });
 

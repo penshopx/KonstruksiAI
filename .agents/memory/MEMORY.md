@@ -17,3 +17,4 @@
 - [Honest coming-soon CTA pattern](honest-coming-soon-cta.md) — never let pricing copy imply an active purchase/trial flow for a tier with no real billing; label it consistently everywhere instead.
 - [api-server HTTP integration tests](api-server-http-integration-tests.md) — bundle app.ts with esbuild + a require-shim banner, use an isolated SQLite path env var, and unref background timers or the test process hangs forever.
 - [Provider-neutral Pro entitlements](provider-neutral-pro-entitlements.md) — keep purchase integration deferred; server-owned entitlements must be ready for a later trusted webhook or checkout.
+- [AI execution history scope](ai-execution-history-scope.md) — keep run metadata separate from full Solver/Tender payload storage and connect them through result references.

@@ -80,6 +80,25 @@ export const projectWorkspaceMembers = sqliteTable("project_workspace_members", 
 export type ProjectWorkspaceMember = typeof projectWorkspaceMembers.$inferSelect;
 export type NewProjectWorkspaceMember = typeof projectWorkspaceMembers.$inferInsert;
 
+export const aiExecutionHistory = sqliteTable("ai_execution_history", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").references(() => projectWorkspaces.id, { onDelete: "set null" }),
+  module: text("module").notNull(),
+  status: text("status").notNull().default("pending"),
+  inputSummary: text("input_summary").notNull(),
+  resultRef: text("result_ref"),
+  retryOfId: text("retry_of_id"),
+  errorMessage: text("error_message"),
+  startedAt: integer("started_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export type AiExecutionHistory = typeof aiExecutionHistory.$inferSelect;
+export type NewAiExecutionHistory = typeof aiExecutionHistory.$inferInsert;
+
 export const projectWorkspaceInvitations = sqliteTable("project_workspace_invitations", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id").notNull().references(() => projectWorkspaces.id, { onDelete: "cascade" }),
