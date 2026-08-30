@@ -8,6 +8,14 @@ import {
   transitionExecutionRecord,
   validateRetryReference,
 } from "../lib/execution-history";
+import {
+  getTenderAnalysisResult,
+  listTenderAnalysisHistory,
+  normalizeChecklistState,
+  persistSuccessfulTenderAnalysis,
+  toTenderAnalysisResult,
+  toTenderAnalysisSummary,
+} from "../lib/tender-history";
 
 const router = Router();
 
@@ -291,6 +299,55 @@ function validateTenderAIResult(parsed: unknown): TenderAIResult | null {
 
 // ─── Tender Intelligence endpoint ─────────────────────────────────────────────
 
+router.get("/tender-intelligence/history", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const workspaceResolution = await resolveExecutionWorkspace(req.query.workspaceId, session.userId);
+    if ("error" in workspaceResolution) {
+      res.status(workspaceResolution.status).json({ error: workspaceResolution.error });
+      return;
+    }
+    const results = await listTenderAnalysisHistory({
+      userId: session.userId,
+      ...(workspaceResolution.workspaceId ? { workspaceId: workspaceResolution.workspaceId } : {}),
+    });
+    res.json({ results: results.map(toTenderAnalysisSummary) });
+  } catch (error) {
+    req.log.error({ err: error }, "GET /tender-intelligence/history error");
+    res.status(500).json({ error: "Riwayat hasil Tender tidak dapat dimuat." });
+  }
+});
+
+router.get("/tender-intelligence/history/:id", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      res.status(404).json({ error: "Hasil analisis Tender tidak ditemukan." });
+      return;
+    }
+    const result = await getTenderAnalysisResult({ userId: session.userId, id });
+    if (!result) {
+      res.status(404).json({ error: "Hasil analisis Tender tidak ditemukan." });
+      return;
+    }
+    res.json({ result: toTenderAnalysisResult(result) });
+  } catch (error) {
+    req.log.error({ err: error }, "GET /tender-intelligence/history/:id error");
+    res.status(500).json({ error: "Hasil analisis Tender tidak dapat dibuka." });
+  }
+});
+
 router.post("/tender-intelligence/analyze", async (req: Request, res: Response) => {
   const session = await getSessionFromRequest(req);
   if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
@@ -303,11 +360,20 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
   let executionId: string | null = null;
 
   try {
-    const { projectName, tenderType, projectDetails, documents: rawDocuments, workspaceId, retryOfId } = req.body as {
+    const {
+      projectName,
+      tenderType,
+      projectDetails,
+      documents: rawDocuments,
+      checklistState: rawChecklistState,
+      workspaceId,
+      retryOfId,
+    } = req.body as {
       projectName?: string;
       tenderType?: string;
       projectDetails?: string;
       documents?: unknown;
+      checklistState?: unknown;
       workspaceId?: string | null;
       retryOfId?: string | null;
     };
@@ -337,6 +403,7 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       return;
     }
     const { documents } = parsedDocuments;
+    const checklistState = normalizeChecklistState(rawChecklistState);
 
     const workspaceResolution = await resolveExecutionWorkspace(workspaceId, session.userId);
     if ("error" in workspaceResolution) {
@@ -368,6 +435,7 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
           tenderType: resolvedTenderType,
           documentCount: documents.length,
           availableDocumentCount: documents.filter((document) => document.present).length,
+          checkedChecklistCount: Object.values(checklistState).filter((item) => item.checked).length,
         },
       },
     });
@@ -445,13 +513,25 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
 
     const complianceScore = aiResult.complianceScore ?? Math.max(0, overallCompleteness - risks.length * 5);
 
-    const resultRef = `tender:${executionId}`;
-    await transitionExecutionRecord(executionId, "running", {
-      status: "succeeded",
-      resultRef,
-      completedAt: new Date(),
-      errorMessage: null,
+    const savedResult = await persistSuccessfulTenderAnalysis({
+      executionId,
+      userId: session.userId,
+      workspaceId: workspaceResolution.workspaceId,
+      payload: {
+        projectName: projectName.trim(),
+        tenderType: resolvedTenderType,
+        projectDetails: resolvedDetails,
+        documents,
+        checklistState,
+        completenessChecks,
+        overallCompleteness,
+        risks,
+        recommendations: aiResult.recommendations,
+        complianceScore,
+        summary: aiResult.summary,
+      },
     });
+    const resultRef = `tender:${savedResult.id}`;
 
     res.json({
       executionId,

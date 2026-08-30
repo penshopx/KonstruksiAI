@@ -136,6 +136,29 @@ export const solverAnalysisResults = sqliteTable("solver_analysis_results", {
 export type SolverAnalysisResult = typeof solverAnalysisResults.$inferSelect;
 export type NewSolverAnalysisResult = typeof solverAnalysisResults.$inferInsert;
 
+export const tenderAnalysisResults = sqliteTable("tender_analysis_results", {
+  id: text("id").primaryKey(),
+  executionId: text("execution_id").notNull().unique().references(() => aiExecutionHistory.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").references(() => projectWorkspaces.id, { onDelete: "set null" }),
+  projectName: text("project_name").notNull(),
+  tenderType: text("tender_type").notNull(),
+  projectDetails: text("project_details").notNull().default(""),
+  documents: text("documents").notNull().default("[]"),
+  checklistState: text("checklist_state").notNull().default("{}"),
+  completenessChecks: text("completeness_checks").notNull().default("[]"),
+  overallCompleteness: integer("overall_completeness").notNull(),
+  risks: text("risks").notNull().default("[]"),
+  recommendations: text("recommendations").notNull().default("[]"),
+  complianceScore: integer("compliance_score").notNull(),
+  summary: text("summary").notNull().default("{}"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export type TenderAnalysisResult = typeof tenderAnalysisResults.$inferSelect;
+export type NewTenderAnalysisResult = typeof tenderAnalysisResults.$inferInsert;
+
 export const projectWorkspaceInvitations = sqliteTable("project_workspace_invitations", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id").notNull().references(() => projectWorkspaces.id, { onDelete: "cascade" }),

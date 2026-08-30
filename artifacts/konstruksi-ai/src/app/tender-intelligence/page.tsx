@@ -10,7 +10,9 @@ import {
 } from "@/lib/tender-intelligence";
 import NavbarAuth from "@/components/NavbarAuth";
 import ExecutionHistoryPanel from "@/components/ExecutionHistoryPanel";
+import TenderHistoryPanel from "@/components/TenderHistoryPanel";
 import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
+import type { TenderAnalysisResult as SavedTenderAnalysis } from "@/lib/tender-history";
 
 const TABS = [
   { id: "overview", label: "📊 Overview", icon: "📊" },
@@ -44,6 +46,11 @@ interface DocumentInput {
   notes: string;
 }
 
+interface ChecklistProgress {
+  checked: boolean;
+  notes: string;
+}
+
 let nextDocumentId = 0;
 function makeDocumentId(): string {
   nextDocumentId += 1;
@@ -66,7 +73,8 @@ const DEFAULT_TENDER_TYPE = "Tender Konstruksi";
 export default function TenderIntelligencePage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [projectName, setProjectName] = useState("Pembangunan Gedung Kantor");
-  const [checklistState, setChecklistState] = useState<Record<string, boolean>>({});
+  const [tenderType, setTenderType] = useState(DEFAULT_TENDER_TYPE);
+  const [checklistState, setChecklistState] = useState<Record<string, ChecklistProgress>>({});
   const workspaceContext = useWorkspaceContext();
 
   const [documents, setDocuments] = useState<DocumentInput[]>(DEFAULT_DOCUMENTS);
@@ -100,7 +108,20 @@ export default function TenderIntelligencePage() {
   const handleChecklistToggle = (itemId: string) => {
     setChecklistState(prev => ({
       ...prev,
-      [itemId]: !prev[itemId]
+      [itemId]: {
+        checked: !(prev[itemId]?.checked ?? false),
+        notes: prev[itemId]?.notes ?? "",
+      },
+    }));
+  };
+
+  const handleChecklistNoteChange = (itemId: string, notes: string) => {
+    setChecklistState(prev => ({
+      ...prev,
+      [itemId]: {
+        checked: prev[itemId]?.checked ?? false,
+        notes,
+      },
     }));
   };
 
@@ -114,6 +135,33 @@ export default function TenderIntelligencePage() {
 
   const removeDocument = (id: string) => {
     setDocuments(prev => prev.filter(doc => doc.id !== id));
+  };
+
+  const handleOpenSavedAnalysis = (savedResult: SavedTenderAnalysis) => {
+    setProjectName(savedResult.projectName);
+    setTenderType(savedResult.tenderType);
+    setProjectDetails(savedResult.projectDetails);
+    setDocuments(savedResult.documents.map((document, index) => ({
+      id: `saved-${savedResult.id}-${index}`,
+      ...document,
+    })));
+    setChecklistState(savedResult.checklistState);
+    setAnalysis({
+      id: savedResult.id,
+      projectName: savedResult.projectName,
+      tenderType: savedResult.tenderType,
+      analysisDate: savedResult.createdAt,
+      completenessChecks: savedResult.completenessChecks,
+      overallCompleteness: savedResult.overallCompleteness,
+      requirements: TENDER_REQUIREMENTS,
+      risks: savedResult.risks,
+      recommendations: savedResult.recommendations,
+      complianceScore: savedResult.complianceScore,
+      summary: savedResult.summary,
+    });
+    setAnalysisError(null);
+    setRetryOfId(null);
+    setActiveTab("overview");
   };
 
   const handleAnalyze = async () => {
@@ -135,10 +183,11 @@ export default function TenderIntelligencePage() {
         credentials: "include",
         body: JSON.stringify({
           projectName: projectName.trim(),
-          tenderType: DEFAULT_TENDER_TYPE,
+          tenderType: tenderType.trim() || DEFAULT_TENDER_TYPE,
           projectDetails,
           workspaceId: workspaceContext.workspaceId,
           retryOfId,
+          checklistState,
           documents: validDocuments.map(({ documentType, required, present, notes }) => ({
             documentType,
             required,
@@ -163,7 +212,7 @@ export default function TenderIntelligencePage() {
       setAnalysis({
         id: data.resultRef ?? `analysis-${Date.now()}`,
         projectName: projectName.trim(),
-        tenderType: DEFAULT_TENDER_TYPE,
+        tenderType: tenderType.trim() || DEFAULT_TENDER_TYPE,
         analysisDate: new Date().toISOString(),
         completenessChecks: data.completenessChecks,
         overallCompleteness: data.overallCompleteness,
@@ -231,6 +280,30 @@ export default function TenderIntelligencePage() {
             <div className="text-3xl font-bold text-blue-400 mb-2">{analysis.risks.length}</div>
             <div className="text-slate-300 font-medium">Risiko Terdeteksi</div>
             <div className="text-slate-400 text-sm mt-1">Perlu Mitigasi</div>
+          </div>
+        </div>
+
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6" data-testid="tender-analysis-summary">
+          <h3 className="text-lg font-semibold text-slate-100 mb-4">Ringkasan Analisis AI</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            {[
+              ["Persyaratan Administratif", "administrativeRequirements", analysis.summary.administrativeRequirements],
+              ["Persyaratan Teknis", "technicalRequirements", analysis.summary.technicalRequirements],
+              ["Persyaratan Finansial", "financialRequirements", analysis.summary.financialRequirements],
+              ["Risiko Utama", "keyRisks", analysis.summary.keyRisks],
+              ["Langkah Berikutnya", "nextSteps", analysis.summary.nextSteps],
+            ].map(([label, key, content]) => (
+              <div
+                key={key}
+                className="rounded-lg border border-slate-700 bg-slate-900/60 p-4"
+                data-testid={`tender-summary-${key}`}
+              >
+                <h4 className="text-sm font-semibold text-blue-300">{label}</h4>
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-300">
+                  {content || "Belum ada ringkasan."}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -491,9 +564,10 @@ export default function TenderIntelligencePage() {
               <div key={item.id} className="flex items-start gap-3 p-3 border border-slate-600 rounded-lg">
                 <input
                   type="checkbox"
-                  checked={checklistState[item.id] || false}
+                  checked={checklistState[item.id]?.checked ?? false}
                   onChange={() => handleChecklistToggle(item.id)}
                   className="mt-1"
+                  data-testid={`checkbox-tender-checklist-${item.id}`}
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -506,8 +580,11 @@ export default function TenderIntelligencePage() {
                   </div>
                   <input
                     type="text"
+                    value={checklistState[item.id]?.notes ?? ""}
+                    onChange={(event) => handleChecklistNoteChange(item.id, event.target.value)}
                     placeholder="Catatan..."
                     className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-1 text-sm text-slate-300 placeholder-slate-500"
+                    data-testid={`input-tender-checklist-note-${item.id}`}
                   />
                 </div>
               </div>
@@ -547,17 +624,36 @@ export default function TenderIntelligencePage() {
           ))}
         </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-300 mb-2">
-            Nama Proyek
-          </label>
-          <input
-            type="text"
-            value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
-            className="w-full max-w-md bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
-            placeholder="Masukkan nama proyek..."
-          />
+        <div className="mb-6 grid gap-4 md:max-w-3xl md:grid-cols-2">
+          <div>
+            <label htmlFor="tender-project-name" className="block text-sm font-medium text-slate-300 mb-2">
+              Nama Proyek
+            </label>
+            <input
+              id="tender-project-name"
+              type="text"
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
+              placeholder="Masukkan nama proyek..."
+              data-testid="input-tender-project-name"
+            />
+          </div>
+          <div>
+            <label htmlFor="tender-type" className="block text-sm font-medium text-slate-300 mb-2">
+              Jenis Tender
+            </label>
+            <input
+              id="tender-type"
+              type="text"
+              value={tenderType}
+              onChange={(e) => setTenderType(e.target.value)}
+              maxLength={120}
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
+              placeholder="Contoh: Tender EPC"
+              data-testid="input-tender-type"
+            />
+          </div>
         </div>
 
         {activeTab === "overview" && renderOverview()}
@@ -565,6 +661,11 @@ export default function TenderIntelligencePage() {
         {activeTab === "requirements" && renderRequirements()}
         {activeTab === "risks" && renderRisks()}
         {activeTab === "checklist" && renderChecklist()}
+        <TenderHistoryPanel
+          workspaceId={workspaceContext.workspaceId}
+          refreshKey={historyRefreshKey}
+          onOpen={handleOpenSavedAnalysis}
+        />
         <ExecutionHistoryPanel
           workspaceId={workspaceContext.workspaceId}
           refreshKey={historyRefreshKey}

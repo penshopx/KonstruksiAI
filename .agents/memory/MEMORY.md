@@ -18,3 +18,4 @@
 - [api-server HTTP integration tests](api-server-http-integration-tests.md) — bundle app.ts with esbuild + a require-shim banner, use an isolated SQLite path env var, and unref background timers or the test process hangs forever.
 - [AI execution history scope](ai-execution-history-scope.md) — keep run metadata separate; save authoritative results atomically and render stored model text with raw HTML disabled.
 - [Provider-neutral Pro entitlements](provider-neutral-pro-entitlements.md) — bind payments to server checkout intents; validate terms/order and derive access from all active subscriptions.
+- [Concurrent task merges](concurrent-task-merges.md) — automatic task merges can overwrite overlapping uncommitted edits; re-check the working diff after task-state updates.
