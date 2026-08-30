@@ -99,6 +99,27 @@ export const aiExecutionHistory = sqliteTable("ai_execution_history", {
 export type AiExecutionHistory = typeof aiExecutionHistory.$inferSelect;
 export type NewAiExecutionHistory = typeof aiExecutionHistory.$inferInsert;
 
+export const solverAnalysisResults = sqliteTable("solver_analysis_results", {
+  id: text("id").primaryKey(),
+  executionId: text("execution_id").notNull().unique().references(() => aiExecutionHistory.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  workspaceId: text("workspace_id").references(() => projectWorkspaces.id, { onDelete: "set null" }),
+  domain: text("domain").notNull(),
+  problem: text("problem").notNull(),
+  context: text("context").notNull().default(""),
+  outputFormat: text("output_format").notNull(),
+  approach: text("approach").notNull(),
+  analysis: text("analysis").notNull(),
+  solution: text("solution").notNull(),
+  regulations: text("regulations").notNull().default("[]"),
+  nextSteps: text("next_steps").notNull().default("[]"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export type SolverAnalysisResult = typeof solverAnalysisResults.$inferSelect;
+export type NewSolverAnalysisResult = typeof solverAnalysisResults.$inferInsert;
+
 export const projectWorkspaceInvitations = sqliteTable("project_workspace_invitations", {
   id: text("id").primaryKey(),
   workspaceId: text("workspace_id").notNull().references(() => projectWorkspaces.id, { onDelete: "cascade" }),

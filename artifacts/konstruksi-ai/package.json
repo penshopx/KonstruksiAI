@@ -7,7 +7,8 @@
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:solver-markdown": "rm -rf dist/solver-markdown-test && pnpm exec tsc src/lib/solver-markdown.ts src/lib/solver-markdown.test.ts --outDir dist/solver-markdown-test --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck && node --test dist/solver-markdown-test/solver-markdown.test.js"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

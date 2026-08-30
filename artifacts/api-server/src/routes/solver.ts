@@ -8,6 +8,13 @@ import {
   transitionExecutionRecord,
   validateRetryReference,
 } from "../lib/execution-history";
+import {
+  getSolverAnalysisResult,
+  listSolverAnalysisHistory,
+  persistSuccessfulSolverAnalysis,
+  toSolverAnalysisResult,
+  toSolverAnalysisSummary,
+} from "../lib/solver-history";
 
 const router = Router();
 
@@ -193,6 +200,58 @@ function validateSolverResult(parsed: unknown): SolverAIResult | null {
 
 // ─── Solver endpoint ───────────────────────────────────────────────────────────
 
+router.get("/solver/history", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const workspaceResolution = await resolveExecutionWorkspace(req.query.workspaceId, session.userId);
+    if ("error" in workspaceResolution) {
+      res.status(workspaceResolution.status).json({ error: workspaceResolution.error });
+      return;
+    }
+    const results = await listSolverAnalysisHistory({
+      userId: session.userId,
+      ...(workspaceResolution.workspaceId ? { workspaceId: workspaceResolution.workspaceId } : {}),
+    });
+    res.json({ results: results.map(toSolverAnalysisSummary) });
+  } catch (error) {
+    req.log.error({ err: error }, "GET /solver/history error");
+    res.status(500).json({ error: "Riwayat hasil Solver tidak dapat dimuat." });
+  }
+});
+
+router.get("/solver/history/:id", async (req: Request, res: Response) => {
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) {
+      res.status(404).json({ error: "Hasil analisis Solver tidak ditemukan." });
+      return;
+    }
+    const result = await getSolverAnalysisResult({
+      userId: session.userId,
+      id,
+    });
+    if (!result) {
+      res.status(404).json({ error: "Hasil analisis Solver tidak ditemukan." });
+      return;
+    }
+    res.json({ result: toSolverAnalysisResult(result) });
+  } catch (error) {
+    req.log.error({ err: error }, "GET /solver/history/:id error");
+    res.status(500).json({ error: "Hasil analisis Solver tidak dapat dibuka." });
+  }
+});
+
 router.post("/solver/generate", async (req: Request, res: Response) => {
   const session = await getSessionFromRequest(req);
   if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
@@ -317,13 +376,23 @@ router.post("/solver/generate", async (req: Request, res: Response) => {
       throw new Error("AI mengembalikan struktur data yang tidak lengkap. Silakan coba lagi.");
     }
 
-    const resultRef = `solver:${executionId}`;
-    await transitionExecutionRecord(executionId, "running", {
-      status: "succeeded",
-      resultRef,
-      completedAt: new Date(),
-      errorMessage: null,
+    const savedResult = await persistSuccessfulSolverAnalysis({
+      executionId,
+      userId: session.userId,
+      workspaceId: workspaceResolution.workspaceId,
+      payload: {
+        problem: problem.trim(),
+        domain: domainInfo.name,
+        context: trimmedContext.trim(),
+        outputFormat: OUTPUT_FORMAT_LABELS[resolvedOutputType],
+        approach: result.approach,
+        analysis: result.analysis,
+        solution: result.solution,
+        regulations: result.regulations,
+        nextSteps: result.nextSteps,
+      },
     });
+    const resultRef = `solver:${savedResult.id}`;
 
     res.json({
       executionId,

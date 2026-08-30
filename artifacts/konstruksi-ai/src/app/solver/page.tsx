@@ -3,7 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "@/shims/next-link";
 import ExecutionHistoryPanel from "@/components/ExecutionHistoryPanel";
+import SolverHistoryPanel from "@/components/SolverHistoryPanel";
 import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
+import type { SolverAnalysisResult } from "@/lib/solver-history";
+import { renderSolverMarkdown } from "@/lib/solver-markdown";
 
 // ============================================================
 // SOLVER PAGE — Multi-step Engineering Problem Solver
@@ -40,6 +43,13 @@ interface SolverResult {
   nextSteps: string[];
   outputFormat: string;
 }
+
+const OUTPUT_TYPE_LABELS: Record<string, string> = {
+  laporan: "Laporan Teknis Terstruktur",
+  checklist: "Checklist Verifikasi",
+  tabel: "Tabel & Data Terstruktur",
+  panduan: "Panduan Langkah demi Langkah",
+};
 
 const SOLVER_DOMAINS: SolverDomain[] = [
   {
@@ -187,30 +197,6 @@ const EXAMPLE_PROBLEMS: Record<string, string[]> = {
 };
 
 // ============================================================
-// MARKDOWN RENDERER (simple)
-// ============================================================
-
-function renderMarkdown(text: string): string {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/`([^`]+)`/g, '<code class="bg-slate-700 px-1 rounded text-orange-300 text-xs">$1</code>')
-    .replace(/```[\w]*\n([\s\S]*?)```/g, '<pre class="bg-slate-900 border border-slate-700 rounded-lg p-4 text-sm text-slate-300 overflow-x-auto my-3 font-mono">$1</pre>')
-    .replace(/^### (.+)$/gm, '<h3 class="text-white font-bold text-base mt-4 mb-2">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-white font-bold text-lg mt-5 mb-2">$2</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="text-white font-bold text-xl mt-5 mb-3">$1</h1>')
-    .replace(/^\| (.+) \|$/gm, (match) => {
-      const cells = match.split("|").filter(c => c.trim());
-      return `<tr>${cells.map(c => `<td class="border border-slate-700 px-3 py-1.5 text-sm text-slate-300">${c.trim()}</td>`).join("")}</tr>`;
-    })
-    .replace(/^- \[ \] (.+)$/gm, '<li class="flex items-start gap-2 text-slate-300 text-sm"><span class="w-4 h-4 border border-slate-600 rounded mt-0.5 flex-shrink-0"></span><span>$1</span></li>')
-    .replace(/^- \[x\] (.+)$/gm, '<li class="flex items-start gap-2 text-slate-300 text-sm"><span class="w-4 h-4 bg-green-500 rounded mt-0.5 flex-shrink-0 flex items-center justify-center text-white text-xs">✓</span><span>$1</span></li>')
-    .replace(/^- (.+)$/gm, '<li class="text-slate-300 text-sm ml-4 list-disc">$1</li>')
-    .replace(/\n\n/g, "</p><p class='mb-3'>")
-    .replace(/\n/g, "<br/>");
-}
-
-// ============================================================
 // MAIN SOLVER PAGE
 // ============================================================
 
@@ -303,6 +289,24 @@ export default function SolverPage() {
     setGenerationProgress(0);
     setGenerationError(null);
     setRetryOfId(null);
+  };
+
+  const handleOpenSavedResult = (savedResult: SolverAnalysisResult) => {
+    const matchingDomain = SOLVER_DOMAINS.find((domain) => domain.name === savedResult.domain);
+    if (matchingDomain) setSelectedDomain(matchingDomain.id);
+    setProblem(savedResult.problem);
+    setContext(savedResult.context);
+    setOutputType(
+      Object.entries(OUTPUT_TYPE_LABELS).find(([, label]) => label === savedResult.outputFormat)?.[0] ?? "laporan",
+    );
+    setResult(savedResult);
+    setGenerationError(null);
+    setRetryOfId(null);
+    setGenerationProgress(100);
+    setCurrentStep(3);
+    setTimeout(() => {
+      resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
   };
 
   const copyToClipboard = () => {
@@ -639,7 +643,7 @@ export default function SolverPage() {
               </h3>
               <div
                 className="prose-custom text-slate-300 text-sm leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(result.analysis) }}
+                dangerouslySetInnerHTML={{ __html: renderSolverMarkdown(result.analysis) }}
               />
             </div>
 
@@ -651,7 +655,7 @@ export default function SolverPage() {
               </h3>
               <div
                 className="prose-custom text-slate-300 text-sm leading-relaxed overflow-x-auto"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(result.solution) }}
+                dangerouslySetInnerHTML={{ __html: renderSolverMarkdown(result.solution) }}
               />
             </div>
 
@@ -711,6 +715,12 @@ export default function SolverPage() {
             </div>
           </div>
         )}
+
+        <SolverHistoryPanel
+          workspaceId={workspaceContext.workspaceId}
+          refreshKey={historyRefreshKey}
+          onOpen={handleOpenSavedResult}
+        />
 
         <ExecutionHistoryPanel
           workspaceId={workspaceContext.workspaceId}

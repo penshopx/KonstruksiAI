@@ -7,6 +7,7 @@ import {
   projectWorkspaceMembers,
   projectWorkspaceInvitations,
   aiExecutionHistory,
+  solverAnalysisResults,
   examSets,
   examQuestions,
 } from "./schema";
@@ -105,6 +106,28 @@ export function initializeDatabase() {
       ON ai_execution_history(user_id, created_at)`);
     db.run(sql`CREATE INDEX IF NOT EXISTS ai_execution_history_workspace_created_idx
       ON ai_execution_history(workspace_id, created_at)`);
+
+    db.run(sql`CREATE TABLE IF NOT EXISTS solver_analysis_results (
+      id TEXT PRIMARY KEY,
+      execution_id TEXT NOT NULL UNIQUE REFERENCES ai_execution_history(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      workspace_id TEXT REFERENCES project_workspaces(id) ON DELETE SET NULL,
+      domain TEXT NOT NULL,
+      problem TEXT NOT NULL,
+      context TEXT NOT NULL DEFAULT '',
+      output_format TEXT NOT NULL,
+      approach TEXT NOT NULL,
+      analysis TEXT NOT NULL,
+      solution TEXT NOT NULL,
+      regulations TEXT NOT NULL DEFAULT '[]',
+      next_steps TEXT NOT NULL DEFAULT '[]',
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`);
+    db.run(sql`CREATE INDEX IF NOT EXISTS solver_analysis_results_user_created_idx
+      ON solver_analysis_results(user_id, created_at)`);
+    db.run(sql`CREATE INDEX IF NOT EXISTS solver_analysis_results_workspace_created_idx
+      ON solver_analysis_results(workspace_id, created_at)`);
 
     db.run(sql`CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,
