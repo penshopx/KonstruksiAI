@@ -5,6 +5,7 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { initializeDatabase } from "./db/migrate";
+import billingRouter from "./routes/billing";
 
 initializeDatabase();
 
@@ -31,6 +32,9 @@ app.use(
 );
 app.use(cors({ origin: true, credentials: true }));
 app.use(cookieParser());
+// Keep the payment webhook ahead of express.json so its HMAC covers the
+// provider's exact raw payload bytes.
+app.use("/api", billingRouter);
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
 

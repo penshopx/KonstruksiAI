@@ -48,6 +48,15 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
   - `POST /api/skk-readiness/assess` — SKK readiness assessment
   - `POST /api/tender-eligibility/assess` — tender eligibility assessment
 
+### Billing configuration
+- `PAYMENT_PROVIDER` — provider identifier used by the signed webhook
+- `PAYMENT_WEBHOOK_SECRET` — server-only HMAC secret shared with the provider
+- `PAYMENT_CHECKOUT_URL` — provider checkout URL; the server adds the signed-in user's reference and email
+- `PAYMENT_PRO_PRICE_ID` — exact provider price/plan identifier for Pro
+- `PAYMENT_PRO_AMOUNT` — exact Pro charge in the currency's smallest unit (for IDR, whole rupiah)
+- `PAYMENT_CURRENCY` — expected three-letter currency code (defaults to `IDR`)
+- `POST /api/billing/webhook` — accepts only fresh HMAC-signed payment events and updates Pro entitlements atomically
+
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages

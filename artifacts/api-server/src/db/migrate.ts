@@ -33,6 +33,58 @@ export function initializeDatabase() {
       db.run(sql.raw("ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro'))"));
     }
 
+    db.run(sql`CREATE TABLE IF NOT EXISTS payment_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL,
+      provider_subscription_id TEXT NOT NULL,
+      plan TEXT NOT NULL DEFAULT 'pro',
+      status TEXT NOT NULL,
+      last_event_at INTEGER NOT NULL,
+      current_period_end INTEGER,
+      cancelled_at INTEGER,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`);
+    db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS payment_subscriptions_provider_subscription_unique
+      ON payment_subscriptions(provider, provider_subscription_id)`);
+    const paymentSubscriptionColumns = new Set(
+      (db.all(sql`PRAGMA table_info(payment_subscriptions)`) as Array<{ name: string }>)
+        .map(({ name }) => name),
+    );
+    if (!paymentSubscriptionColumns.has("last_event_at")) {
+      db.run(sql.raw("ALTER TABLE payment_subscriptions ADD COLUMN last_event_at INTEGER NOT NULL DEFAULT 0"));
+    }
+    db.run(sql`CREATE TABLE IF NOT EXISTS payment_checkout_intents (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL,
+      plan_id TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      currency TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      consumed_at INTEGER,
+      created_at INTEGER NOT NULL
+    )`);
+    db.run(sql`CREATE TABLE IF NOT EXISTS payment_events (
+      id TEXT PRIMARY KEY,
+      provider TEXT NOT NULL,
+      type TEXT NOT NULL,
+      subscription_id TEXT,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      payload TEXT NOT NULL,
+      event_created_at INTEGER NOT NULL,
+      received_at INTEGER NOT NULL,
+      processed_at INTEGER
+    )`);
+    const paymentEventColumns = new Set(
+      (db.all(sql`PRAGMA table_info(payment_events)`) as Array<{ name: string }>)
+        .map(({ name }) => name),
+    );
+    if (!paymentEventColumns.has("event_created_at")) {
+      db.run(sql.raw("ALTER TABLE payment_events ADD COLUMN event_created_at INTEGER NOT NULL DEFAULT 0"));
+    }
+
     db.run(sql`CREATE TABLE IF NOT EXISTS conversations (
       id TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "@/shims/next-link";
 
 // ============================================================
@@ -43,8 +43,8 @@ const PLANS = [
     description: "Untuk profesional & konsultan aktif",
     color: "border-orange-500/60",
     headerColor: "bg-orange-500/10",
-    badge: "Segera Hadir",
-    cta: "Daftar Gratis — Pro Segera Hadir",
+    badge: "Pembayaran aman",
+    cta: "Upgrade ke Pro",
     ctaStyle: "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25",
     features: [
       { text: "Chat AI tanpa batas", included: true },
@@ -158,6 +158,72 @@ function CheckIcon({ included }: { included: boolean | string }) {
 
 export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [billingConfigured, setBillingConfigured] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/billing/config", { credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("billing config unavailable");
+        return response.json() as Promise<{ configured?: boolean }>;
+      })
+      .then((config) => {
+        if (active) setBillingConfigured(config.configured === true);
+      })
+      .catch(() => {
+        if (active) setBillingConfigured(false);
+      })
+      .finally(() => {
+        if (active) setBillingLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const visibleFaqs = FAQS.map((faq, index) => {
+    if (!billingConfigured || index > 1) return faq;
+    if (index === 0) {
+      return {
+        ...faq,
+        a: "Ya. Checkout Pro tersedia melalui provider pembayaran yang terhubung. Setelah pembayaran dikonfirmasi melalui webhook bertanda tangan, akses Pro diaktifkan otomatis.",
+      };
+    }
+    return {
+      ...faq,
+      a: "Pembayaran diproses oleh provider eksternal melalui checkout aman. Status aktif, gagal, dan pembatalan diverifikasi di server agar akses akun selalu mengikuti status pembayaran.",
+    };
+  });
+
+  async function handleUpgrade() {
+    setCheckoutError(null);
+    setCheckoutLoading(true);
+    try {
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
+        credentials: "include",
+      });
+      const result = await response.json().catch(() => ({})) as {
+        checkoutUrl?: string;
+        error?: string;
+      };
+      if (response.status === 401) {
+        window.location.assign("/login?redirect=/pricing");
+        return;
+      }
+      if (!response.ok || !result.checkoutUrl) {
+        throw new Error(result.error || "Checkout belum tersedia");
+      }
+      window.location.assign(result.checkoutUrl);
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : "Checkout belum tersedia");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -186,7 +252,9 @@ export default function PricingPage() {
             <span className="text-orange-400"> Transparan</span>
           </h1>
           <p className="text-slate-400 text-xl max-w-2xl mx-auto mb-8">
-            Paket Gratis aktif dan bisa dipakai sekarang. Paket Pro & Enterprise di bawah menunjukkan rencana ke depan — belum bisa dibeli hari ini.
+            {billingConfigured
+              ? "Paket Gratis dan Pro tersedia sekarang. Upgrade diproses melalui checkout aman dan akses Pro aktif otomatis setelah pembayaran terverifikasi."
+              : "Paket Gratis aktif dan bisa dipakai sekarang. Paket Pro siap diaktifkan setelah provider pembayaran dikonfigurasi."}
           </p>
         </div>
 
@@ -194,6 +262,7 @@ export default function PricingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {PLANS.map(plan => {
             const displayPrice = plan.price;
+            const isPro = plan.id === "pro";
 
             return (
               <div
@@ -205,9 +274,9 @@ export default function PricingPage() {
                 {/* Badge */}
                 {plan.badge && (
                   <div className={`text-center py-2 text-xs font-bold ${
-                    plan.id === "pro" ? "bg-orange-500 text-white" : "bg-blue-600 text-white"
+                    isPro ? "bg-orange-500 text-white" : "bg-blue-600 text-white"
                   }`}>
-                    {plan.badge}
+                    {isPro && !billingConfigured ? "Checkout belum dikonfigurasi" : plan.badge}
                   </div>
                 )}
 
@@ -232,9 +301,11 @@ export default function PricingPage() {
                         Rp {displayPrice.toLocaleString("id-ID")}
                       </span>
                       <span className="text-slate-400 text-sm ml-2">/bulan</span>
-                      {plan.id === "pro" && (
+                        {isPro && (
                         <div className="text-orange-300 text-xs mt-1">
-                          Harga rencana — pembayaran belum tersedia
+                           {billingConfigured
+                             ? "Langganan bulanan · checkout terverifikasi"
+                             : "Pembayaran belum tersedia"}
                         </div>
                       )}
                     </div>
@@ -256,12 +327,26 @@ export default function PricingPage() {
                     ))}
                   </ul>
 
-                  <Link
-                    href={plan.id === "enterprise" ? "mailto:enterprise@konstruksi.ai" : "/register"}
-                    className={`block w-full text-center py-3 rounded-xl font-semibold text-sm transition-all ${plan.ctaStyle}`}
-                  >
-                    {plan.cta}
-                  </Link>
+                  {isPro ? (
+                    <button
+                      type="button"
+                      onClick={handleUpgrade}
+                      disabled={billingLoading || !billingConfigured || checkoutLoading}
+                      className={`block w-full text-center py-3 rounded-xl font-semibold text-sm transition-all disabled:cursor-not-allowed disabled:opacity-60 ${plan.ctaStyle}`}
+                    >
+                      {checkoutLoading ? "Membuka checkout..." : !billingConfigured ? "Checkout belum tersedia" : plan.cta}
+                    </button>
+                  ) : (
+                    <Link
+                      href={plan.id === "enterprise" ? "mailto:enterprise@konstruksi.ai" : "/register"}
+                      className={`block w-full text-center py-3 rounded-xl font-semibold text-sm transition-all ${plan.ctaStyle}`}
+                    >
+                      {plan.cta}
+                    </Link>
+                  )}
+                  {isPro && checkoutError && (
+                    <p className="text-red-300 text-xs mt-3 text-center">{checkoutError}</p>
+                  )}
                 </div>
               </div>
             );
@@ -280,7 +365,7 @@ export default function PricingPage() {
               </div>
               <div className="px-4 py-4 text-center border-l border-slate-700 bg-orange-500/5">
                 <div className="text-orange-400 font-bold text-sm">Pro</div>
-                <div className="text-slate-500 text-xs">Rp 299rb/bln · Segera hadir</div>
+                <div className="text-slate-500 text-xs">Rp 299rb/bln · {billingConfigured ? "checkout aktif" : "menunggu konfigurasi provider"}</div>
               </div>
               <div className="px-4 py-4 text-center border-l border-slate-700">
                 <div className="text-blue-400 font-bold text-sm">Enterprise</div>
@@ -323,7 +408,7 @@ export default function PricingPage() {
         <div className="mb-16">
           <h2 className="text-white font-bold text-2xl text-center mb-8">Pertanyaan Umum</h2>
           <div className="max-w-3xl mx-auto space-y-3">
-            {FAQS.map((faq, i) => (
+            {visibleFaqs.map((faq, i) => (
               <div key={i} className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}

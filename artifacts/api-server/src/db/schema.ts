@@ -15,6 +15,22 @@ export const users = sqliteTable("users", {
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
+export const paymentSubscriptions = sqliteTable("payment_subscriptions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  providerSubscriptionId: text("provider_subscription_id").notNull(),
+  plan: text("plan").notNull().default("pro"),
+  status: text("status").notNull(),
+  lastEventAt: integer("last_event_at", { mode: "timestamp" }).notNull(),
+  currentPeriodEnd: integer("current_period_end", { mode: "timestamp" }),
+  cancelledAt: integer("cancelled_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+}, (table) => ({
+  providerSubscriptionUnique: uniqueIndex("payment_subscriptions_provider_subscription_unique")
+    .on(table.provider, table.providerSubscriptionId),
+}));
 export const learningProgress = sqliteTable("learning_progress", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -323,3 +339,39 @@ export const examAttempts = sqliteTable("exam_attempts", {
 
 export type ExamAttemptRow = typeof examAttempts.$inferSelect;
 export type NewExamAttemptRow = typeof examAttempts.$inferInsert;
+
+export type PaymentEvent = typeof paymentEvents.$inferSelect;
+
+export type NewPaymentSubscription = typeof paymentSubscriptions.$inferInsert;
+
+export const paymentCheckoutIntents = sqliteTable("payment_checkout_intents", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  planId: text("plan_id").notNull(),
+  amount: integer("amount").notNull(),
+  currency: text("currency").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  consumedAt: integer("consumed_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const paymentEvents = sqliteTable("payment_events", {
+  id: text("id").primaryKey(),
+  provider: text("provider").notNull(),
+  type: text("type").notNull(),
+  subscriptionId: text("subscription_id"),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  payload: text("payload").notNull(),
+  eventCreatedAt: integer("event_created_at", { mode: "timestamp" }).notNull(),
+  receivedAt: integer("received_at", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  processedAt: integer("processed_at", { mode: "timestamp" }),
+});
+
+export type PaymentSubscription = typeof paymentSubscriptions.$inferSelect;
+
+export type NewPaymentCheckoutIntent = typeof paymentCheckoutIntents.$inferInsert;
+
+export type NewPaymentEvent = typeof paymentEvents.$inferInsert;
+
+export type PaymentCheckoutIntent = typeof paymentCheckoutIntents.$inferSelect;

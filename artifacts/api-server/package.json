@@ -11,8 +11,7 @@
     "test:radar": "pnpm exec esbuild src/lib/radar.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --outfile=dist/radar.test.mjs && node --test dist/radar.test.mjs",
     "test:upload-security": "pnpm exec esbuild src/lib/url-fetch.test.ts --bundle --platform=node --format=esm --outfile=dist/url-fetch.test.mjs && node --test dist/url-fetch.test.mjs",
     "test:workspace-access-revocation": "pnpm exec esbuild src/routes/workspace-access-revocation.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --banner:js=\"import{createRequire as __cr}from 'node:module';globalThis.require=__cr(import.meta.url);\" --outfile=dist/workspace-access-revocation.test.mjs && node --test dist/workspace-access-revocation.test.mjs",
-    "test:execution-history": "pnpm exec esbuild src/routes/execution-history.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --banner:js=\"import{createRequire as __cr}from 'node:module';globalThis.require=__cr(import.meta.url);\" --outfile=dist/execution-history.test.mjs && node --test dist/execution-history.test.mjs",
-    "test:solver-history": "pnpm exec esbuild src/routes/solver-history.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --banner:js=\"import{createRequire as __cr}from 'node:module';globalThis.require=__cr(import.meta.url);\" --outfile=dist/solver-history.test.mjs && node --test dist/solver-history.test.mjs"
+    "test:billing": "pnpm exec esbuild src/lib/billing.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --banner:js=\"import{createRequire as __cr}from 'node:module';globalThis.require=__cr(import.meta.url);\" --outfile=dist/billing.test.mjs && node --test dist/billing.test.mjs"
   },
   "dependencies": {
     "@types/pdf-parse": "^1.1.5",
