@@ -9,6 +9,7 @@ interface UserProfile {
   name: string;
   email: string;
   role: string;
+  plan: "free" | "pro";
   createdAt: string | number;
 }
 
@@ -219,7 +220,7 @@ export default function ProfilePage() {
               <p className="text-slate-400 text-sm mt-0.5">{user.email}</p>
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <span className="inline-flex items-center gap-1 text-xs bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-full border border-orange-500/30">
-                  ✅ Akun Aktif
+                  {user.plan === "pro" ? "⭐ Paket Pro" : "✓ Paket Gratis"}
                 </span>
                 {user.role === "admin" && (
                   <span className="inline-flex items-center gap-1 text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">
@@ -343,6 +344,7 @@ export default function ProfilePage() {
                   { label: "Nama Lengkap", value: user.name },
                   { label: "Email", value: user.email },
                   { label: "Peran", value: user.role === "admin" ? "Administrator" : "Pengguna" },
+                  { label: "Paket", value: user.plan === "pro" ? "Pro" : "Gratis" },
                   { label: "Tanggal Bergabung", value: formatDate(user.createdAt) },
                   { label: "ID Pengguna", value: `#${user.id}` },
                 ].map((item) => (
@@ -358,6 +360,14 @@ export default function ProfilePage() {
               >
                 ✏️ Edit Profil →
               </button>
+              {user.plan === "free" && (
+                <Link
+                  href="/pricing"
+                  className="mt-4 ml-5 inline-flex text-slate-400 hover:text-orange-300 text-sm transition-colors"
+                >
+                  Lihat fitur Pro →
+                </Link>
+              )}
             </div>
           </div>
         )}

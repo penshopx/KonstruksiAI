@@ -4,6 +4,7 @@ import { getSessionFromRequest } from "../lib/auth";
 import { db, projectWorkspaces } from "../db";
 import { hasActiveWorkspaceAccess } from "../lib/workspace-access";
 import { AGENT_NAMES } from "../lib/agent-roster";
+import { getUserPlan } from "../lib/entitlements";
 import { eq } from "drizzle-orm";
 import OpenAI from "openai";
 // pdf-parse v2 exports a PDFParse class via its CJS bundle.
@@ -71,6 +72,7 @@ const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB base64 decoded
 // The prompt budget is deliberately separate from max_tokens: it includes the
 // system prompt and all retained conversation messages, but not the completion.
 const MAX_CONTEXT_TOKENS = 12_000;
+const FREE_CONTEXT_MESSAGE_LIMIT = 5;
 const SUMMARY_MAX_TOKENS = 1_200;
 const SUMMARY_SOURCE_CHUNK_TOKENS = 5_000;
 // Combined budget for history + attachment text before the API call. The token
@@ -80,6 +82,14 @@ const MAX_COMBINED_PROMPT_CHARS = 1_000_000;
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+}
+
+export function getEntitledChatMessages<T>(messages: T[], hasProAccess: boolean): T[] {
+  return hasProAccess ? messages : messages.slice(-FREE_CONTEXT_MESSAGE_LIMIT);
+}
+
+export function canUseTokenStreaming(wantStream: boolean | undefined, hasProAccess: boolean): boolean {
+  return wantStream !== false && hasProAccess;
 }
 
 function getDecodedBase64Size(base64: string): number {
@@ -641,6 +651,8 @@ router.post("/chat", async (req: Request, res: Response) => {
   }
 
   try {
+    const plan = await getUserPlan(session.userId);
+    const hasProAccess = plan === "pro";
     const { messages: chatMessages, agentId, stream: wantStream, attachment, workspaceId } = req.body as {
       messages: Array<{ role: string; content: string }>;
       agentId?: string;
@@ -757,6 +769,7 @@ router.post("/chat", async (req: Request, res: Response) => {
           : contextualContent,
       };
     });
+    const entitledMessages = getEntitledChatMessages(messagesWithAttachment, hasProAccess);
     const domainFit = getDomainFit(
       resolvedAgentId,
       messagesWithAttachment[lastUserIdx]!.content,
@@ -764,7 +777,7 @@ router.post("/chat", async (req: Request, res: Response) => {
     const agentName = AGENT_NAMES[resolvedAgentId] ?? AGENT_NAMES.general;
 
     const baseMessageBudget = Math.max(1, MAX_CONTEXT_TOKENS - estimatePromptTokens(baseSystemPrompt, []));
-    const initialSelection = selectRecentMessages(messagesWithAttachment, baseMessageBudget);
+    const initialSelection = selectRecentMessages(entitledMessages, baseMessageBudget);
     let recentMessages = initialSelection.recent;
     let conversationSummary: string | null = null;
 
@@ -778,7 +791,7 @@ router.post("/chat", async (req: Request, res: Response) => {
         1,
         MAX_CONTEXT_TOKENS - estimatePromptTokens(summaryReservationPrompt, []) - 8,
       );
-      const selectionWithSummary = selectRecentMessages(messagesWithAttachment, recentBudget);
+      const selectionWithSummary = selectRecentMessages(entitledMessages, recentBudget);
       recentMessages = selectionWithSummary.recent;
       try {
         conversationSummary = await summarizeOlderMessages(selectionWithSummary.omitted);
@@ -808,8 +821,45 @@ router.post("/chat", async (req: Request, res: Response) => {
       ...recentMessages,
     ];
 
+    // Web clients always consume SSE. Free accounts receive one buffered event,
+    // while Pro accounts receive token-by-token streaming below.
+    if (wantStream !== false && !canUseTokenStreaming(wantStream, hasProAccess)) {
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+
+      try {
+        const completion = await getOpenAI().chat.completions.create({
+          model: "gpt-4o-mini",
+          max_tokens: 4096,
+          messages: openaiMessages,
+          stream: false,
+        });
+        const message =
+          completion.choices[0]?.message?.content ??
+          "Maaf, terjadi kesalahan. Silakan coba lagi.";
+        const cleanedResponse = extractRecommendedAgent(message);
+        writeSse(res, {
+          done: true,
+          message: cleanedResponse.content,
+          recommendedAgentId: cleanedResponse.recommendedAgentId,
+          agentId: resolvedAgentId,
+          agentName,
+          domainFit,
+        });
+      } catch (completionError) {
+        req.log.error({ err: completionError }, "OpenAI buffered completion error");
+        writeSse(res, {
+          error: "Maaf, layanan AI sedang tidak tersedia. Silakan coba lagi nanti.",
+        });
+      }
+      res.end();
+      return;
+    }
+
     // ── Streaming (SSE) mode ───────────────────────────────────────────────────
-    if (wantStream !== false) {
+    if (canUseTokenStreaming(wantStream, hasProAccess)) {
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
@@ -902,7 +952,7 @@ router.post("/chat", async (req: Request, res: Response) => {
               MAX_CONTEXT_TOKENS - estimatePromptTokens(systemPrompt, continuationExtras),
             );
             const continuationHistory = selectRecentMessages(
-              messagesWithAttachment,
+              entitledMessages,
               continuationBudget,
             ).recent;
             const continuationMessages = [

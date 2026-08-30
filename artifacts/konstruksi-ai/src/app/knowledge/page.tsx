@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "@/shims/next-link";
 import { 
   KNOWLEDGE_CATEGORIES, 
@@ -109,7 +109,7 @@ function VideoCard({ video }: { video: VideoTutorial }) {
   );
 }
 
-function TemplateCard({ template }: { template: DocumentTemplate }) {
+function TemplateCard({ template, hasProAccess }: { template: DocumentTemplate; hasProAccess: boolean }) {
   const category = KNOWLEDGE_CATEGORIES.find(c => c.id === template.category);
   const formatColors: Record<string, string> = {
     "PDF": "bg-red-500/20 text-red-400",
@@ -121,9 +121,16 @@ function TemplateCard({ template }: { template: DocumentTemplate }) {
   return (
     <div className="group bg-slate-800/50 border border-slate-700 rounded-xl p-5 hover:bg-slate-800 hover:border-slate-600 transition-all">
       <div className="flex items-start justify-between gap-3 mb-3">
-        <span className={`text-xs px-2 py-1 rounded font-medium ${formatColors[template.format]}`}>
-          {template.format}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`text-xs px-2 py-1 rounded font-medium ${formatColors[template.format]}`}>
+            {template.format}
+          </span>
+          {template.premium && (
+            <span className="text-xs px-2 py-1 rounded font-medium bg-orange-500/20 text-orange-300 border border-orange-500/30">
+              PRO
+            </span>
+          )}
+        </div>
         <span className="text-slate-400 text-sm">{template.size}</span>
       </div>
       
@@ -144,9 +151,19 @@ function TemplateCard({ template }: { template: DocumentTemplate }) {
           <span className="text-xs text-slate-500">
             ⬇️ {template.downloads.toLocaleString()}
           </span>
-          <button className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
-            Download
-          </button>
+          {template.premium && !hasProAccess ? (
+            <Link
+              href="/pricing"
+              className="bg-slate-700 text-slate-300 border border-slate-600 text-sm px-4 py-1.5 rounded-lg hover:border-orange-500/50 hover:text-orange-300 transition-colors"
+              title="Template ini tersedia untuk paket Pro"
+            >
+              Terkunci
+            </Link>
+          ) : (
+            <button className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-1.5 rounded-lg transition-colors">
+              Download
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -157,7 +174,15 @@ export default function KnowledgePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("articles");
+  const [hasProAccess, setHasProAccess] = useState(false);
   const workspaceContext = useWorkspaceContext();
+
+  useEffect(() => {
+    fetch("/api/auth/me", { credentials: "include" })
+      .then(response => response.ok ? response.json() : { user: null })
+      .then(({ user }) => setHasProAccess(user?.plan === "pro"))
+      .catch(() => setHasProAccess(false));
+  }, []);
 
   const filteredArticles = useMemo(() => {
     let articles = ARTICLES;
@@ -394,7 +419,7 @@ export default function KnowledgePage() {
             {filteredTemplates.length > 0 ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredTemplates.map(template => (
-                  <TemplateCard key={template.id} template={template} />
+                  <TemplateCard key={template.id} template={template} hasProAccess={hasProAccess} />
                 ))}
               </div>
             ) : (

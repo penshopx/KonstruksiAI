@@ -27,9 +27,9 @@ const PLANS = [
       { text: "Matriks 21×10 Agen AI", included: true },
       { text: "Riwayat percakapan lokal", included: true },
       { text: "Export percakapan (.md)", included: true },
-      { text: "Koneksi LLM real-time (GPT-4o mini)", included: false },
+      { text: "Respons AI streaming (GPT-4o mini)", included: false },
       { text: "Riwayat cloud & sinkronisasi", included: false },
-      { text: "Template dokumen premium (50+)", included: false },
+      { text: "5 template dokumen premium tambahan", included: false },
       { text: "Analisis dokumen PDF/Word", included: false },
       { text: "API akses untuk integrasi", included: false },
       { text: "Dukungan prioritas", included: false },
@@ -54,9 +54,9 @@ const PLANS = [
       { text: "Matriks 21×10 Agen AI", included: true },
       { text: "Riwayat percakapan lokal", included: true },
       { text: "Export percakapan (.md)", included: true },
-      { text: "Koneksi LLM real-time (GPT-4o mini)", included: true },
+      { text: "Respons AI streaming (GPT-4o mini)", included: true },
       { text: "Riwayat cloud & sinkronisasi", included: true },
-      { text: "Template dokumen premium (50+)", included: true },
+      { text: "5 template dokumen premium tambahan", included: true },
       { text: "Analisis dokumen PDF/Word", included: false },
       { text: "API akses untuk integrasi", included: false },
       { text: "Dukungan prioritas", included: true },
@@ -94,7 +94,6 @@ const PLANS = [
 const COMPARISON_FEATURES = [
   { category: "Chat & AI", features: [
     { name: "Chat AI tanpa batas", free: true, pro: true, enterprise: true },
-    { name: "Koneksi LLM real-time (GPT-4o mini)", free: false, pro: true, enterprise: true },
     { name: "Streaming response", free: false, pro: true, enterprise: true },
     { name: "Konteks percakapan panjang", free: "5 pesan", pro: "50 pesan", enterprise: "Unlimited" },
   ]},
@@ -105,7 +104,7 @@ const COMPARISON_FEATURES = [
     { name: "Custom AI Agent", free: false, pro: false, enterprise: true },
   ]},
   { category: "Dokumen & Template", features: [
-    { name: "Template dokumen", free: "5 template", pro: "50+ template", enterprise: "Unlimited" },
+    { name: "Template dokumen", free: "5 template", pro: "10 template", enterprise: "Unlimited" },
     { name: "Analisis PDF/Word", free: false, pro: false, enterprise: true },
     { name: "Export percakapan", free: ".md", pro: ".md, .pdf, .docx", enterprise: "Semua format" },
     { name: "Riwayat cloud", free: false, pro: "1 tahun", enterprise: "Unlimited" },
@@ -131,15 +130,15 @@ const FAQS = [
   },
   {
     q: "Bagaimana cara pembayaran untuk paket Pro atau Enterprise?",
-    a: "Karena paket berbayar belum diluncurkan, metode pembayaran belum tersedia. Untuk kebutuhan Enterprise, hubungi tim kami untuk mendiskusikan opsi kontrak dan invoice secara langsung.",
+    a: "Pembayaran Pro belum digabungkan ke aplikasi. Aktivasi akan tersedia setelah mekanisme checkout atau webhook pembayaran siap. Untuk kebutuhan Enterprise, hubungi tim kami untuk mendiskusikan opsi kontrak dan invoice secara langsung.",
   },
   {
     q: "Apakah bisa upgrade/downgrade paket kapan saja?",
     a: "Setelah paket berbayar resmi diluncurkan, Anda akan bisa upgrade atau downgrade kapan saja. Untuk saat ini, seluruh akun berjalan di paket Gratis.",
   },
   {
-    q: "Apa yang dimaksud dengan 'Koneksi LLM real-time'?",
-    a: "Fitur ini menghubungkan KonstruksiAI dengan model AI GPT-4o mini untuk respons yang akurat dan kontekstual berdasarkan pertanyaan Anda.",
+    q: "Apa yang dimaksud dengan 'Respons AI streaming'?",
+    a: "Pada paket Pro, jawaban AI ditampilkan bertahap saat sedang dibuat. Paket Gratis tetap mendapat jawaban AI, tetapi hasilnya ditampilkan setelah respons selesai diproses.",
   },
   {
     q: "Apakah data percakapan saya aman?",

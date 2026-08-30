@@ -162,7 +162,7 @@ const PLAN_FEATURES = [
   { feature: "Export percakapan (.md)", free: true, pro: true },
   { feature: "Matriks Ruang Lingkup", free: true, pro: true },
   { feature: "Bintang & label percakapan", free: true, pro: true },
-  { feature: "Koneksi LLM real-time", free: false, pro: true },
+  { feature: "Respons AI streaming", free: false, pro: true },
   { feature: "Riwayat cloud (sync)", free: false, pro: true },
   { feature: "Template dokumen premium", free: false, pro: true },
   { feature: "Prioritas dukungan", free: false, pro: true },

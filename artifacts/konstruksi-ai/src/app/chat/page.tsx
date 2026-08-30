@@ -1453,6 +1453,7 @@ export default function ChatPage() {
   const [selectedAgent, setSelectedAgent] = useState<Agent>(AGENTS[0]);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [hasProAccess, setHasProAccess] = useState(false);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [charCount, setCharCount] = useState(0);
@@ -1469,6 +1470,7 @@ export default function ChatPage() {
   const pendingSyncRef = useRef<PendingSyncMessage[]>([]);
   const syncInFlightRef = useRef(false);
   const isLoggedInRef = useRef(false);
+  const hasProAccessRef = useRef(false);
   const syncOwnerRef = useRef<number | null>(null);
   const conversationIdMapRef = useRef(new Map<string, string>());
   
@@ -1485,6 +1487,7 @@ export default function ChatPage() {
   
   // Draft auto-save key: per conversation
   const draftKey = activeConvId ? `konstruksi_draft_${activeConvId}` : "konstruksi_draft_new";
+  const canCloudSync = isLoggedIn && hasProAccess;
 
   const persistPendingSync = useCallback((next: PendingSyncMessage[]) => {
     pendingSyncRef.current = next;
@@ -1498,7 +1501,7 @@ export default function ChatPage() {
 
   const flushPendingSync = useCallback(async () => {
     const ownerId = syncOwnerRef.current;
-    if (!isLoggedInRef.current || ownerId === null || syncInFlightRef.current) return;
+    if (!isLoggedInRef.current || !hasProAccessRef.current || ownerId === null || syncInFlightRef.current) return;
     syncInFlightRef.current = true;
 
     try {
@@ -1591,8 +1594,9 @@ export default function ChatPage() {
 
   useEffect(() => {
     isLoggedInRef.current = isLoggedIn;
-    if (isLoggedIn) void flushPendingSync();
-  }, [flushPendingSync, isLoggedIn]);
+    hasProAccessRef.current = hasProAccess;
+    if (isLoggedIn && hasProAccess) void flushPendingSync();
+  }, [flushPendingSync, hasProAccess, isLoggedIn]);
 
   useEffect(() => {
     const handleOnline = () => void flushPendingSync();
@@ -1655,8 +1659,15 @@ export default function ChatPage() {
         const meRes = await fetch("/api/auth/me");
         const meData = await meRes.json();
         if (meRes.ok && meData.user) {
-          syncOwnerRef.current = meData.user.id;
+          syncOwnerRef.current = meData.user.userId;
           setIsLoggedIn(true);
+          const isPro = meData.user.plan === "pro";
+          setHasProAccess(isPro);
+          if (!isPro) {
+            const saved = loadConversations();
+            setConversations(saved);
+            return;
+          }
           // Load conversations from DB
           const convRes = await fetch("/api/conversations");
           if (convRes.ok) {
@@ -1704,10 +1715,10 @@ export default function ChatPage() {
 
   // Save to localStorage (only when not logged in)
   useEffect(() => {
-    if (!isLoggedIn && conversations.length > 0) {
+    if (!canCloudSync && conversations.length > 0) {
       saveConversations(conversations);
     }
-  }, [conversations, isLoggedIn]);
+  }, [canCloudSync, conversations]);
 
   // Persist font size
   useEffect(() => {
@@ -1818,14 +1829,14 @@ export default function ChatPage() {
       c.id === convId ? { ...c, label } : c
     ));
     // Also update in DB if logged in
-    if (isLoggedIn) {
+    if (canCloudSync) {
       fetch(`/api/conversations/${convId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ label: label || null }),
       }).catch(() => {});
     }
-  }, [isLoggedIn]);
+  }, [canCloudSync]);
 
   const activeConversation = conversations.find(c => c.id === activeConvId) || null;
   const conversationWorkspaceId = activeConversation?.workspaceId ?? workspaceContext.workspaceId;
@@ -1864,7 +1875,7 @@ export default function ChatPage() {
     }
 
     // If logged in, load messages from DB if not already loaded
-    if (isLoggedIn) {
+    if (canCloudSync) {
       if (existing && existing.messages.length === 0) {
         try {
           const res = await fetch(`/api/conversations/${id}`);
@@ -1913,16 +1924,16 @@ export default function ChatPage() {
         }
       }
     }
-  }, [isLoggedIn, conversations, workspaceContext]);
+  }, [canCloudSync, conversations, workspaceContext]);
 
   const deleteConversation = useCallback((id: string) => {
     setConversations(prev => prev.filter(c => c.id !== id));
     if (activeConvId === id) setActiveConvId(null);
     // Also delete from DB if logged in
-    if (isLoggedIn) {
+    if (canCloudSync) {
       fetch(`/api/conversations/${id}`, { method: "DELETE" }).catch(() => {});
     }
-  }, [activeConvId, isLoggedIn]);
+  }, [activeConvId, canCloudSync]);
 
   const handleExport = useCallback((id: string, format: "markdown" | "pdf" | "word" = "markdown") => {
     const conv = conversations.find(c => c.id === id);
@@ -2041,7 +2052,7 @@ export default function ChatPage() {
       ));
     }
 
-    if (isLoggedIn && syncOwnerRef.current !== null && convId && currentConv) {
+    if (canCloudSync && syncOwnerRef.current !== null && convId && currentConv) {
       enqueuePendingSync({
         id: `${userMsg.id}:user`,
         ownerId: syncOwnerRef.current,
@@ -2273,7 +2284,7 @@ export default function ChatPage() {
             }
           : c
       ));
-      if (isLoggedIn && syncOwnerRef.current !== null && convId) {
+      if (canCloudSync && syncOwnerRef.current !== null && convId) {
         const conversationTitle = currentConv?.title ?? generateTitle(messageText);
         enqueuePendingSync({
           id: `${streamingMsgId}:assistant`,
@@ -2317,7 +2328,7 @@ export default function ChatPage() {
       setIsLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, isLoading, activeConvId, conversations, selectedAgent, isLoggedIn, contextWorkspace, isContextResolving, radarContext]);
+  }, [input, isLoading, activeConvId, conversations, selectedAgent, canCloudSync, contextWorkspace, isContextResolving, radarContext]);
 
   const regenerateLastResponse = useCallback(() => {
     if (!activeConversation || isLoading) return;
@@ -2569,7 +2580,7 @@ export default function ChatPage() {
         onLabel={handleLabel}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        isLoggedIn={isLoggedIn}
+        isLoggedIn={canCloudSync}
       />
 
       {/* Main area */}

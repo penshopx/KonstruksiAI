@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getSessionFromRequest } from "../../lib/auth";
+import { getUserPlan } from "../../lib/entitlements";
 
 const router = Router();
 
@@ -9,7 +10,8 @@ router.get("/auth/me", async (req, res) => {
     res.json({ user: null });
     return;
   }
-  res.json({ user: session });
+  const plan = await getUserPlan(session.userId);
+  res.json({ user: { ...session, plan } });
 });
 
 export default router;

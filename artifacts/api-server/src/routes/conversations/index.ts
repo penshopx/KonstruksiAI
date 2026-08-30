@@ -5,8 +5,26 @@ import { randomUUID } from "crypto";
 import { getSessionFromRequest } from "../../lib/auth";
 import { hasActiveWorkspaceAccess } from "../../lib/workspace-access";
 import { isValidAgentId } from "../../lib/agent-roster";
+import { userHasProAccess } from "../../lib/entitlements";
 
 const router = Router();
+
+router.use("/conversations", async (req, res, next) => {
+  const session = await getSessionFromRequest(req);
+  if (!session) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (!await userHasProAccess(session.userId)) {
+    res.status(403).json({
+      error: "Riwayat cloud tersedia untuk paket Pro.",
+      code: "PRO_REQUIRED",
+      feature: "cloud_history",
+    });
+    return;
+  }
+  next();
+});
 
 async function canAccessConversation(
   conversation: typeof conversations.$inferSelect,

@@ -16,3 +16,4 @@
 - [Duplicate artifact detection](duplicate-artifact-detection.md) — grep for an artifact's slug/path across the codebase before assuming which of two similar artifacts is canonical.
 - [Honest coming-soon CTA pattern](honest-coming-soon-cta.md) — never let pricing copy imply an active purchase/trial flow for a tier with no real billing; label it consistently everywhere instead.
 - [api-server HTTP integration tests](api-server-http-integration-tests.md) — bundle app.ts with esbuild + a require-shim banner, use an isolated SQLite path env var, and unref background timers or the test process hangs forever.
+- [Provider-neutral Pro entitlements](provider-neutral-pro-entitlements.md) — keep purchase integration deferred; server-owned entitlements must be ready for a later trusted webhook or checkout.

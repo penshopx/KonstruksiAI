@@ -45,6 +45,7 @@ export interface DocumentTemplate {
   size: string;
   downloads: number;
   lastUpdated: string;
+  premium?: boolean;
 }
 
 export const KNOWLEDGE_CATEGORIES = [
@@ -1409,6 +1410,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     size: "1.2 MB",
     downloads: 3650,
     lastUpdated: "2024-03-05",
+    premium: true,
   },
   {
     id: "template-007",
@@ -1419,6 +1421,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     size: "3.5 MB",
     downloads: 4520,
     lastUpdated: "2024-02-28",
+    premium: true,
   },
   {
     id: "template-008",
@@ -1429,6 +1432,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     size: "245 KB",
     downloads: 5210,
     lastUpdated: "2024-03-12",
+    premium: true,
   },
   {
     id: "template-009",
@@ -1439,6 +1443,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     size: "4.8 MB",
     downloads: 6780,
     lastUpdated: "2024-03-15",
+    premium: true,
   },
   {
     id: "template-010",
@@ -1449,6 +1454,7 @@ export const DOCUMENT_TEMPLATES: DocumentTemplate[] = [
     size: "320 KB",
     downloads: 2980,
     lastUpdated: "2024-02-10",
+    premium: true,
   },
 ];
 

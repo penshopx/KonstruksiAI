@@ -24,6 +24,9 @@ process.env.NODE_ENV = process.env.NODE_ENV || "production";
 
 const { default: app } = await import("../app");
 const { hasActiveWorkspaceAccess } = await import("../lib/workspace-access");
+const { db, users } = await import("../db");
+const { eq } = await import("drizzle-orm");
+const { getEntitledChatMessages, canUseTokenStreaming } = await import("./chat");
 
 let server: Server;
 let baseUrl: string;
@@ -68,6 +71,10 @@ async function registerUser(namePrefix: string): Promise<Session> {
   assert.ok(match, "register response must set an auth-token cookie");
   const body = await res.json() as { user: { id: number; email: string } };
   return { userId: body.user.id, email: body.user.email, cookie: `auth-token=${match[1]}` };
+}
+
+async function grantProAccess(session: Session) {
+  await db.update(users).set({ plan: "pro" }).where(eq(users.id, session.userId));
 }
 
 function authedFetch(session: Session, urlPath: string, init: RequestInit = {}) {
@@ -124,9 +131,10 @@ async function getMemberRowId(owner: Session, workspaceId: string, member: Sessi
   return row.id;
 }
 
-async function setUpActiveMembership(namePrefix: string) {
+async function setUpActiveMembership(namePrefix: string, memberNeedsCloud = false) {
   const owner = await registerUser(`${namePrefix}-owner`);
   const member = await registerUser(`${namePrefix}-member`);
+  if (memberNeedsCloud) await grantProAccess(member);
   const workspaceId = await createWorkspace(owner, `${namePrefix} Workspace`);
   const invitation = await inviteMember(owner, workspaceId, member.email);
   const acceptRes = await acceptInvitation(member, invitation.inviteToken);
@@ -134,6 +142,62 @@ async function setUpActiveMembership(namePrefix: string) {
   const memberId = await getMemberRowId(owner, workspaceId, member);
   return { owner, member, workspaceId, memberId };
 }
+
+test("new Free accounts are denied cloud conversation storage", async () => {
+  const member = await registerUser("free-entitlement");
+
+  const meRes = await authedFetch(member, "/api/auth/me");
+  assert.equal(meRes.status, 200);
+  const meBody = await meRes.json() as { user: { plan: string } };
+  assert.equal(meBody.user.plan, "free");
+
+  for (const [method, urlPath] of [
+    ["GET", "/api/conversations"],
+    ["POST", "/api/conversations"],
+  ] as const) {
+    const response = await authedFetch(member, urlPath, {
+      method,
+      ...(method === "POST" && {
+        body: JSON.stringify({ title: "Tidak boleh tersimpan", agentId: "general" }),
+      }),
+    });
+    assert.equal(response.status, 403);
+    const body = await response.json() as { code?: string; feature?: string };
+    assert.equal(body.code, "PRO_REQUIRED");
+    assert.equal(body.feature, "cloud_history");
+  }
+});
+
+test("Pro accounts can create and list cloud conversations", async () => {
+  const member = await registerUser("pro-entitlement");
+  await grantProAccess(member);
+
+  const createRes = await authedFetch(member, "/api/conversations", {
+    method: "POST",
+    body: JSON.stringify({ title: "Percakapan Pro", agentId: "general" }),
+  });
+  assert.equal(createRes.status, 200);
+  const { id } = await createRes.json() as { id: string };
+
+  const listRes = await authedFetch(member, "/api/conversations");
+  assert.equal(listRes.status, 200);
+  const { conversations: listed } = await listRes.json() as {
+    conversations: Array<{ id: string }>;
+  };
+  assert.ok(listed.some((conversation) => conversation.id === id));
+});
+
+test("Free chat retains five latest messages and never token-streams", () => {
+  const history = Array.from({ length: 8 }, (_, index) => `message-${index + 1}`);
+  assert.deepEqual(
+    getEntitledChatMessages(history, false),
+    ["message-4", "message-5", "message-6", "message-7", "message-8"],
+  );
+  assert.deepEqual(getEntitledChatMessages(history, true), history);
+  assert.equal(canUseTokenStreaming(true, false), false);
+  assert.equal(canUseTokenStreaming(true, true), true);
+  assert.equal(canUseTokenStreaming(false, true), false);
+});
 
 test("member sees active workspace access before revocation", async () => {
   const { member, workspaceId } = await setUpActiveMembership("baseline");
@@ -166,7 +230,7 @@ test("revoked member loses workspace list, read, and detail access", async () =>
 });
 
 test("revoked member is denied list, read, write, and replay on an existing workspace conversation", async () => {
-  const { owner, member, workspaceId, memberId } = await setUpActiveMembership("revoke-conversation");
+  const { owner, member, workspaceId, memberId } = await setUpActiveMembership("revoke-conversation", true);
 
   // The member creates a conversation and a message while access is active.
   const createConvRes = await authedFetch(member, "/api/conversations", {
@@ -226,7 +290,7 @@ test("revoked member is denied list, read, write, and replay on an existing work
 });
 
 test("chat endpoint always returns 403 for a revoked workspaceId and never injects its context", async () => {
-  const { owner, member, workspaceId, memberId } = await setUpActiveMembership("revoke-chat");
+  const { owner, member, workspaceId, memberId } = await setUpActiveMembership("revoke-chat", true);
 
   await revokeMember(owner, workspaceId, memberId);
 

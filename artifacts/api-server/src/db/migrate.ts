@@ -20,8 +20,16 @@ export function initializeDatabase() {
       email TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'user',
+      plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro')),
       created_at INTEGER NOT NULL
     )`);
+    const userColumns = new Set(
+      (db.all(sql`PRAGMA table_info(users)`) as Array<{ name: string }>)
+        .map(({ name }) => name),
+    );
+    if (!userColumns.has("plan")) {
+      db.run(sql.raw("ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro'))"));
+    }
 
     db.run(sql`CREATE TABLE IF NOT EXISTS conversations (
       id TEXT PRIMARY KEY,

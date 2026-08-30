@@ -12,12 +12,40 @@ router.get("/profile", async (req, res) => {
 
   try {
     const [user] = await db
-      .select({ id: users.id, name: users.name, email: users.email, role: users.role, createdAt: users.createdAt })
+      .select({
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+        plan: users.plan,
+        createdAt: users.createdAt,
+      })
       .from(users)
       .where(eq(users.id, session.userId))
       .limit(1);
 
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const plan = user.plan === "pro" ? "pro" : "free";
+
+    if (plan === "free") {
+      res.json({
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          plan,
+          createdAt: user.createdAt,
+        },
+        stats: {
+          conversationCount: 0,
+          messageCount: 0,
+          mostActiveAgent: null,
+        },
+        recentConversations: [],
+      });
+      return;
+    }
 
     const [convCount] = await db
       .select({ count: count() })
@@ -52,7 +80,14 @@ router.get("/profile", async (req, res) => {
       .limit(5);
 
     res.json({
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        plan,
+        createdAt: user.createdAt,
+      },
       stats: {
         conversationCount: convCount?.count ?? 0,
         messageCount: msgCount?.count ?? 0,
