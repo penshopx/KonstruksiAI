@@ -2956,7 +2956,7 @@ export default function ChatPage() {
         )}
 
         {/* Input area */}
-        <div className="flex-shrink-0 border-t border-slate-700/60 bg-slate-900/80 backdrop-blur-sm px-4 py-4">
+        <div data-testid="chat-composer" className="relative z-10 flex-shrink-0 border-t border-slate-700/60 bg-slate-900/80 backdrop-blur-sm px-4 py-4">
           <div className="max-w-3xl mx-auto">
             {/* Google Drive / URL Input */}
             {showUrlInput && (
@@ -3132,6 +3132,8 @@ export default function ChatPage() {
                   <button
                     onClick={() => sendMessage()}
                     disabled={isContextResolving || (!input.trim() && allPendingAttachments.length === 0)}
+                    aria-label="Kirim pesan"
+                    data-testid="chat-send"
                     className="bg-orange-500 hover:bg-orange-600 disabled:bg-slate-700 disabled:text-slate-500 text-white w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
                     title="Kirim (Enter)"
                   >
