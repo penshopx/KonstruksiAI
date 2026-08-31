@@ -16,6 +16,7 @@
 - [Duplicate artifact detection](duplicate-artifact-detection.md) — grep for an artifact's slug/path across the codebase before assuming which of two similar artifacts is canonical.
 - [Honest coming-soon CTA pattern](honest-coming-soon-cta.md) — never let pricing copy imply an active purchase/trial flow for a tier with no real billing; label it consistently everywhere instead.
 - [api-server HTTP integration tests](api-server-http-integration-tests.md) — bundle app.ts with esbuild + a require-shim banner, use an isolated SQLite path env var, and unref background timers or the test process hangs forever.
+- [API test output isolation](api-test-output-isolation.md) — concurrent API validation runners must use distinct bundle directories; a shared `.test-dist` can delete another runner's output.
 - [AI execution history scope](ai-execution-history-scope.md) — keep run metadata separate; save authoritative results atomically and render stored model text with raw HTML disabled.
 - [Provider-neutral Pro entitlements](provider-neutral-pro-entitlements.md) — bind payments to server checkout intents; validate terms/order and derive access from all active subscriptions.
 - [Concurrent task merges](concurrent-task-merges.md) — automatic task merges can overwrite overlapping uncommitted edits; re-check the working diff after task-state updates.
