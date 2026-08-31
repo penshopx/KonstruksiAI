@@ -40,6 +40,10 @@ args = "workspace-access-revocation"
 task = "workflow.run"
 args = "workspace-revocation-tabs"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "api-build-race"
+
 [[workflows.workflow]]
 name = "artifacts/api-server: API Server"
 author = "agent"
@@ -104,6 +108,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/konstruksi-ai run test:workspace-revocation-tabs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "api-build-race"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run check:build-race"
 
 [workflows.workflow.metadata]
 isValidation = true
