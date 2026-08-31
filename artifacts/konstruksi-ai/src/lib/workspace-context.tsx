@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import Link from "@/shims/next-link";
 import { AlertCircle, ArrowLeft, FolderKanban, Loader2, X } from "lucide-react";
@@ -11,6 +11,98 @@ import {
 } from "@/lib/project-workspaces";
 
 const WORKSPACE_QUERY_KEY = "workspace";
+const WORKSPACE_ACCESS_REVOKED_STORAGE_KEY = "konstruksi_workspace_access_revoked_v1";
+const WORKSPACE_ACCESS_REVOKED_CHANNEL = "konstruksi_workspace_access_revoked";
+const WORKSPACE_ACCESS_REVOKED_EVENT = "konstruksi:workspace-access-revoked";
+
+export interface WorkspaceAccessRevocation {
+  workspaceId: string;
+}
+
+function parseWorkspaceAccessRevocation(value: unknown): WorkspaceAccessRevocation | null {
+  if (!value || typeof value !== "object") return null;
+  const workspaceId = (value as { workspaceId?: unknown }).workspaceId;
+  return typeof workspaceId === "string" && workspaceId.trim()
+    ? { workspaceId: workspaceId.trim() }
+    : null;
+}
+
+function readWorkspaceAccessRevocation(value: string | null): WorkspaceAccessRevocation | null {
+  if (!value) return null;
+  try {
+    return parseWorkspaceAccessRevocation(JSON.parse(value));
+  } catch {
+    return null;
+  }
+}
+
+export function notifyWorkspaceAccessRevoked(workspaceId: string): void {
+  const normalizedWorkspaceId = workspaceId.trim();
+  if (!normalizedWorkspaceId || typeof window === "undefined") return;
+
+  const message = JSON.stringify({
+    workspaceId: normalizedWorkspaceId,
+    nonce: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  });
+
+  try {
+    window.localStorage.setItem(WORKSPACE_ACCESS_REVOKED_STORAGE_KEY, message);
+  } catch {
+    // BroadcastChannel may still work when browser storage is unavailable.
+  }
+
+  window.dispatchEvent(new CustomEvent(WORKSPACE_ACCESS_REVOKED_EVENT, {
+    detail: { workspaceId: normalizedWorkspaceId },
+  }));
+
+  try {
+    if ("BroadcastChannel" in window) {
+      const channel = new BroadcastChannel(WORKSPACE_ACCESS_REVOKED_CHANNEL);
+      channel.postMessage({ workspaceId: normalizedWorkspaceId });
+      channel.close();
+    }
+  } catch {
+    // The storage event remains available as the cross-tab fallback.
+  }
+}
+
+export function subscribeToWorkspaceAccessRevoked(
+  listener: (revocation: WorkspaceAccessRevocation) => void,
+): () => void {
+  if (typeof window === "undefined") return () => {};
+
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key !== WORKSPACE_ACCESS_REVOKED_STORAGE_KEY) return;
+    const revocation = readWorkspaceAccessRevocation(event.newValue);
+    if (revocation) listener(revocation);
+  };
+  window.addEventListener("storage", handleStorage);
+
+  const handleLocalEvent = (event: Event) => {
+    const revocation = parseWorkspaceAccessRevocation((event as CustomEvent).detail);
+    if (revocation) listener(revocation);
+  };
+  window.addEventListener(WORKSPACE_ACCESS_REVOKED_EVENT, handleLocalEvent);
+
+  let channel: BroadcastChannel | null = null;
+  try {
+    if ("BroadcastChannel" in window) {
+      channel = new BroadcastChannel(WORKSPACE_ACCESS_REVOKED_CHANNEL);
+      channel.addEventListener("message", (event: MessageEvent) => {
+        const revocation = parseWorkspaceAccessRevocation(event.data);
+        if (revocation) listener(revocation);
+      });
+    }
+  } catch {
+    channel = null;
+  }
+
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(WORKSPACE_ACCESS_REVOKED_EVENT, handleLocalEvent);
+    channel?.close();
+  };
+}
 
 const STAGE_LABELS: Record<string, string> = {
   tender: "Kesiapan & Tender",
@@ -47,6 +139,28 @@ export function useWorkspaceContext() {
   const [isLoading, setIsLoading] = useState(Boolean(workspaceId));
   const [error, setError] = useState<string | null>(null);
 
+  const setWorkspaceContext = useCallback((nextWorkspaceId: string | null) => {
+    setWorkspaceOverrideId(nextWorkspaceId);
+    const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
+    if (nextWorkspaceId) {
+      query.set(WORKSPACE_QUERY_KEY, nextWorkspaceId);
+    } else {
+      query.delete(WORKSPACE_QUERY_KEY);
+    }
+    const remaining = query.toString();
+    setLocation(remaining ? `${location}?${remaining}` : location);
+  }, [location, setLocation]);
+
+  const clearContext = useCallback(() => setWorkspaceContext(null), [setWorkspaceContext]);
+
+  useEffect(() => subscribeToWorkspaceAccessRevoked(({ workspaceId: revokedWorkspaceId }) => {
+    if (workspaceId !== revokedWorkspaceId) return;
+    setWorkspace(null);
+    setError(null);
+    setIsLoading(false);
+    clearContext();
+  }), [clearContext, workspaceId]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -69,6 +183,11 @@ export function useWorkspaceContext() {
       })
       .catch((reason: unknown) => {
         if (cancelled) return;
+        if (reason instanceof ProjectWorkspaceApiError && reason.status === 404) {
+          notifyWorkspaceAccessRevoked(workspaceId);
+          clearContext();
+          return;
+        }
         if (reason instanceof ProjectWorkspaceApiError && reason.status === 401) {
           setError("Masuk untuk menggunakan konteks ruang proyek.");
         } else {
@@ -82,27 +201,13 @@ export function useWorkspaceContext() {
     return () => {
       cancelled = true;
     };
-  }, [workspaceId]);
+  }, [clearContext, workspaceId]);
 
   useEffect(() => {
     if (workspaceOverrideId !== undefined && workspaceOverrideId === requestedWorkspaceId) {
       setWorkspaceOverrideId(undefined);
     }
   }, [requestedWorkspaceId, workspaceOverrideId]);
-
-  const setWorkspaceContext = (nextWorkspaceId: string | null) => {
-    setWorkspaceOverrideId(nextWorkspaceId);
-    const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
-    if (nextWorkspaceId) {
-      query.set(WORKSPACE_QUERY_KEY, nextWorkspaceId);
-    } else {
-      query.delete(WORKSPACE_QUERY_KEY);
-    }
-    const remaining = query.toString();
-    setLocation(remaining ? `${location}?${remaining}` : location);
-  };
-
-  const clearContext = () => setWorkspaceContext(null);
 
   return { workspaceId, workspace, isLoading, error, clearContext, setWorkspaceContext };
 }

@@ -36,6 +36,10 @@ args = "url-fetch-security"
 task = "workflow.run"
 args = "workspace-access-revocation"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "workspace-revocation-tabs"
+
 [[workflows.workflow]]
 name = "artifacts/api-server: API Server"
 author = "agent"
@@ -89,6 +93,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/api-server run test:workspace-access-revocation"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "workspace-revocation-tabs"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/konstruksi-ai run test:workspace-revocation-tabs"
 
 [workflows.workflow.metadata]
 isValidation = true

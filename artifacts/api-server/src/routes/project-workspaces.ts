@@ -145,7 +145,11 @@ router.get("/project-workspaces/:id", async (req, res) => {
   try {
     const access = await findWorkspaceAccess(workspaceId, session.userId);
     if (!access) {
-      res.status(404).json({ error: "Ruang proyek tidak ditemukan" });
+      res.status(404).json({
+        error: "Ruang proyek tidak ditemukan",
+        code: "WORKSPACE_ACCESS_REVOKED",
+        workspaceId,
+      });
       return;
     }
 

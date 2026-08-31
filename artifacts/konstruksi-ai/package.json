@@ -8,6 +8,7 @@
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:workspace-revocation-tabs": "pnpm exec tsx scripts/check-workspace-revocation-tabs.ts",
     "test:solver-markdown": "rm -rf dist/solver-markdown-test && pnpm exec tsc src/lib/solver-markdown.ts src/lib/solver-markdown.test.ts --outDir dist/solver-markdown-test --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck && node --test dist/solver-markdown-test/solver-markdown.test.js"
   },
   "devDependencies": {
@@ -61,6 +62,7 @@
     "input-otp": "^1.4.2",
     "lucide-react": "catalog:",
     "next-themes": "^0.4.6",
+    "playwright-core": "^1.62.1",
     "react": "catalog:",
     "react-day-picker": "^9.11.1",
     "react-dom": "catalog:",
@@ -71,6 +73,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "catalog:",
     "tailwindcss": "catalog:",
+    "tsx": "catalog:",
     "tw-animate-css": "^1.4.0",
     "vaul": "^1.1.2",
     "vite": "catalog:",

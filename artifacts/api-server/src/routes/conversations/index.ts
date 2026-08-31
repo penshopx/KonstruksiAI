@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Response } from "express";
 import { db, conversations, messages, projectWorkspaceMembers, projectWorkspaces } from "../../db";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import { randomUUID } from "crypto";
@@ -31,6 +31,17 @@ async function canAccessConversation(
   userId: number,
 ): Promise<boolean> {
   return !conversation.workspaceId || hasActiveWorkspaceAccess(conversation.workspaceId, userId);
+}
+
+function sendWorkspaceAccessRevoked(
+  res: Response,
+  workspaceId: string,
+) {
+  res.status(403).json({
+    error: "Akses ruang proyek telah dicabut",
+    code: "WORKSPACE_ACCESS_REVOKED",
+    workspaceId,
+  });
 }
 
 // GET /api/conversations
@@ -75,7 +86,7 @@ router.post("/conversations", async (req, res) => {
         .where(and(eq(conversations.id, requestedId), eq(conversations.userId, session.userId)));
       if (existing) {
         if (!await canAccessConversation(existing, session.userId)) {
-          res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+          sendWorkspaceAccessRevoked(res, existing.workspaceId!);
           return;
         }
         res.json({
@@ -94,7 +105,11 @@ router.post("/conversations", async (req, res) => {
         return;
       }
       if (!await hasActiveWorkspaceAccess(workspaceId, session.userId)) {
-        res.status(404).json({ error: "Ruang proyek tidak ditemukan" });
+        res.status(404).json({
+          error: "Ruang proyek tidak ditemukan",
+          code: "WORKSPACE_ACCESS_REVOKED",
+          workspaceId,
+        });
         return;
       }
       validatedWorkspaceId = workspaceId;
@@ -155,7 +170,7 @@ router.get("/conversations/:id", async (req, res) => {
 
     if (!conv) { res.status(404).json({ error: "Not found" }); return; }
     if (!await canAccessConversation(conv, session.userId)) {
-      res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+      sendWorkspaceAccessRevoked(res, conv.workspaceId!);
       return;
     }
 
@@ -185,7 +200,7 @@ router.delete("/conversations/:id", async (req, res) => {
 
     if (!conv) { res.status(404).json({ error: "Not found" }); return; }
     if (!await canAccessConversation(conv, session.userId)) {
-      res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+      sendWorkspaceAccessRevoked(res, conv.workspaceId!);
       return;
     }
 
@@ -214,7 +229,7 @@ router.patch("/conversations/:id", async (req, res) => {
       .where(and(eq(conversations.id, req.params.id), eq(conversations.userId, session.userId)));
     if (!conversation) { res.status(404).json({ error: "Not found" }); return; }
     if (!await canAccessConversation(conversation, session.userId)) {
-      res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+      sendWorkspaceAccessRevoked(res, conversation.workspaceId!);
       return;
     }
 
@@ -243,7 +258,7 @@ router.post("/conversations/:id/messages", async (req, res) => {
 
     if (!conv) { res.status(404).json({ error: "Not found" }); return; }
     if (!await canAccessConversation(conv, session.userId)) {
-      res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+      sendWorkspaceAccessRevoked(res, conv.workspaceId!);
       return;
     }
 
@@ -322,7 +337,7 @@ router.get("/conversations/:id/messages", async (req, res) => {
 
     if (!conv) { res.status(404).json({ error: "Not found" }); return; }
     if (!await canAccessConversation(conv, session.userId)) {
-      res.status(403).json({ error: "Akses ruang proyek telah dicabut" });
+      sendWorkspaceAccessRevoked(res, conv.workspaceId!);
       return;
     }
 

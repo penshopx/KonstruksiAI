@@ -225,7 +225,14 @@ test("revoked member loses workspace list, read, and detail access", async () =>
 
   const getRes = await authedFetch(member, `/api/project-workspaces/${workspaceId}`);
   assert.equal(getRes.status, 404, "revoked member must not be able to fetch the workspace directly");
-  const getBody = await getRes.json() as { error?: string; workspace?: unknown };
+  const getBody = await getRes.json() as {
+    error?: string;
+    code?: string;
+    workspaceId?: string;
+    workspace?: unknown;
+  };
+  assert.equal(getBody.code, "WORKSPACE_ACCESS_REVOKED");
+  assert.equal(getBody.workspaceId, workspaceId);
   assert.equal(getBody.workspace, undefined);
 });
 
@@ -264,7 +271,15 @@ test("revoked member is denied list, read, write, and replay on an existing work
   // Baca (read): fetching the conversation directly is rejected.
   const readRes = await authedFetch(member, `/api/conversations/${conversationId}`);
   assert.equal(readRes.status, 403);
-  const readBody = await readRes.json() as { error?: string; conversation?: unknown; messages?: unknown };
+  const readBody = await readRes.json() as {
+    error?: string;
+    code?: string;
+    workspaceId?: string;
+    conversation?: unknown;
+    messages?: unknown;
+  };
+  assert.equal(readBody.code, "WORKSPACE_ACCESS_REVOKED");
+  assert.equal(readBody.workspaceId, workspaceId);
   assert.equal(readBody.conversation, undefined, "403 body must not leak conversation data");
   assert.equal(readBody.messages, undefined, "403 body must not leak message data");
 
@@ -314,6 +329,9 @@ test("chat endpoint always returns 403 for a revoked workspaceId and never injec
     body: JSON.stringify({ title: "Percakapan baru", agentId: "general", workspaceId }),
   });
   assert.equal(newConvRes.status, 404);
+  const newConvBody = await newConvRes.json() as { code?: string; workspaceId?: string };
+  assert.equal(newConvBody.code, "WORKSPACE_ACCESS_REVOKED");
+  assert.equal(newConvBody.workspaceId, workspaceId);
 });
 
 test("owner and unrelated third parties are unaffected by another workspace's revocation", async () => {

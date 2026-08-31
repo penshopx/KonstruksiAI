@@ -19,3 +19,4 @@
 - [AI execution history scope](ai-execution-history-scope.md) — keep run metadata separate; save authoritative results atomically and render stored model text with raw HTML disabled.
 - [Provider-neutral Pro entitlements](provider-neutral-pro-entitlements.md) — bind payments to server checkout intents; validate terms/order and derive access from all active subscriptions.
 - [Concurrent task merges](concurrent-task-merges.md) — automatic task merges can overwrite overlapping uncommitted edits; re-check the working diff after task-state updates.
+- [Workspace revocation fan-out](workspace-revocation-fan-out.md) — any confirmed access denial must invalidate that workspace across open tabs and persisted client queues.

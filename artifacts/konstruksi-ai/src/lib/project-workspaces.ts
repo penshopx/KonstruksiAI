@@ -39,6 +39,8 @@ export class ProjectWorkspaceApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly code?: string,
+    public readonly workspaceId?: string,
   ) {
     super(message);
     this.name = "ProjectWorkspaceApiError";
@@ -60,6 +62,8 @@ async function request<T>(input: RequestInfo | URL, init?: RequestInit): Promise
     throw new ProjectWorkspaceApiError(
       typeof data?.error === "string" ? data.error : "Gagal memproses ruang proyek",
       response.status,
+      typeof data?.code === "string" ? data.code : undefined,
+      typeof data?.workspaceId === "string" ? data.workspaceId : undefined,
     );
   }
 

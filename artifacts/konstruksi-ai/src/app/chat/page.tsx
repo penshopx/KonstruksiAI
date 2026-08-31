@@ -4,7 +4,13 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "@/shims/next-link";
 import { extractPdfFromFile, extractPdfFromBase64 } from "@/lib/pdf-client";
 import DOMPurify from "dompurify";
-import { withWorkspaceContext, WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
+import {
+  notifyWorkspaceAccessRevoked,
+  subscribeToWorkspaceAccessRevoked,
+  withWorkspaceContext,
+  WorkspaceContextBanner,
+  useWorkspaceContext,
+} from "@/lib/workspace-context";
 import {
   buildRadarArticlePrompt,
   readRadarArticleHandoff,
@@ -1453,6 +1459,7 @@ export default function ChatPage() {
   const [selectedAgent, setSelectedAgent] = useState<Agent>(AGENTS[0]);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAuthResolved, setIsAuthResolved] = useState(false);
   const [hasProAccess, setHasProAccess] = useState(false);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -1473,6 +1480,8 @@ export default function ChatPage() {
   const hasProAccessRef = useRef(false);
   const syncOwnerRef = useRef<number | null>(null);
   const conversationIdMapRef = useRef(new Map<string, string>());
+  const conversationsRef = useRef<Conversation[]>([]);
+  const revokedWorkspaceIdsRef = useRef(new Set<string>());
   
   // File attachment state - support multiple files
   const [pendingAttachments, setPendingAttachments] = useState<FileAttachment[]>([]);
@@ -1484,6 +1493,7 @@ export default function ChatPage() {
   const [radarContext, setRadarContext] = useState<RadarArticleContext | null>(null);
   const [radarHandoffError, setRadarHandoffError] = useState<string | null>(null);
   const workspaceContext = useWorkspaceContext();
+  conversationsRef.current = conversations;
   
   // Draft auto-save key: per conversation
   const draftKey = activeConvId ? `konstruksi_draft_${activeConvId}` : "konstruksi_draft_new";
@@ -1498,6 +1508,73 @@ export default function ChatPage() {
       setSyncError("Pesan belum dapat disimpan di perangkat ini.");
     }
   }, []);
+
+  const clearRevokedWorkspace = useCallback((revokedWorkspaceId: string) => {
+    revokedWorkspaceIdsRef.current.add(revokedWorkspaceId);
+    const storedConversations = loadConversations();
+    const revokedConversationIds = new Set(
+      [...conversationsRef.current, ...storedConversations]
+        .filter(conversation => conversation.workspaceId === revokedWorkspaceId)
+        .map(conversation => conversation.id),
+    );
+
+    if (storedConversations.some(conversation => conversation.workspaceId === revokedWorkspaceId)) {
+      saveConversations(
+        storedConversations.filter(conversation => conversation.workspaceId !== revokedWorkspaceId),
+      );
+    }
+
+    revokedConversationIds.forEach(conversationId => {
+      conversationIdMapRef.current.delete(conversationId);
+      try {
+        localStorage.removeItem(`konstruksi_draft_${conversationId}`);
+      } catch {
+        // The visible state is still cleared when browser storage is blocked.
+      }
+    });
+
+    setConversations(current =>
+      current.filter(conversation => conversation.workspaceId !== revokedWorkspaceId),
+    );
+
+    const activeConversationWasRevoked = Boolean(
+      activeConvId && revokedConversationIds.has(activeConvId),
+    );
+    const newConversationUsedRevokedWorkspace = Boolean(
+      !activeConvId && workspaceContext.workspaceId === revokedWorkspaceId,
+    );
+    if (newConversationUsedRevokedWorkspace) {
+      try {
+        localStorage.removeItem("konstruksi_draft_new");
+      } catch {
+        // The visible composer is still cleared when browser storage is blocked.
+      }
+    }
+
+    if (activeConversationWasRevoked || newConversationUsedRevokedWorkspace) {
+      abortRef.current?.abort();
+      setActiveConvId(null);
+      setInput("");
+      setIsLoading(false);
+      setPendingAttachment(null);
+      setPendingAttachments([]);
+    }
+
+    const remainingPendingSync = pendingSyncRef.current.filter(
+      item => item.workspaceId !== revokedWorkspaceId,
+    );
+    if (remainingPendingSync.length !== pendingSyncRef.current.length) {
+      persistPendingSync(remainingPendingSync);
+    }
+
+    if (workspaceContext.workspaceId === revokedWorkspaceId) {
+      workspaceContext.clearContext();
+    }
+  }, [activeConvId, persistPendingSync, workspaceContext]);
+
+  useEffect(() => subscribeToWorkspaceAccessRevoked(({ workspaceId }) => {
+    clearRevokedWorkspace(workspaceId);
+  }), [clearRevokedWorkspace]);
 
   const flushPendingSync = useCallback(async () => {
     const ownerId = syncOwnerRef.current;
@@ -1525,6 +1602,10 @@ export default function ChatPage() {
             }),
           });
           if (!createResponse.ok) {
+            if (item.workspaceId && [403, 404].includes(createResponse.status)) {
+              notifyWorkspaceAccessRevoked(item.workspaceId);
+              continue;
+            }
             throw new Error(`Gagal menyimpan percakapan (${createResponse.status})`);
           }
           const savedConversation = await createResponse.json() as {
@@ -1568,6 +1649,10 @@ export default function ChatPage() {
           }),
         });
         if (!messageResponse.ok) {
+          if (item.workspaceId && messageResponse.status === 403) {
+            notifyWorkspaceAccessRevoked(item.workspaceId);
+            continue;
+          }
           throw new Error(`Gagal menyimpan pesan (${messageResponse.status})`);
         }
 
@@ -1621,6 +1706,8 @@ export default function ChatPage() {
 
   // Load from localStorage + check login + setup global functions
   useEffect(() => {
+    let cancelled = false;
+
     // Setup font size
     const savedFontSize = localStorage.getItem("konstruksi_fontsize") as FontSize | null;
     if (savedFontSize && ["sm", "base", "lg"].includes(savedFontSize)) {
@@ -1658,67 +1745,85 @@ export default function ChatPage() {
       try {
         const meRes = await fetch("/api/auth/me");
         const meData = await meRes.json();
+        if (cancelled) return;
         if (meRes.ok && meData.user) {
           syncOwnerRef.current = meData.user.userId;
           setIsLoggedIn(true);
           const isPro = meData.user.plan === "pro";
           setHasProAccess(isPro);
           if (!isPro) {
-            const saved = loadConversations();
+            const saved = loadConversations().filter(
+              conversation => !conversation.workspaceId
+                || !revokedWorkspaceIdsRef.current.has(conversation.workspaceId),
+            );
             setConversations(saved);
             return;
           }
           // Load conversations from DB
           const convRes = await fetch("/api/conversations");
+          if (cancelled) return;
           if (convRes.ok) {
             const { conversations: dbConvs } = await convRes.json();
-            if (dbConvs && dbConvs.length > 0) {
+            if (cancelled) return;
+            if (Array.isArray(dbConvs)) {
               // Convert DB conversations to client format (messages loaded lazily)
-              const clientConvs: Conversation[] = dbConvs.map((c: {
-                id: string;
-                title: string;
-                agentId: string;
-                label?: string;
-                workspaceId?: string | null;
-                createdAt: string | number;
-                updatedAt: string | number;
-              }) => ({
-                id: c.id,
-                title: c.title,
-                agentId: c.agentId,
-                label: c.label as ConversationLabel | undefined,
-                workspaceId: c.workspaceId ?? null,
-                messages: [], // Messages loaded on demand
-                createdAt: parseServerTimestamp(c.createdAt),
-                updatedAt: parseServerTimestamp(c.updatedAt),
-              }));
+              const clientConvs: Conversation[] = dbConvs
+                .filter((c: { workspaceId?: string | null }) =>
+                  !c.workspaceId || !revokedWorkspaceIdsRef.current.has(c.workspaceId),
+                )
+                .map((c: {
+                  id: string;
+                  title: string;
+                  agentId: string;
+                  label?: string;
+                  workspaceId?: string | null;
+                  createdAt: string | number;
+                  updatedAt: string | number;
+                }) => ({
+                  id: c.id,
+                  title: c.title,
+                  agentId: c.agentId,
+                  label: c.label as ConversationLabel | undefined,
+                  workspaceId: c.workspaceId ?? null,
+                  messages: [], // Messages loaded on demand
+                  createdAt: parseServerTimestamp(c.createdAt),
+                  updatedAt: parseServerTimestamp(c.updatedAt),
+                }));
               setConversations(clientConvs);
               return;
             }
           }
         }
       } catch {
+        if (cancelled) return;
         syncOwnerRef.current = null;
         // Not logged in or network error — fall back to localStorage
       }
       // Fallback: load from localStorage
-      const saved = loadConversations();
+      if (cancelled) return;
+      const saved = loadConversations().filter(
+        conversation => !conversation.workspaceId
+          || !revokedWorkspaceIdsRef.current.has(conversation.workspaceId),
+      );
       setConversations(saved);
     };
 
-    initConversations();
+    void initConversations().finally(() => {
+      if (!cancelled) setIsAuthResolved(true);
+    });
 
     return () => {
+      cancelled = true;
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
 
   // Save to localStorage (only when not logged in)
   useEffect(() => {
-    if (!canCloudSync && conversations.length > 0) {
+    if (isAuthResolved && !canCloudSync) {
       saveConversations(conversations);
     }
-  }, [canCloudSync, conversations]);
+  }, [canCloudSync, conversations, isAuthResolved]);
 
   // Persist font size
   useEffect(() => {
@@ -1830,10 +1935,15 @@ export default function ChatPage() {
     ));
     // Also update in DB if logged in
     if (canCloudSync) {
+      const workspaceId = conversationsRef.current.find(c => c.id === convId)?.workspaceId;
       fetch(`/api/conversations/${convId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ label: label || null }),
+      }).then(response => {
+        if (workspaceId && response.status === 403) {
+          notifyWorkspaceAccessRevoked(workspaceId);
+        }
       }).catch(() => {});
     }
   }, [canCloudSync]);
@@ -1869,6 +1979,10 @@ export default function ChatPage() {
     setChatSearchQuery("");
     setShowChatSearch(false);
     const existing = conversations.find(c => c.id === id);
+    if (existing?.workspaceId && revokedWorkspaceIdsRef.current.has(existing.workspaceId)) {
+      clearRevokedWorkspace(existing.workspaceId);
+      return;
+    }
     const nextWorkspaceId = existing?.workspaceId ?? null;
     if (workspaceContext.workspaceId !== nextWorkspaceId) {
       workspaceContext.setWorkspaceContext(nextWorkspaceId);
@@ -1918,20 +2032,27 @@ export default function ChatPage() {
             setConversations(prev => prev.map(c =>
               c.id === id ? { ...c, messages: clientMsgs } : c
             ));
+          } else if (existing.workspaceId && res.status === 403) {
+            notifyWorkspaceAccessRevoked(existing.workspaceId);
           }
         } catch {
           // Ignore errors
         }
       }
     }
-  }, [canCloudSync, conversations, workspaceContext]);
+  }, [canCloudSync, clearRevokedWorkspace, conversations, workspaceContext]);
 
   const deleteConversation = useCallback((id: string) => {
+    const workspaceId = conversationsRef.current.find(c => c.id === id)?.workspaceId;
     setConversations(prev => prev.filter(c => c.id !== id));
     if (activeConvId === id) setActiveConvId(null);
     // Also delete from DB if logged in
     if (canCloudSync) {
-      fetch(`/api/conversations/${id}`, { method: "DELETE" }).catch(() => {});
+      fetch(`/api/conversations/${id}`, { method: "DELETE" }).then(response => {
+        if (workspaceId && response.status === 403) {
+          notifyWorkspaceAccessRevoked(workspaceId);
+        }
+      }).catch(() => {});
     }
   }, [activeConvId, canCloudSync]);
 
@@ -2138,7 +2259,7 @@ export default function ChatPage() {
       });
 
        if (response.status === 403 && contextWorkspace) {
-         workspaceContext.clearContext();
+         notifyWorkspaceAccessRevoked(contextWorkspace.id);
          throw new Error("Akses ke konteks ruang proyek telah dicabut.");
        }
        if (!response.ok) {
