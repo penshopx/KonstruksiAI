@@ -168,10 +168,15 @@ export default function PricingPage() {
     fetch("/api/billing/config", { credentials: "include" })
       .then(async (response) => {
         if (!response.ok) throw new Error("billing config unavailable");
-        return response.json() as Promise<{ configured?: boolean }>;
+        return response.json() as Promise<{ configured?: boolean; checkoutAvailable?: boolean }>;
       })
       .then((config) => {
-        if (active) setBillingConfigured(config.configured === true);
+        if (active) {
+          setBillingConfigured(
+            config.configured === true
+            && config.checkoutAvailable === true,
+          );
+        }
       })
       .catch(() => {
         if (active) setBillingConfigured(false);

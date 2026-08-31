@@ -12,14 +12,20 @@ process.env.PAYMENT_WEBHOOK_SECRET = "billing-test-webhook-secret";
 process.env.PAYMENT_PRO_PRICE_ID = "price_pro_test";
 process.env.PAYMENT_PRO_AMOUNT = "299000";
 process.env.PAYMENT_CURRENCY = "IDR";
+process.env.PAYMENT_CHECKOUT_URL = "https://checkout.example.test/pro?client_reference_id=attacker&plan=wrong";
 
 const { initializeDatabase } = await import("../db/migrate");
-const { db, users } = await import("../db");
+const { db, paymentCheckoutIntents, users } = await import("../db");
 const {
   applyVerifiedPaymentEvent,
   createPaymentCheckoutIntent,
 } = await import("./entitlements");
-const { parsePaymentEvent, verifyPaymentSignature } = await import("../routes/billing");
+const {
+  BILLING_CONFIGURED,
+  createCheckoutUrlForUser,
+  parsePaymentEvent,
+  verifyPaymentSignature,
+} = await import("../routes/billing");
 
 initializeDatabase();
 
@@ -31,8 +37,32 @@ test("verifies a fresh HMAC and rejects tampered or stale signatures", () => {
     .digest("hex");
 
   assert.equal(verifyPaymentSignature(payload, `${timestamp}.${signature}`), true);
+  assert.equal(verifyPaymentSignature(payload, `t=${timestamp},v1=${signature}`), true);
   assert.equal(verifyPaymentSignature(Buffer.from('{"id":"evt_2"}'), `${timestamp}.${signature}`), false);
   assert.equal(verifyPaymentSignature(payload, `${timestamp - 601}.${signature}`), false);
+});
+
+test("keeps checkout disabled until a real provider sandbox is explicitly verified", () => {
+  assert.equal(BILLING_CONFIGURED, false);
+});
+
+test("checkout replaces untrusted references with a server-owned intent", () => {
+  const [user] = db.insert(users).values({
+    name: "Checkout Owner",
+    email: `checkout-owner-${process.pid}@example.test`,
+    password: "not-a-real-password",
+  }).returning().all();
+  assert.ok(user);
+
+  const checkoutUrl = new URL(createCheckoutUrlForUser(user.id));
+  const intentId = checkoutUrl.searchParams.get("client_reference_id");
+  assert.ok(intentId);
+  assert.notEqual(intentId, "attacker");
+  assert.equal(checkoutUrl.searchParams.get("plan"), "price_pro_test");
+
+  const intent = db.select().from(paymentCheckoutIntents).all().find(({ id }) => id === intentId);
+  assert.ok(intent);
+  assert.equal(intent.userId, user.id);
 });
 
 test("maps provider events to the Pro user and makes retries idempotent", () => {
@@ -161,6 +191,132 @@ test("requires the configured Pro price, amount and paid status", () => {
     currency: "IDR",
     price_id: "price_other",
   }, "test-provider"), /different plan/);
+});
+
+test("normalizes a Stripe checkout event into the billing contract", () => {
+  const event = parsePaymentEvent({
+    id: "evt_stripe_checkout",
+    type: "checkout.session.completed",
+    created: 1788134400,
+    data: {
+      object: {
+        id: "cs_test_1",
+        client_reference_id: "intent_stripe_1",
+        subscription: "sub_stripe_1",
+        payment_status: "paid",
+        amount_total: 299000,
+        currency: "idr",
+        metadata: { planId: "price_pro_test" },
+      },
+    },
+  }, "stripe");
+
+  assert.deepEqual(
+    {
+      id: event.id,
+      type: event.type,
+      subscriptionId: event.subscriptionId,
+      checkoutIntentId: event.checkoutIntentId,
+      planId: event.planId,
+      amount: event.amount,
+      currency: event.currency,
+      status: event.status,
+      paymentStatus: event.paymentStatus,
+    },
+    {
+      id: "evt_stripe_checkout",
+      type: "checkout.completed",
+      subscriptionId: "sub_stripe_1",
+      checkoutIntentId: "intent_stripe_1",
+      planId: "price_pro_test",
+      amount: 299000,
+      currency: "IDR",
+      status: "active",
+      paymentStatus: "paid",
+    },
+  );
+});
+
+test("normalizes Stripe invoice payment status separately from entitlement status", () => {
+  const [user] = db.insert(users).values({
+    name: "Stripe Renewal",
+    email: `stripe-renewal-${process.pid}@example.test`,
+    password: "not-a-real-password",
+  }).returning().all();
+  assert.ok(user);
+  const intent = createPaymentCheckoutIntent(user.id, {
+    provider: "stripe",
+    planId: "price_pro_test",
+    amount: 299000,
+    currency: "IDR",
+  });
+  applyVerifiedPaymentEvent({
+    id: "evt_stripe_initial_subscription",
+    type: "subscription.active",
+    provider: "stripe",
+    subscriptionId: "sub_stripe_invoice",
+    status: "active",
+    checkoutIntentId: intent.id,
+    planId: "price_pro_test",
+    amount: 299000,
+    currency: "IDR",
+    paymentStatus: "paid",
+    eventCreatedAt: new Date("2026-08-31T08:00:00.000Z"),
+  });
+
+  const event = parsePaymentEvent({
+    id: "evt_stripe_invoice_paid",
+    type: "invoice.paid",
+    created: Date.parse("2026-08-31T09:00:00.000Z") / 1000,
+    data: {
+      object: {
+        id: "in_stripe_1",
+        subscription: "sub_stripe_invoice",
+        status: "paid",
+        paid: true,
+        amount_paid: 299000,
+        currency: "idr",
+        metadata: {
+          plan_id: "price_pro_test",
+        },
+      },
+    },
+  }, "stripe");
+
+  assert.deepEqual(
+    {
+      type: event.type,
+      subscriptionId: event.subscriptionId,
+      status: event.status,
+      paymentStatus: event.paymentStatus,
+    },
+    {
+      type: "subscription.active",
+      subscriptionId: "sub_stripe_invoice",
+      status: "active",
+      paymentStatus: "paid",
+    },
+  );
+  const renewed = applyVerifiedPaymentEvent(event);
+  assert.equal(renewed.plan, "pro");
+  assert.equal(renewed.status, "active");
+
+  assert.throws(() => parsePaymentEvent({
+    id: "evt_stripe_invoice_open",
+    type: "invoice.paid",
+    created: Date.parse("2026-08-31T10:00:00.000Z") / 1000,
+    data: {
+      object: {
+        id: "in_stripe_open",
+        subscription: "sub_stripe_invoice",
+        status: "open",
+        paid: false,
+        amount_paid: 299000,
+        currency: "idr",
+        metadata: { plan_id: "price_pro_test" },
+      },
+    },
+  }, "stripe"), /not confirmed as paid/);
 });
 
 test("ignores delayed events and keeps Pro while another subscription is active", () => {

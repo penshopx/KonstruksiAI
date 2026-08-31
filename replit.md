@@ -49,13 +49,16 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
   - `POST /api/tender-eligibility/assess` — tender eligibility assessment
 
 ### Billing configuration
-- `PAYMENT_PROVIDER` — provider identifier used by the signed webhook
-- `PAYMENT_WEBHOOK_SECRET` — server-only HMAC secret shared with the provider
-- `PAYMENT_CHECKOUT_URL` — provider checkout URL; the server adds the signed-in user's reference and email
+- `PAYMENT_PROVIDER` — provider identifier used by the signed webhook; the currently verified adapter is `stripe`
+- `PAYMENT_WEBHOOK_SECRET` — server-only Stripe webhook signing secret (`whsec_...`)
+- `PAYMENT_CHECKOUT_URL` — HTTPS Stripe-hosted checkout URL (`checkout.stripe.com` or `buy.stripe.com`); the server replaces any supplied `client_reference_id` with an opaque intent owned by the signed-in account
 - `PAYMENT_PRO_PRICE_ID` — exact provider price/plan identifier for Pro
 - `PAYMENT_PRO_AMOUNT` — exact Pro charge in the currency's smallest unit (for IDR, whole rupiah)
-- `PAYMENT_CURRENCY` — expected three-letter currency code (defaults to `IDR`)
+- `PAYMENT_CURRENCY` — expected three-letter ISO currency code (defaults to `IDR`)
+- `PAYMENT_PROVIDER_VERIFIED` — set to `true` only after the selected provider's sandbox checkout and webhook scenarios pass end to end
 - `POST /api/billing/webhook` — accepts only fresh HMAC-signed payment events and updates Pro entitlements atomically
+- `GET /api/billing/config` exposes checkout as available only when all provider values are valid and sandbox verification is explicitly recorded; the pricing page must use both `configured` and `checkoutAvailable`
+- Keep the provider values unset until its sandbox checkout and webhook are configured. Run `pnpm --filter @workspace/api-server run test:billing` before enabling checkout; it covers success, replay, failed payment, cancellation, delayed events, owner binding, and provider payload normalization.
 
 ## Key Commands
 
