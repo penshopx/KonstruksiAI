@@ -44,6 +44,10 @@ args = "workspace-revocation-tabs"
 task = "workflow.run"
 args = "api-build-race"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "zoomed-chat-controls"
+
 [[workflows.workflow]]
 name = "artifacts/api-server: API Server"
 author = "agent"
@@ -119,6 +123,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/api-server run check:build-race"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "zoomed-chat-controls"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/konstruksi-ai run test:zoomed-chat-controls"
 
 [workflows.workflow.metadata]
 isValidation = true

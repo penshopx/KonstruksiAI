@@ -556,7 +556,7 @@ export function FloatingChatbots() {
 
   return (
     <>
-      <div className="fixed bottom-28 z-50 flex w-full justify-between gap-4 px-4 pointer-events-none xl:bottom-6 md:w-auto md:right-6 md:left-6">
+      <div className="fixed bottom-32 z-50 flex w-full justify-between gap-4 px-4 pointer-events-none xl:bottom-6 md:w-auto md:right-6 md:left-6">
         {/* Left Launcher (Radar Harian) */}
         <button
           type="button"
