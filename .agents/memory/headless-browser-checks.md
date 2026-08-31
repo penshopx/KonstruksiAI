@@ -27,3 +27,19 @@ JSON manifests — they only show up after real browser JS execution.
 in this sandboxed Nix environment; `playwright-core` + the pre-provisioned
 executable path avoids that entirely and matches the already-installed
 Chromium build.
+
+For transient SSE states, do not promote a browser script that monkeypatches
+`window.fetch` to a validation workflow until the exact package command passes
+repeatedly. Keep retry/backoff/continuation policy in a deterministic server
+helper test, and use the browser testing agent to verify short-lived UI states
+when the local fetch-mocking script is not stable.
+
+**Why:** In this workspace, equivalent init-script mocks could pass in an
+isolated browser run and the testing agent but repeatedly miss the mocked stream
+when packaged as a local validation command. A flaky validation would block
+unrelated releases without increasing confidence.
+
+**How to apply:** For streamed AI recovery, test attempt limits, backoff, partial
+accumulation, and continuation messages without a browser. Use browser automation
+for the visible retry/interrupted states, and only register it as a persistent
+command after the command itself is repeatable.

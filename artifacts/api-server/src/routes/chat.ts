@@ -5,6 +5,7 @@ import { db, projectWorkspaces } from "../db";
 import { hasActiveWorkspaceAccess } from "../lib/workspace-access";
 import { AGENT_NAMES } from "../lib/agent-roster";
 import { getUserPlan } from "../lib/entitlements";
+import { runChatStreamWithRetry } from "../lib/chat-stream-retry";
 import { eq } from "drizzle-orm";
 import OpenAI from "openai";
 // pdf-parse v2 exports a PDFParse class via its CJS bundle.
@@ -289,33 +290,6 @@ async function summarizeOlderMessages(messages: ChatMessage[]): Promise<string |
     summaries = next;
   }
   return summaries[0] ?? null;
-}
-
-// ─── OpenAI stream retry policy ────────────────────────────────────────────────
-// A stream can fail after content has already reached the browser. Retrying the
-// continuation keeps that content visible instead of forcing the user to start
-// over from an empty response.
-
-const MAX_STREAM_ATTEMPTS = 3;
-const STREAM_RETRY_BASE_DELAY_MS = 500;
-const RETRYABLE_OPENAI_STATUS_CODES = new Set([429, 500, 503]);
-
-function getErrorStatus(error: unknown): number | undefined {
-  if (typeof error !== "object" || error === null || !("status" in error)) {
-    return undefined;
-  }
-
-  const status = (error as { status?: unknown }).status;
-  return typeof status === "number" ? status : undefined;
-}
-
-function isRetryableOpenAIError(error: unknown): boolean {
-  const status = getErrorStatus(error);
-  return status !== undefined && RETRYABLE_OPENAI_STATUS_CODES.has(status);
-}
-
-function wait(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function writeSse(res: Response, payload: Record<string, unknown>): void {
@@ -865,112 +839,87 @@ router.post("/chat", async (req: Request, res: Response) => {
       res.setHeader("Connection", "keep-alive");
       res.setHeader("X-Accel-Buffering", "no");
 
-      let fullResponse = "";
       let recommendedAgentId: string | undefined;
-
-      let attempt = 0;
-      let streamMessages = openaiMessages;
       // Let clients associate the streamed response with the agent that
       // actually handled it, even if the user changes the selector mid-stream.
       writeSse(res, { agentId: resolvedAgentId, agentName, domainFit });
 
-      while (attempt < MAX_STREAM_ATTEMPTS) {
-        attempt += 1;
+      const streamResult = await runChatStreamWithRetry({
+        initialMessages: openaiMessages,
+        createStream: (messages) => getOpenAI().chat.completions.create({
+          model: "gpt-4o-mini",
+          max_tokens: 4096,
+          messages,
+          stream: true,
+        }),
+        buildContinuationMessages: (initialMessages, partialResponse) => {
+          if (!partialResponse) return initialMessages;
 
-        try {
-          const stream = await getOpenAI().chat.completions.create({
-            model: "gpt-4o-mini",
-            max_tokens: 4096,
-            messages: streamMessages,
-            stream: true,
-          });
-
-          for await (const chunk of stream) {
-            const content = chunk.choices[0]?.delta?.content;
-            if (content) {
-              fullResponse += content;
-              writeSse(res, { content });
-            }
+          const continuationInstruction = "Lanjutkan jawaban sebelumnya dari bagian terakhir tanpa mengulanginya.";
+          const continuationExtras: ChatMessage[] = [
+            { role: "assistant", content: partialResponse },
+            { role: "user", content: continuationInstruction },
+          ];
+          const continuationBudget = Math.max(
+            1,
+            MAX_CONTEXT_TOKENS - estimatePromptTokens(systemPrompt, continuationExtras),
+          );
+          const continuationHistory = selectRecentMessages(
+            entitledMessages,
+            continuationBudget,
+          ).recent;
+          const continuationMessages = [
+            ...continuationHistory,
+            ...continuationExtras,
+          ];
+          if (estimatePromptTokens(systemPrompt, continuationMessages) > MAX_CONTEXT_TOKENS) {
+            throw new Error("Chat continuation exceeded the context token budget");
           }
-
-          const cleanedResponse = extractRecommendedAgent(fullResponse);
-          fullResponse = cleanedResponse.content;
-          recommendedAgentId = cleanedResponse.recommendedAgentId;
-          writeSse(res, {
-            done: true,
-            message: fullResponse,
-            recommendedAgentId,
-            agentId: resolvedAgentId,
-            agentName,
-            domainFit,
-          });
-          res.end();
-          return;
-        } catch (streamErr) {
-          if (req.aborted || res.destroyed) return;
-
-          const canRetry =
-            isRetryableOpenAIError(streamErr) &&
-            attempt < MAX_STREAM_ATTEMPTS;
-
-          if (!canRetry) {
-            req.log.error({ err: streamErr, attempt, partialLength: fullResponse.length }, "OpenAI stream error");
-            writeSse(res, {
-              error: "Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi.",
-              partial: fullResponse,
-            });
-            res.end();
-            return;
-          }
-
-          const delayMs = STREAM_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+          return [
+            { role: "system" as const, content: systemPrompt },
+            ...continuationMessages,
+          ];
+        },
+        onContent: (content) => writeSse(res, { content }),
+        onRetry: ({ attempt, nextAttempt, maxAttempts, delayMs }) => {
           req.log.warn(
-            { err: streamErr, attempt, nextAttempt: attempt + 1, delayMs, partialLength: fullResponse.length },
+            { attempt, nextAttempt, delayMs },
             "Retrying OpenAI stream",
           );
           writeSse(res, {
             retrying: true,
-            attempt: attempt + 1,
-            maxAttempts: MAX_STREAM_ATTEMPTS,
+            attempt: nextAttempt,
+            maxAttempts,
             delayMs,
           });
-          await wait(delayMs);
+        },
+        onFailure: ({ error, attempt, partialResponse, partialLength }) => {
+          req.log.error({ err: error, attempt, partialLength }, "OpenAI stream error");
+          writeSse(res, {
+            error: "Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi.",
+            partial: partialResponse,
+          });
+        },
+        isCancelled: () => req.aborted || res.destroyed,
+      });
 
-          if (req.aborted || res.destroyed) return;
-
-          // Once content exists, ask the model to continue after the partial
-          // answer. Without this context, appending a fresh completion would
-          // duplicate the text already shown to the user.
-          if (fullResponse) {
-            const continuationInstruction = "Lanjutkan jawaban sebelumnya dari bagian terakhir tanpa mengulanginya.";
-            const continuationExtras: ChatMessage[] = [
-              { role: "assistant", content: fullResponse },
-              { role: "user", content: continuationInstruction },
-            ];
-            const continuationBudget = Math.max(
-              1,
-              MAX_CONTEXT_TOKENS - estimatePromptTokens(systemPrompt, continuationExtras),
-            );
-            const continuationHistory = selectRecentMessages(
-              entitledMessages,
-              continuationBudget,
-            ).recent;
-            const continuationMessages = [
-              ...continuationHistory,
-              ...continuationExtras,
-            ];
-            if (estimatePromptTokens(systemPrompt, continuationMessages) > MAX_CONTEXT_TOKENS) {
-              throw new Error("Chat continuation exceeded the context token budget");
-            }
-            streamMessages = [
-              { role: "system", content: systemPrompt },
-              ...continuationMessages,
-            ];
-          } else {
-            streamMessages = openaiMessages;
-          }
-        }
+      if (streamResult.status === "cancelled") return;
+      if (streamResult.status === "failed") {
+        res.end();
+        return;
       }
+
+      const cleanedResponse = extractRecommendedAgent(streamResult.response);
+      recommendedAgentId = cleanedResponse.recommendedAgentId;
+      writeSse(res, {
+        done: true,
+        message: cleanedResponse.content,
+        recommendedAgentId,
+        agentId: resolvedAgentId,
+        agentName,
+        domainFit,
+      });
+      res.end();
       return;
     }
 
