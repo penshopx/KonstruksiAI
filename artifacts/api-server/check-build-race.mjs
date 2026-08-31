@@ -85,6 +85,12 @@ function sourceTestsFromCommand(command) {
   )].map((match) => normalizeSourceTestPath(match[1]));
 }
 
+function executedTestCases(output) {
+  const summaries = [...output.matchAll(/^\s*# tests (\d+)\s*$/gm)];
+  if (summaries.length === 0) return null;
+  return Number(summaries.at(-1)[1]);
+}
+
 function runScript(name, args) {
   return new Promise((resolve) => {
     const child = spawn(process.platform === "win32" ? "pnpm.cmd" : "pnpm", args, {
@@ -182,14 +188,32 @@ const results = await Promise.all([
 ]);
 
 const failedResults = results.filter(({ code }) => code !== 0);
+const testResults = results
+  .filter(({ name }) => testScripts.some((script) => script.name === name))
+  .map((result) => ({
+    ...result,
+    executedTestCases: executedTestCases(result.output),
+  }));
+const emptyTestResults = testResults.filter(
+  ({ executedTestCases: count }) => count === null || count === 0,
+);
 const testBundlesInDist = await findTestBundles(distDir);
 
-if (failedResults.length > 0 || testBundlesInDist.length > 0) {
+if (failedResults.length > 0 || emptyTestResults.length > 0 || testBundlesInDist.length > 0) {
   const failures = [];
   if (failedResults.length > 0) {
     failures.push(
       `Commands failed:\n${failedResults
         .map(({ name, code }) => `- ${name} (exit ${code})`)
+        .join("\n")}`,
+    );
+  }
+  if (emptyTestResults.length > 0) {
+    failures.push(
+      `API test runners must execute at least one test case:\n${emptyTestResults
+        .map(({ name, executedTestCases: count }) => (
+          `- ${name} (${count === null ? "no TAP test summary reported" : "reported 0 tests"})`
+        ))
         .join("\n")}`,
     );
   }
