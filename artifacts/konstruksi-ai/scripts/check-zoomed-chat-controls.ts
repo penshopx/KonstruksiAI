@@ -11,6 +11,10 @@ const ZOOM_VIEWPORTS = [
   { zoom: 200, width: 720 },
 ] as const;
 const DESKTOP_HEIGHT = 720;
+const SHORT_DESKTOP_VIEWPORTS = [
+  { width: 1280, height: 600 },
+  { width: 1280, height: 540 },
+] as const;
 
 const TEST_PROMPT = "Tes hit-test composer";
 const TEST_RESPONSE = "Respons fixture untuk regression test.";
@@ -198,6 +202,75 @@ async function runViewportScenario(browser: Browser, viewport: (typeof ZOOM_VIEW
   }
 }
 
+async function assertPanelHeaderVisible(
+  dialog: Locator,
+  viewport: (typeof SHORT_DESKTOP_VIEWPORTS)[number],
+  label: string,
+) {
+  const dialogBox = await dialog.boundingBox();
+  assert.ok(dialogBox, `${label} panel harus terlihat`);
+  assert.ok(dialogBox.y >= 0, `${label} panel header tidak boleh berada di atas viewport`);
+  assert.ok(
+    dialogBox.y + dialogBox.height <= viewport.height,
+    `${label} panel harus tetap berada di dalam viewport`,
+  );
+
+  const closeButton = dialog.getByRole("button", { name: "Tutup panel" });
+  const closeBox = await closeButton.boundingBox();
+  assert.ok(closeBox, `${label} tombol tutup harus terlihat`);
+  assert.ok(closeBox.y >= 0, `${label} tombol tutup tidak boleh berada di atas viewport`);
+  assert.ok(
+    closeBox.y + closeBox.height <= viewport.height,
+    `${label} tombol tutup harus tetap berada di dalam viewport`,
+  );
+  return closeButton;
+}
+
+async function runShortDesktopViewportScenario(
+  browser: Browser,
+  viewport: (typeof SHORT_DESKTOP_VIEWPORTS)[number],
+) {
+  const context = await browser.newContext({ viewport });
+  const page = await context.newPage();
+  await installApiRoutes(page);
+
+  try {
+    await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
+
+    const radarLauncher = page.getByRole("button", { name: "Buka Radar Harian" });
+    await radarLauncher.click();
+    const radarDialog = page.getByRole("dialog", { name: "Radar Harian" });
+    await radarDialog.waitFor();
+    const radarCloseButton = await assertPanelHeaderVisible(radarDialog, viewport, "Radar");
+    await radarCloseButton.click();
+    await radarDialog.waitFor({ state: "detached" });
+
+    await radarLauncher.click();
+    await radarDialog.waitFor();
+    await assertPanelHeaderVisible(radarDialog, viewport, "Radar setelah dibuka ulang");
+    await page.keyboard.press("Escape");
+    await radarDialog.waitFor({ state: "detached" });
+
+    const helpLauncher = page.getByRole("button", { name: "Buka Help Desk Aplikasi" });
+    await helpLauncher.click();
+    const helpDialog = page.getByRole("dialog", { name: "Help Desk Aplikasi" });
+    await helpDialog.waitFor();
+    const helpCloseButton = await assertPanelHeaderVisible(helpDialog, viewport, "Bantuan");
+    await helpCloseButton.click();
+    await helpDialog.waitFor({ state: "detached" });
+
+    await helpLauncher.click();
+    await helpDialog.waitFor();
+    await assertPanelHeaderVisible(helpDialog, viewport, "Bantuan setelah dibuka ulang");
+    await page.keyboard.press("Escape");
+    await helpDialog.waitFor({ state: "detached" });
+
+    console.log(`Short desktop chat panels passed at ${viewport.width}x${viewport.height}.`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function main() {
   assert.ok(EXECUTABLE_PATH, "REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE is required");
   const browser = await chromium.launch({
@@ -208,6 +281,9 @@ async function main() {
   try {
     for (const viewport of ZOOM_VIEWPORTS) {
       await runViewportScenario(browser, viewport);
+    }
+    for (const viewport of SHORT_DESKTOP_VIEWPORTS) {
+      await runShortDesktopViewportScenario(browser, viewport);
     }
   } finally {
     await browser.close();

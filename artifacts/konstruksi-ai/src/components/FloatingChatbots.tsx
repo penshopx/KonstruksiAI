@@ -601,7 +601,7 @@ export function FloatingChatbots() {
         aria-modal="true"
         tabIndex={-1}
         ref={isRadarOpen ? panelRef : undefined}
-        className={`fixed bottom-0 left-0 z-50 flex h-[85dvh] w-full flex-col rounded-t-2xl border-t border-slate-700 bg-slate-900 shadow-2xl shadow-black transition-transform duration-300 md:bottom-24 md:left-6 md:h-[600px] md:w-[400px] md:rounded-2xl md:border md:border-slate-700 ${isRadarOpen ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-8 opacity-0 md:translate-y-4"}`}
+        className={`fixed bottom-0 left-0 z-50 flex h-[85dvh] w-full flex-col rounded-t-2xl border-t border-slate-700 bg-slate-900 shadow-2xl shadow-black transition-transform duration-300 md:bottom-24 md:left-6 md:h-[600px] md:max-h-[calc(100dvh-6rem)] md:w-[400px] md:rounded-2xl md:border md:border-slate-700 ${isRadarOpen ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-8 opacity-0 md:translate-y-4"}`}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-slate-800 px-5 py-4">
           <div className="flex items-center gap-3">
@@ -748,7 +748,7 @@ export function FloatingChatbots() {
         aria-modal="true"
         tabIndex={-1}
         ref={isGuidedOpen ? panelRef : undefined}
-        className={`fixed bottom-0 right-0 z-50 flex h-[85dvh] w-full flex-col rounded-t-2xl border-t border-slate-700 bg-slate-900 shadow-2xl shadow-black transition-transform duration-300 md:bottom-24 md:right-6 md:h-[600px] md:w-[400px] md:rounded-2xl md:border md:border-slate-700 ${isGuidedOpen ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-8 opacity-0 md:translate-y-4"}`}
+        className={`fixed bottom-0 right-0 z-50 flex h-[85dvh] w-full flex-col rounded-t-2xl border-t border-slate-700 bg-slate-900 shadow-2xl shadow-black transition-transform duration-300 md:bottom-24 md:right-6 md:h-[600px] md:max-h-[calc(100dvh-6rem)] md:w-[400px] md:rounded-2xl md:border md:border-slate-700 ${isGuidedOpen ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-8 opacity-0 md:translate-y-4"}`}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-slate-800 px-5 py-4">
           <div className="flex items-center gap-3">
