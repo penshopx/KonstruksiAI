@@ -48,6 +48,10 @@ args = "api-build-race"
 task = "workflow.run"
 args = "zoomed-chat-controls"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "web-desktop"
+
 [[workflows.workflow]]
 name = "artifacts/api-server: API Server"
 author = "agent"
@@ -134,6 +138,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/konstruksi-ai run test:zoomed-chat-controls"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "web-desktop"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/konstruksi-ai run test:landing-hero"
 
 [workflows.workflow.metadata]
 isValidation = true

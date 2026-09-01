@@ -317,11 +317,13 @@ function PlanComparisonSection() {
 // ============================================================
 
 function ExpandableSection({
+  id,
   icon,
   title,
   subtitle,
   children,
 }: {
+  id?: string;
   icon: string;
   title: string;
   subtitle?: string;
@@ -329,7 +331,7 @@ function ExpandableSection({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5">
+    <div id={id} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-1.5">
       <button
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-slate-600 rounded-2xl px-6 py-4 transition-all text-left group"
@@ -618,11 +620,12 @@ export default function Home() {
 
       {/* Problem Deep Dive - collapsible */}
       <ExpandableSection
+        id="problem"
         icon="🚨"
         title="Tantangan Industri Konstruksi Indonesia"
         subtitle="6 masalah utama yang dihadapi kontraktor dan profesional setiap hari"
       >
-      <div id="problem" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {[
             {
