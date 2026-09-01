@@ -4,12 +4,34 @@ import { chromium } from "playwright-core";
 const APP_URL = process.env.KONSTRUKSI_AI_TEST_URL ?? "http://localhost:80/matrix";
 const EXECUTABLE_PATH = process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE;
 
+async function getTrackedEventNames(page: import("playwright-core").Page) {
+  return page.evaluate(
+    () => (window as unknown as { __matrixEvents: Array<{ name: string }> }).__matrixEvents.map((event) => event.name),
+  );
+}
+
+async function getTrackedEvents(page: import("playwright-core").Page) {
+  return page.evaluate(
+    () => (window as unknown as {
+      __matrixEvents: Array<{ name: string; data?: Record<string, unknown> }>;
+    }).__matrixEvents,
+  );
+}
+
 async function main() {
   const browser = await chromium.launch({
     executablePath: EXECUTABLE_PATH,
     headless: true,
   });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  await page.addInitScript({
+    content: `
+      window.__matrixEvents = [];
+      window.umami = {
+        track: (name, data) => window.__matrixEvents.push({ name, data }),
+      };
+    `,
+  });
 
   try {
     await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
@@ -22,7 +44,20 @@ async function main() {
     );
 
     await page.getByTestId("matrix-search").fill("HVAC");
+    await page.getByTestId("matrix-search").press("Tab");
     await page.getByTestId("matrix-result-gedung-mekanikal").waitFor();
+    assert.ok(
+      (await getTrackedEventNames(page)).includes("matrix_search"),
+      "Pencarian harus mengirim event analytics",
+    );
+    const keywordSearchEvent = (await getTrackedEvents(page)).find(
+      (event) => event.name === "matrix_search" && event.data?.source === "keyword",
+    );
+    assert.deepEqual(
+      keywordSearchEvent?.data,
+      { source: "keyword", query_length: 4, result_count: 5 },
+      "Analytics pencarian tidak boleh mengirim teks kata kunci bebas",
+    );
     assert.match(
       await page.getByTestId("matrix-result-count").innerText(),
       /5 kombinasi cocok/,
@@ -43,10 +78,33 @@ async function main() {
       /^\/chat\?q=/,
       "Hasil pencarian harus menyediakan link chat dengan pertanyaan terisi",
     );
+    const agentLink = page.getByTestId("matrix-result-gedung-mekanikal").getByRole("link", { name: "Agent" });
+    await agentLink.evaluate((element) => {
+      element.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    });
+    await agentLink.click();
+    assert.deepEqual(
+      (await getTrackedEvents(page)).find((event) => event.name === "matrix_result_opened")?.data,
+      {
+        business_id: "gedung",
+        engineering_id: "mekanikal",
+        destination: "agent",
+      },
+      "Klik hasil harus mencatat kombinasi dan tujuan tanpa data sensitif",
+    );
+    await page.getByTestId("matrix-result-gedung-mekanikal").locator("button").first().click();
+    assert.ok(
+      (await getTrackedEventNames(page)).includes("matrix_cell_selected"),
+      "Pemilihan sel harus mengirim event analytics",
+    );
 
     await page.getByTestId("matrix-clear-filters").click();
     await page.getByTestId("matrix-business-filter").selectOption("desain");
     await page.getByTestId("matrix-engineering-filter").selectOption("mekanikal");
+    assert.ok(
+      (await getTrackedEventNames(page)).includes("matrix_filter_used"),
+      "Penggunaan filter harus mengirim event analytics",
+    );
     assert.match(
       await page.getByTestId("matrix-result-count").innerText(),
       /1 kombinasi cocok/,
@@ -63,6 +121,10 @@ async function main() {
       await page.getByTestId("matrix-result-count").innerText(),
       /210 kombinasi tersedia/,
       "Reset harus mengembalikan seluruh matriks",
+    );
+    assert.ok(
+      (await getTrackedEventNames(page)).includes("matrix_explorer_reset"),
+      "Reset explorer harus mengirim event analytics",
     );
 
     await page.setViewportSize({ width: 390, height: 844 });

@@ -8,6 +8,7 @@ import {
   MATRIX_CONNECTION_COUNT,
   MATRIX_ENGINEERING_DOMAIN_COUNT,
 } from "@/lib/agents";
+import { trackEvent } from "@/lib/analytics";
 
 const businessIcons: Record<string, string> = {
   gedung: "🏢",
@@ -301,6 +302,17 @@ export default function MatrixPage() {
     return `/chat?q=${encodeURIComponent(question)}`;
   };
 
+  const handleCellSelection = (businessId: string, colId: string) => {
+    const isSelected = selectedCell?.row === businessId && selectedCell?.col === colId;
+    if (!isSelected) {
+      trackEvent("matrix_cell_selected", {
+        business_id: businessId,
+        engineering_id: colId,
+      });
+    }
+    setSelectedCell(isSelected ? null : { row: businessId, col: colId });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header */}
@@ -382,6 +394,16 @@ export default function MatrixPage() {
                   type="search"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
+                  onBlur={() => {
+                    const trimmedQuery = searchQuery.trim();
+                    if (trimmedQuery) {
+                      trackEvent("matrix_search", {
+                        source: "keyword",
+                        query_length: trimmedQuery.length,
+                        result_count: matchingCells.length,
+                      });
+                    }
+                  }}
                   placeholder="Contoh: RAB, tender, elektrikal..."
                   className="w-full rounded-lg border border-slate-600 bg-slate-900/80 py-2.5 pl-9 pr-3 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
                   aria-label="Cari kombinasi Matriks"
@@ -392,7 +414,14 @@ export default function MatrixPage() {
                 <span className="sr-only">Filter fungsi bisnis</span>
                 <select
                   value={businessFilter}
-                  onChange={(event) => setBusinessFilter(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setBusinessFilter(value);
+                    trackEvent("matrix_filter_used", {
+                      filter_type: "business",
+                      filter_value: value,
+                    });
+                  }}
                   className="w-full rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
                   aria-label="Filter fungsi bisnis"
                   data-testid="matrix-business-filter"
@@ -407,7 +436,14 @@ export default function MatrixPage() {
                 <span className="sr-only">Filter bidang keteknikan</span>
                 <select
                   value={engineeringFilter}
-                  onChange={(event) => setEngineeringFilter(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setEngineeringFilter(value);
+                    trackEvent("matrix_filter_used", {
+                      filter_type: "engineering",
+                      filter_value: value,
+                    });
+                  }}
                   className="w-full rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
                   aria-label="Filter bidang keteknikan"
                   data-testid="matrix-engineering-filter"
@@ -425,6 +461,7 @@ export default function MatrixPage() {
                     setSearchQuery("");
                     setBusinessFilter("all");
                     setEngineeringFilter("all");
+                    trackEvent("matrix_explorer_reset");
                   }}
                   className="rounded-lg border border-slate-600 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
                   data-testid="matrix-clear-filters"
@@ -441,7 +478,13 @@ export default function MatrixPage() {
                 <button
                   key={term}
                   type="button"
-                  onClick={() => setSearchQuery(term)}
+                  onClick={() => {
+                    setSearchQuery(term);
+                    trackEvent("matrix_search", {
+                      source: "quick_search",
+                      term,
+                    });
+                  }}
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                     searchQuery.toLocaleLowerCase() === term.toLocaleLowerCase()
                       ? "border-orange-400/70 bg-orange-500/20 text-orange-200"
@@ -474,7 +517,7 @@ export default function MatrixPage() {
                   >
                     <button
                       type="button"
-                      onClick={() => setSelectedCell({ row: business.id, col: column.id })}
+                      onClick={() => handleCellSelection(business.id, column.id)}
                       className="min-w-0 text-left"
                     >
                       <span className="block truncate text-sm font-medium text-white">
@@ -485,12 +528,26 @@ export default function MatrixPage() {
                     <div className="flex shrink-0 gap-2">
                       <Link
                         href={`/agent/${business.id}/${column.id}`}
+                        onClick={() => {
+                          trackEvent("matrix_result_opened", {
+                            business_id: business.id,
+                            engineering_id: column.id,
+                            destination: "agent",
+                          });
+                        }}
                         className="rounded-md border border-orange-500/40 px-2.5 py-1.5 text-xs font-medium text-orange-200 transition-colors hover:border-orange-400 hover:bg-orange-500/10"
                       >
                         Agent
                       </Link>
                       <Link
                         href={buildChatUrl(business.id, column.id)}
+                        onClick={() => {
+                          trackEvent("matrix_result_opened", {
+                            business_id: business.id,
+                            engineering_id: column.id,
+                            destination: "chat",
+                          });
+                        }}
                         className="rounded-md border border-slate-600 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
                       >
                         Chat
@@ -520,6 +577,7 @@ export default function MatrixPage() {
                     setSearchQuery("");
                     setBusinessFilter("all");
                     setEngineeringFilter("all");
+                    trackEvent("matrix_explorer_reset");
                   }}
                   className="mt-4 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600"
                 >
@@ -588,11 +646,11 @@ export default function MatrixPage() {
                           }`}
                           onMouseEnter={() => setHoveredCell({ row: business.id, col: col.id })}
                           onMouseLeave={() => setHoveredCell(null)}
-                          onClick={() => setSelectedCell(isSelected ? null : { row: business.id, col: col.id })}
+                          onClick={() => handleCellSelection(business.id, col.id)}
                           onKeyDown={(event) => {
                             if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault();
-                              setSelectedCell(isSelected ? null : { row: business.id, col: col.id });
+                              handleCellSelection(business.id, col.id);
                             }
                           }}
                         >

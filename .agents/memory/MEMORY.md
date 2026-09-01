@@ -23,3 +23,4 @@
 - [Workspace revocation fan-out](workspace-revocation-fan-out.md) — any confirmed access denial must invalidate that workspace across open tabs and persisted client queues.
 - [Zoomed chat hit-testing](zoomed-chat-hit-testing.md) — floating launchers need a safe vertical zone above the composer below xl; pointer-events alone cannot protect overlapping button children.
 - [Browser validation resource locking](browser-validation-resource-locking.md) — serialize Playwright checks; completion validation runs registered gates concurrently and can exhaust Chromium/API test resources.
+- [Playwright init-script stubs](playwright-init-script-stubs.md) — use literal content scripts when TS callback serialization fails to install browser-global test doubles.
