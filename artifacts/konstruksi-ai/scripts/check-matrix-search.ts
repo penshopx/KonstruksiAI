@@ -21,35 +21,41 @@ async function main() {
       "Matriks awal harus tetap menampilkan 210 kombinasi",
     );
 
-    await page.getByTestId("matrix-search").fill("RAB");
-    await page.getByTestId("matrix-result-estimasi-konstruksi_gedung").waitFor();
+    await page.getByTestId("matrix-search").fill("HVAC");
+    await page.getByTestId("matrix-result-gedung-mekanikal").waitFor();
     assert.match(
       await page.getByTestId("matrix-result-count").innerText(),
-      /10 kombinasi cocok/,
-      "Pencarian RAB harus menemukan seluruh bidang untuk fungsi estimasi",
+      /5 kombinasi cocok/,
+      "Pencarian HVAC harus menemukan kombinasi bertopik HVAC",
     );
     assert.equal(
-      await page.getByTestId("matrix-result-estimasi-konstruksi_gedung").getByRole("link", { name: "Agent" }).getAttribute("href"),
-      "/agent/estimasi/konstruksi_gedung",
+      await page.getByTestId("matrix-table").getByRole("button").count(),
+      5,
+      "Grid hasil HVAC hanya boleh membuat lima sel yang cocok dapat dipilih",
+    );
+    assert.equal(
+      await page.getByTestId("matrix-result-gedung-mekanikal").getByRole("link", { name: "Agent" }).getAttribute("href"),
+      "/agent/gedung/mekanikal",
       "Hasil pencarian harus menyediakan link agent yang benar",
     );
     assert.match(
-      await page.getByTestId("matrix-result-estimasi-konstruksi_gedung").getByRole("link", { name: "Chat" }).getAttribute("href") ?? "",
+      await page.getByTestId("matrix-result-gedung-mekanikal").getByRole("link", { name: "Chat" }).getAttribute("href") ?? "",
       /^\/chat\?q=/,
       "Hasil pencarian harus menyediakan link chat dengan pertanyaan terisi",
     );
 
-    await page.getByTestId("matrix-business-filter").selectOption("estimasi");
-    await page.getByTestId("matrix-engineering-filter").selectOption("elektrikal");
+    await page.getByTestId("matrix-clear-filters").click();
+    await page.getByTestId("matrix-business-filter").selectOption("desain");
+    await page.getByTestId("matrix-engineering-filter").selectOption("mekanikal");
     assert.match(
       await page.getByTestId("matrix-result-count").innerText(),
       /1 kombinasi cocok/,
       "Filter fungsi dan bidang harus menyisakan satu kombinasi",
     );
     assert.equal(
-      await page.getByTestId("matrix-result-estimasi-elektrikal").count(),
+      await page.getByTestId("matrix-result-desain-mekanikal").count(),
       1,
-      "Kombinasi estimasi × elektrikal harus tampil di hasil teratas",
+      "Kombinasi desain × mekanikal harus tampil di hasil teratas",
     );
 
     await page.getByTestId("matrix-clear-filters").click();
@@ -72,10 +78,10 @@ async function main() {
       true,
       "Matriks tidak boleh membuat seluruh halaman overflow horizontal pada web mobile",
     );
-    await page.getByRole("button", { name: "Tender", exact: true }).click();
+    await page.getByRole("button", { name: "Desain", exact: true }).click();
     assert.match(
       await page.getByTestId("matrix-result-count").innerText(),
-      /10 kombinasi cocok/,
+      /\d+ kombinasi cocok/,
       "Pencarian cepat harus tetap bekerja pada web mobile",
     );
 

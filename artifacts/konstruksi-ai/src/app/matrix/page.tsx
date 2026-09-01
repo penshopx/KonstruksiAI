@@ -1,36 +1,44 @@
 "use client";
 
 import Link from "@/shims/next-link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  businessFunctions as agentBusinessFunctions,
   MATRIX_BUSINESS_FUNCTION_COUNT,
   MATRIX_CONNECTION_COUNT,
   MATRIX_ENGINEERING_DOMAIN_COUNT,
 } from "@/lib/agents";
 
-const businessFunctions = [
-  { id: "perencanaan", icon: "📅", name: "Perencanaan Proyek", desc: "Perencanaan & Jadwal" },
-  { id: "desain", icon: "📐", name: "Desain & Engineering", desc: "Rekayasa & Teknik" },
-  { id: "estimasi", icon: "💰", name: "Estimasi & RAB", desc: "Biaya & Anggaran" },
-  { id: "pengadaan", icon: "📋", name: "Pengadaan & Tender", desc: "Procurement" },
-  { id: "pelaksanaan", icon: "🏗️", name: "Pelaksanaan Konstruksi", desc: "Eksekusi Lapangan" },
-  { id: "pengawasan", icon: "🔍", name: "Pengawasan & QC", desc: "Quality Control" },
-  { id: "k3", icon: "⛑️", name: "K3 & Keselamatan", desc: "Health, Safety, Environment" },
-  { id: "lingkungan", icon: "🌿", name: "Lingkungan & AMDAL", desc: "Analisis Dampak" },
-  { id: "perijinan", icon: "📜", name: "Perijinan & Regulasi", desc: "Izin & Sertifikasi" },
-  { id: "kontrak", icon: "🤝", name: "Kontrak & Hukum", desc: "Legal & Kontrak" },
-  { id: "keuangan", icon: "💹", name: "Keuangan & Akuntansi", desc: "Finance & Accounting" },
-  { id: "sdm", icon: "👥", name: "SDM & Organisasi", desc: "Human Resources" },
-  { id: "teknologi", icon: "💻", name: "Teknologi & Inovasi", desc: "BIM & Digitalisasi" },
-  { id: "logistik", icon: "🚛", name: "Logistik & Material", desc: "Supply Chain" },
-  { id: "komisioning", icon: "✅", name: "Komisioning & Serah Terima", desc: "Testing & Handover" },
-  { id: "operasi", icon: "⚙️", name: "Operasi & Pemeliharaan", desc: "O&M" },
-  { id: "audit", icon: "🔎", name: "Audit & Compliance", desc: "Pemeriksaan" },
-  { id: "risiko", icon: "⚠️", name: "Manajemen Risiko", desc: "Risk Management" },
-  { id: "komunikasi", icon: "📣", name: "Komunikasi & Stakeholder", desc: "Hubungan Pemangku" },
-  { id: "laporan", icon: "📊", name: "Pelaporan & Dokumentasi", desc: "Reporting" },
-  { id: "strategi", icon: "🎯", name: "Strategi & Pengembangan Bisnis", desc: "Business Development" },
-];
+const businessIcons: Record<string, string> = {
+  gedung: "🏢",
+  jalan: "🛣️",
+  jembatan: "🌉",
+  utilitas: "🛠️",
+  bangunan_air: "🌊",
+  pabrik: "🏭",
+  listrik: "⚡",
+  mekanikal: "⚙️",
+  finishing: "🎨",
+  persewaan: "🚜",
+  desain: "📐",
+  konsultansi: "🧭",
+  pengadaan: "📋",
+  manajemen: "📊",
+  inpeksi: "🔍",
+  demolisi: "🏗️",
+  pertambangan: "⛏️",
+  energi: "🌞",
+  telekomunikasi: "📡",
+  limbah: "♻️",
+  keamanan: "🛡️",
+};
+
+const businessFunctions = agentBusinessFunctions.map((business) => ({
+  id: business.id,
+  icon: businessIcons[business.id] || "📌",
+  name: business.label.replace(/\s+\([^)]*\)$/, ""),
+  desc: business.label.match(/\(([^)]+)\)$/)?.[1] || "Konstruksi & keteknikan",
+}));
 
 const engineeringColumns = [
   { id: "konstruksi_gedung", name: "Konstruksi Gedung", shortName: "Gedung", color: "bg-orange-500/20 text-orange-300 border-orange-500/30", headerColor: "bg-orange-500/30" },
@@ -265,9 +273,22 @@ export default function MatrixPage() {
   );
   const visibleBusinessIds = new Set(matchingCells.map(({ business }) => business.id));
   const visibleColumnIds = new Set(matchingCells.map(({ column }) => column.id));
+  const matchingCellIds = new Set(
+    matchingCells.map(({ business, column }) => `${business.id}-${column.id}`),
+  );
   const visibleBusinesses = businessFunctions.filter((business) => visibleBusinessIds.has(business.id));
   const visibleColumns = engineeringColumns.filter((column) => visibleColumnIds.has(column.id));
   const quickMatches = matchingCells.slice(0, 6);
+  const selectedBusinessIsVisible =
+    !selectedCell || visibleBusinessIds.has(selectedCell.row);
+  const selectedColumnIsVisible =
+    !selectedCell || visibleColumnIds.has(selectedCell.col);
+
+  useEffect(() => {
+    if (selectedCell && (!selectedBusinessIsVisible || !selectedColumnIsVisible)) {
+      setSelectedCell(null);
+    }
+  }, [selectedCell, selectedBusinessIsVisible, selectedColumnIsVisible]);
 
   const getSelectedBusiness = () => businessFunctions.find(b => b.id === selectedCell?.row);
   const getSelectedColumn = () => engineeringColumns.find(c => c.id === selectedCell?.col);
@@ -416,7 +437,7 @@ export default function MatrixPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-slate-500">Pencarian cepat:</span>
-              {["RAB", "Tender", "K3", "Elektrikal"].map((term) => (
+              {["Desain", "Mekanikal", "Tender", "HVAC"].map((term) => (
                 <button
                   key={term}
                   type="button"
@@ -507,7 +528,7 @@ export default function MatrixPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px]">
+                <table className="w-full min-w-[900px]" data-testid="matrix-table">
                   <thead>
                     <tr className="border-b border-slate-700">
                       <th className="text-left p-4 text-slate-400 text-sm font-medium w-48 bg-slate-900/50">
@@ -540,8 +561,18 @@ export default function MatrixPage() {
                       const topic = getCellTopic(business.id, col.id);
                       const isHovered = hoveredCell?.row === business.id && hoveredCell?.col === col.id;
                       const isSelected = selectedCell?.row === business.id && selectedCell?.col === col.id;
-                      const cellSearchText = `${business.name} ${business.desc} ${col.name} ${col.shortName} ${topic}`.toLocaleLowerCase();
-                      const isSearchMatch = !normalizedQuery || cellSearchText.includes(normalizedQuery);
+                      const isSearchMatch = matchingCellIds.has(`${business.id}-${col.id}`);
+                      if (explorerIsActive && !isSearchMatch) {
+                        return (
+                          <td
+                            key={col.id}
+                            className="border-l border-slate-700/50 bg-slate-950/30 p-2 text-center text-slate-700"
+                            aria-label={`${business.name} × ${col.name} tidak cocok dengan pencarian`}
+                          >
+                            <span aria-hidden="true">—</span>
+                          </td>
+                        );
+                      }
                       return (
                         <td
                           key={col.id}
@@ -554,7 +585,7 @@ export default function MatrixPage() {
                               : isHovered
                               ? "bg-slate-700/60"
                               : "hover:bg-slate-700/40"
-                          } ${normalizedQuery && !isSearchMatch ? "opacity-35" : ""}`}
+                          }`}
                           onMouseEnter={() => setHoveredCell({ row: business.id, col: col.id })}
                           onMouseLeave={() => setHoveredCell(null)}
                           onClick={() => setSelectedCell(isSelected ? null : { row: business.id, col: col.id })}
