@@ -9,6 +9,7 @@
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:landing-hero": "flock /tmp/konstruksi-ai-browser-check.lock pnpm exec tsx scripts/check-landing-hero.ts",
+    "test:landing-responsive": "flock /tmp/konstruksi-ai-browser-check.lock pnpm exec tsx scripts/check-landing-responsive.ts",
     "test:workspace-revocation-tabs": "flock /tmp/konstruksi-ai-browser-check.lock pnpm exec tsx scripts/check-workspace-revocation-tabs.ts",
     "test:zoomed-chat-controls": "flock /tmp/konstruksi-ai-browser-check.lock pnpm exec tsx scripts/check-zoomed-chat-controls.ts",
     "test:agent-roster": "flock /tmp/konstruksi-ai-browser-check.lock pnpm exec tsx scripts/check-agent-roster.ts",

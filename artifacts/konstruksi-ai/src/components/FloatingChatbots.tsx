@@ -538,6 +538,7 @@ export function FloatingChatbots() {
   const isGuidedOpen = activePanel === "guided";
   const isRadarOpen = activePanel === "radar";
   const isMainChatPage = location === "/chat";
+  const isLandingPage = location === "/";
   const activeFilter = RADAR_FILTERS.find((filter) => filter.id === radarFilter) ?? RADAR_FILTERS[0]!;
   const visibleArticles = activeFilter.keywords
     ? articles.filter((article) => {
@@ -559,7 +560,7 @@ export function FloatingChatbots() {
 
   return (
     <>
-      <div className={`fixed z-50 flex w-full justify-between gap-4 px-4 pointer-events-none md:w-auto md:right-6 md:left-6 ${isMainChatPage ? "bottom-32" : "bottom-4"} xl:bottom-6`}>
+      <div className={`fixed z-50 flex w-full justify-between gap-4 px-4 pointer-events-none md:w-auto md:right-6 md:left-6 ${isMainChatPage ? "bottom-32" : isLandingPage ? "bottom-2 md:bottom-4" : "bottom-4"} xl:bottom-6`}>
         {/* Left Launcher (Radar Harian) */}
         <button
           type="button"
