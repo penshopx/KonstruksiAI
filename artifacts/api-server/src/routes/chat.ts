@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import { getSessionFromRequest } from "../lib/auth";
 import { db, projectWorkspaces } from "../db";
 import { hasActiveWorkspaceAccess } from "../lib/workspace-access";
-import { AGENT_NAMES } from "../lib/agent-roster";
+import { AGENT_NAMES, AGENT_ROSTER } from "../lib/agent-roster";
 import { getUserPlan } from "../lib/entitlements";
 import { runChatStreamWithRetry } from "../lib/chat-stream-retry";
 import { eq } from "drizzle-orm";
@@ -20,6 +20,10 @@ const { PDFParse: _PDFParse } = _require("pdf-parse") as {
 };
 
 const router = Router();
+
+router.get("/chat/agents", (_req: Request, res: Response) => {
+  res.json({ agents: AGENT_ROSTER });
+});
 
 // ─── OpenAI client (lazy init) ────────────────────────────────────────────────
 

@@ -76,6 +76,7 @@ router.post("/conversations", async (req, res) => {
 
   try {
     const { title, agentId, workspaceId, clientConversationId } = req.body;
+    const resolvedAgentId = isValidAgentId(agentId) ? agentId : "general";
     const requestedId = typeof clientConversationId === "string" && clientConversationId.length <= 128
       ? clientConversationId
       : null;
@@ -122,12 +123,12 @@ router.post("/conversations", async (req, res) => {
       userId: session.userId,
       workspaceId: validatedWorkspaceId,
       title: title || "Percakapan Baru",
-      agentId: agentId || "general",
+      agentId: resolvedAgentId,
       createdAt: now,
       updatedAt: now,
     });
 
-    res.json({ id, title: title || "Percakapan Baru", agentId: agentId || "general", workspaceId: validatedWorkspaceId });
+    res.json({ id, title: title || "Percakapan Baru", agentId: resolvedAgentId, workspaceId: validatedWorkspaceId });
   } catch (err) {
     req.log.error({ err }, "POST /conversations error");
     res.status(500).json({ error: "Internal server error" });

@@ -104,28 +104,34 @@ interface Agent {
 // CONSTANTS
 // ----------------------------------------------------------------
 
-const AGENTS: Agent[] = [
-  { id: "general", name: "KonstruksiAI", icon: "🏗️", description: "Asisten umum konstruksi & engineering", color: "orange" },
-  { id: "estimator", name: "Estimator RAB", icon: "💰", description: "Spesialis estimasi biaya & RAB", color: "green" },
-  { id: "tender", name: "Tender Expert", icon: "📋", description: "Ahli tender & pengadaan LPSE", color: "blue" },
-  { id: "k3", name: "Ahli K3", icon: "⛑️", description: "Keselamatan & kesehatan kerja", color: "red" },
-  { id: "perijinan", name: "Konsultan Perijinan", icon: "📜", description: "SBU, SKK, PBG, AMDAL", color: "purple" },
-  { id: "energi", name: "EBT Specialist", icon: "⚡", description: "Energi terbarukan & kelistrikan", color: "yellow" },
-  { id: "migas", name: "Migas Expert", icon: "🛢️", description: "Minyak, gas, pertambangan", color: "slate" },
-  { id: "kontrak", name: "Legal Konstruksi", icon: "⚖️", description: "Kontrak, klaim, sengketa", color: "indigo" },
-  { id: "electrical", name: "Electrical Engineer", icon: "🔌", description: "Dokumen teknis & desain elektrikal", color: "amber" },
-];
+const SAFE_DEFAULT_AGENT: Agent = {
+  id: "general",
+  name: "KonstruksiAI",
+  icon: "🏗️",
+  description: "Asisten umum konstruksi & engineering",
+  color: "orange",
+};
+
+function isAgentRosterEntry(value: unknown): value is Agent {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<Agent>;
+  return typeof candidate.id === "string"
+    && typeof candidate.name === "string"
+    && typeof candidate.icon === "string"
+    && typeof candidate.description === "string"
+    && typeof candidate.color === "string";
+}
 
 const RECOMMENDED_AGENT_MARKER = /\[\[RECOMMENDED_AGENT:\s*([^\]]+?)\s*\]\]/gi;
 
-function parseAgentRecommendation(content: string): {
+function parseAgentRecommendation(content: string, agents: Agent[]): {
   content: string;
   recommendedAgentId?: string;
 } {
   let recommendedAgentId: string | undefined;
   const cleanContent = content.replace(RECOMMENDED_AGENT_MARKER, (_marker, rawAgentId: string) => {
     const candidate = rawAgentId.trim().toLowerCase();
-    if (!recommendedAgentId && AGENTS.some(agent => agent.id === candidate)) {
+    if (!recommendedAgentId && agents.some(agent => agent.id === candidate)) {
       recommendedAgentId = candidate;
     }
     return "";
@@ -663,6 +669,7 @@ function WelcomeScreen({ onPrompt, selectedAgent }: { onPrompt: (text: string) =
 function MessageBubble({
   message,
   agent,
+  agents,
   onReaction,
   onRegenerate,
   onStar,
@@ -674,6 +681,7 @@ function MessageBubble({
 }: {
   message: Message;
   agent: Agent;
+  agents: Agent[];
   onReaction: (id: string, reaction: "up" | "down") => void;
   onRegenerate?: () => void;
   onStar: (id: string) => void;
@@ -736,8 +744,8 @@ function MessageBubble({
     : message.domainFit?.level === "medium"
       ? "Kecocokan sedang"
       : "Kecocokan rendah";
-  const parsedRecommendation = parseAgentRecommendation(message.content);
-  const recommendedAgent = AGENTS.find(agent =>
+  const parsedRecommendation = parseAgentRecommendation(message.content, agents);
+  const recommendedAgent = agents.find(agent =>
     agent.id === (message.recommendedAgentId ?? parsedRecommendation.recommendedAgentId),
   );
 
@@ -1358,7 +1366,15 @@ function Sidebar({
 // AGENT SELECTOR
 // ----------------------------------------------------------------
 
-function AgentSelector({ selected, onSelect }: { selected: Agent; onSelect: (agent: Agent) => void }) {
+function AgentSelector({
+  agents,
+  selected,
+  onSelect,
+}: {
+  agents: Agent[];
+  selected: Agent;
+  onSelect: (agent: Agent) => void;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -1389,7 +1405,7 @@ function AgentSelector({ selected, onSelect }: { selected: Agent; onSelect: (age
             <p className="text-xs text-slate-500 px-2">Pilih Agen AI</p>
           </div>
           <div className="p-1 max-h-64 overflow-y-auto">
-            {AGENTS.map(agent => (
+            {agents.map(agent => (
               <button
                 key={agent.id}
                 onClick={() => { onSelect(agent); setOpen(false); }}
@@ -1451,12 +1467,14 @@ function FontSizeControl({ fontSize, onChange }: { fontSize: FontSize; onChange:
 // ----------------------------------------------------------------
 
 export default function ChatPage() {
+  const [agents, setAgents] = useState<Agent[]>([SAFE_DEFAULT_AGENT]);
+  const [rosterError, setRosterError] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<Agent>(AGENTS[0]);
+  const [selectedAgent, setSelectedAgent] = useState<Agent>(SAFE_DEFAULT_AGENT);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAuthResolved, setIsAuthResolved] = useState(false);
@@ -1498,6 +1516,38 @@ export default function ChatPage() {
   // Draft auto-save key: per conversation
   const draftKey = activeConvId ? `konstruksi_draft_${activeConvId}` : "konstruksi_draft_new";
   const canCloudSync = isLoggedIn && hasProAccess;
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch("/api/chat/agents", { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`Roster request failed: ${response.status}`);
+        return response.json() as Promise<{ agents?: unknown }>;
+      })
+      .then((data) => {
+        if (!Array.isArray(data.agents)) throw new Error("Roster response is invalid");
+        const currentAgents = data.agents.filter(isAgentRosterEntry);
+        const generalAgent = currentAgents.find((agent) => agent.id === "general");
+        if (!generalAgent || currentAgents.length !== data.agents.length) {
+          throw new Error("Roster response contains invalid agents");
+        }
+
+        setAgents(currentAgents);
+        setSelectedAgent((current) =>
+          currentAgents.find((agent) => agent.id === current.id) ?? generalAgent
+        );
+        setRosterError(null);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setAgents([SAFE_DEFAULT_AGENT]);
+        setSelectedAgent(SAFE_DEFAULT_AGENT);
+        setRosterError("Daftar agen spesialis belum dapat dimuat. KonstruksiAI umum tetap tersedia.");
+      });
+
+    return () => controller.abort();
+  }, []);
 
   const persistPendingSync = useCallback((next: PendingSyncMessage[]) => {
     pendingSyncRef.current = next;
@@ -2018,7 +2068,7 @@ export default function ChatPage() {
               // Recommendations are re-validated against the current agent roster so a
               // retired/renamed agent id from an old row never surfaces a dead action.
               recommendedAgentId: m.role === "assistant" && m.recommendedAgentId
-                && AGENTS.some(agent => agent.id === m.recommendedAgentId)
+                && agents.some(agent => agent.id === m.recommendedAgentId)
                 ? m.recommendedAgentId
                 : undefined,
               wordCount: m.role === "assistant" ? countWords(m.content) : undefined,
@@ -2040,7 +2090,7 @@ export default function ChatPage() {
         }
       }
     }
-  }, [canCloudSync, clearRevokedWorkspace, conversations, workspaceContext]);
+  }, [agents, canCloudSync, clearRevokedWorkspace, conversations, workspaceContext]);
 
   const deleteConversation = useCallback((id: string) => {
     const workspaceId = conversationsRef.current.find(c => c.id === id)?.workspaceId;
@@ -2090,12 +2140,12 @@ export default function ChatPage() {
   }, [activeConvId]);
 
   const handleAgentSwitch = useCallback((agentId: string) => {
-    const nextAgent = AGENTS.find(agent => agent.id === agentId);
+    const nextAgent = agents.find(agent => agent.id === agentId);
     if (!nextAgent) return;
 
     setSelectedAgent(nextAgent);
     window.setTimeout(() => textareaRef.current?.focus(), 0);
-  }, []);
+  }, [agents]);
 
   const stopGeneration = useCallback(() => {
     abortRef.current?.abort();
@@ -2338,7 +2388,10 @@ export default function ChatPage() {
                 if (typeof event.message === "string") {
                   fullResponse = event.message;
                 }
-                if (typeof event.recommendedAgentId === "string") {
+                if (
+                  typeof event.recommendedAgentId === "string"
+                  && agents.some((agent) => agent.id === event.recommendedAgentId)
+                ) {
                   responseRecommendedAgentId = event.recommendedAgentId;
                 }
                 continue;
@@ -2758,7 +2811,12 @@ export default function ChatPage() {
           </button>
 
           {/* Agent selector */}
-          <AgentSelector selected={selectedAgent} onSelect={setSelectedAgent} />
+          <AgentSelector agents={agents} selected={selectedAgent} onSelect={setSelectedAgent} />
+          {rosterError && (
+            <span className="hidden text-xs text-amber-300 sm:inline" role="status" title={rosterError}>
+              Agen spesialis tidak tersedia
+            </span>
+          )}
 
           {/* Title */}
           <div className="flex-1 min-w-0">
@@ -2921,7 +2979,8 @@ export default function ChatPage() {
                   >
                     <MessageBubble
                       message={message}
-                      agent={AGENTS.find(agent => agent.id === message.agentId) ?? selectedAgent}
+                      agent={agents.find(agent => agent.id === message.agentId) ?? selectedAgent}
+                      agents={agents}
                       onReaction={handleReaction}
                       onRegenerate={idx === lastAssistantMsgIdx ? regenerateLastResponse : undefined}
                       onStar={handleStar}
