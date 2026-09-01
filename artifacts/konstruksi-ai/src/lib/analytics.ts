@@ -8,12 +8,16 @@ declare global {
   }
 }
 
+/**
+ * Analytics is optional in local development and may be unavailable until
+ * the published app has loaded the injected tracker. Never let it affect UX.
+ */
 export function trackEvent(name: string, data?: AnalyticsData): void {
   if (typeof window === "undefined") return;
 
   try {
     window.umami?.track(name, data);
   } catch {
-    // Analytics must never interrupt the product flow.
+    // Analytics failures must never interrupt the user interaction.
   }
 }

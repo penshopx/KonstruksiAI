@@ -248,20 +248,14 @@ const matrixTopics: Record<string, Record<string, string>> = {
   },
 };
 
-export default function MatrixPage() {
-  const [hoveredCell, setHoveredCell] = useState<{ row: string; col: string } | null>(null);
-  const [selectedCell, setSelectedCell] = useState<{ row: string; col: string } | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [businessFilter, setBusinessFilter] = useState("all");
-  const [engineeringFilter, setEngineeringFilter] = useState("all");
+const getCellTopic = (businessId: string, colId: string) => {
+  return matrixTopics[businessId]?.[colId] || "Konsultasi lintas bidang";
+};
 
-  const getCellTopic = (businessId: string, colId: string) => {
-    return matrixTopics[businessId]?.[colId] || "Konsultasi lintas bidang";
-  };
+const getMatchingCells = (query: string, businessFilter: string, engineeringFilter: string) => {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
 
-  const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
-  const explorerIsActive = Boolean(normalizedQuery || businessFilter !== "all" || engineeringFilter !== "all");
-  const matchingCells = businessFunctions.flatMap((business) =>
+  return businessFunctions.flatMap((business) =>
     engineeringColumns.map((column) => {
       const topic = getCellTopic(business.id, column.id);
       const searchableText = `${business.name} ${business.desc} ${column.name} ${column.shortName} ${topic}`.toLocaleLowerCase();
@@ -272,6 +266,19 @@ export default function MatrixPage() {
     && (engineeringFilter === "all" || column.id === engineeringFilter)
     && (!normalizedQuery || searchableText.includes(normalizedQuery)),
   );
+};
+
+export default function MatrixPage() {
+  const [hoveredCell, setHoveredCell] = useState<{ row: string; col: string } | null>(null);
+  const [selectedCell, setSelectedCell] = useState<{ row: string; col: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [businessFilter, setBusinessFilter] = useState("all");
+  const [engineeringFilter, setEngineeringFilter] = useState("all");
+  const [searchSource, setSearchSource] = useState<"free_text" | "quick_search">("free_text");
+
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
+  const explorerIsActive = Boolean(normalizedQuery || businessFilter !== "all" || engineeringFilter !== "all");
+  const matchingCells = getMatchingCells(searchQuery, businessFilter, engineeringFilter);
   const visibleBusinessIds = new Set(matchingCells.map(({ business }) => business.id));
   const visibleColumnIds = new Set(matchingCells.map(({ column }) => column.id));
   const matchingCellIds = new Set(
@@ -294,6 +301,57 @@ export default function MatrixPage() {
   const getSelectedBusiness = () => businessFunctions.find(b => b.id === selectedCell?.row);
   const getSelectedColumn = () => engineeringColumns.find(c => c.id === selectedCell?.col);
 
+  const getSearchLengthBucket = (length: number) => {
+    if (length === 0) return "empty";
+    if (length <= 3) return "short";
+    if (length <= 12) return "medium";
+    return "long";
+  };
+
+  const trackFilterUsage = (filterType: "business_function" | "engineering_domain", filterValue: string, resultCount: number) => {
+    trackEvent("matrix_filter_used", {
+      filter_type: filterType,
+      filter_value: filterValue,
+      search_active: Boolean(normalizedQuery),
+      other_filter_active: filterType === "business_function"
+        ? engineeringFilter !== "all"
+        : businessFilter !== "all",
+      result_count: resultCount,
+    });
+  };
+
+  const resetExplorer = () => {
+    trackEvent("matrix_filters_reset", {
+      active_filter_count: Number(businessFilter !== "all") + Number(engineeringFilter !== "all"),
+      search_active: Boolean(normalizedQuery),
+      result_count: matchingCells.length,
+    });
+    setSearchQuery("");
+    setBusinessFilter("all");
+    setEngineeringFilter("all");
+    setSearchSource("free_text");
+  };
+
+  const selectCell = (row: string, col: string, selectionSource: "grid" | "search_result") => {
+    const isSelected = selectedCell?.row === row && selectedCell?.col === col;
+    if (!isSelected) {
+      trackEvent("matrix_cell_selected", {
+        business_id: row,
+        engineering_id: col,
+        selection_source: selectionSource,
+        result_count: matchingCells.length,
+      });
+    }
+    setSelectedCell(isSelected ? null : { row, col });
+  };
+
+  const trackDestination = (destination: "agent" | "chat", businessId: string, engineeringId: string) => {
+    trackEvent(destination === "agent" ? "matrix_agent_opened" : "matrix_chat_opened", {
+      business_id: businessId,
+      engineering_id: engineeringId,
+    });
+  };
+
   const buildChatUrl = (businessId: string, colId: string) => {
     const business = businessFunctions.find(b => b.id === businessId);
     const col = engineeringColumns.find(c => c.id === colId);
@@ -302,16 +360,22 @@ export default function MatrixPage() {
     return `/chat?q=${encodeURIComponent(question)}`;
   };
 
-  const handleCellSelection = (businessId: string, colId: string) => {
-    const isSelected = selectedCell?.row === businessId && selectedCell?.col === colId;
-    if (!isSelected) {
-      trackEvent("matrix_cell_selected", {
-        business_id: businessId,
-        engineering_id: colId,
+  useEffect(() => {
+    if (!normalizedQuery) return;
+
+    const timeoutId = window.setTimeout(() => {
+      trackEvent("matrix_search_used", {
+        search_source: searchSource,
+        search_length_bucket: getSearchLengthBucket(normalizedQuery.length),
+        business_filter: businessFilter,
+        engineering_filter: engineeringFilter,
+        active_filter_count: Number(businessFilter !== "all") + Number(engineeringFilter !== "all"),
+        result_count: matchingCells.length,
       });
-    }
-    setSelectedCell(isSelected ? null : { row: businessId, col: colId });
-  };
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [normalizedQuery, searchSource, businessFilter, engineeringFilter, matchingCells.length]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -393,17 +457,10 @@ export default function MatrixPage() {
                 <input
                   type="search"
                   value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  onBlur={() => {
-                    const trimmedQuery = searchQuery.trim();
-                    if (trimmedQuery) {
-                      trackEvent("matrix_search", {
-                        source: "keyword",
-                        query_length: trimmedQuery.length,
-                        result_count: matchingCells.length,
-                      });
-                    }
-                  }}
+                   onChange={(event) => {
+                     setSearchSource("free_text");
+                     setSearchQuery(event.target.value);
+                   }}
                   placeholder="Contoh: RAB, tender, elektrikal..."
                   className="w-full rounded-lg border border-slate-600 bg-slate-900/80 py-2.5 pl-9 pr-3 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
                   aria-label="Cari kombinasi Matriks"
@@ -414,14 +471,15 @@ export default function MatrixPage() {
                 <span className="sr-only">Filter fungsi bisnis</span>
                 <select
                   value={businessFilter}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setBusinessFilter(value);
-                    trackEvent("matrix_filter_used", {
-                      filter_type: "business",
-                      filter_value: value,
-                    });
-                  }}
+                   onChange={(event) => {
+                     const nextValue = event.target.value;
+                     setBusinessFilter(nextValue);
+                     trackFilterUsage(
+                       "business_function",
+                       nextValue,
+                       getMatchingCells(searchQuery, nextValue, engineeringFilter).length,
+                     );
+                   }}
                   className="w-full rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
                   aria-label="Filter fungsi bisnis"
                   data-testid="matrix-business-filter"
@@ -436,14 +494,15 @@ export default function MatrixPage() {
                 <span className="sr-only">Filter bidang keteknikan</span>
                 <select
                   value={engineeringFilter}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setEngineeringFilter(value);
-                    trackEvent("matrix_filter_used", {
-                      filter_type: "engineering",
-                      filter_value: value,
-                    });
-                  }}
+                   onChange={(event) => {
+                     const nextValue = event.target.value;
+                     setEngineeringFilter(nextValue);
+                     trackFilterUsage(
+                       "engineering_domain",
+                       nextValue,
+                       getMatchingCells(searchQuery, businessFilter, nextValue).length,
+                     );
+                   }}
                   className="w-full rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
                   aria-label="Filter bidang keteknikan"
                   data-testid="matrix-engineering-filter"
@@ -457,12 +516,7 @@ export default function MatrixPage() {
               {explorerIsActive ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setBusinessFilter("all");
-                    setEngineeringFilter("all");
-                    trackEvent("matrix_explorer_reset");
-                  }}
+                  onClick={resetExplorer}
                   className="rounded-lg border border-slate-600 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
                   data-testid="matrix-clear-filters"
                 >
@@ -479,11 +533,8 @@ export default function MatrixPage() {
                   key={term}
                   type="button"
                   onClick={() => {
+                    setSearchSource("quick_search");
                     setSearchQuery(term);
-                    trackEvent("matrix_search", {
-                      source: "quick_search",
-                      term,
-                    });
                   }}
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                     searchQuery.toLocaleLowerCase() === term.toLocaleLowerCase()
@@ -517,7 +568,7 @@ export default function MatrixPage() {
                   >
                     <button
                       type="button"
-                      onClick={() => handleCellSelection(business.id, column.id)}
+                      onClick={() => selectCell(business.id, column.id, "search_result")}
                       className="min-w-0 text-left"
                     >
                       <span className="block truncate text-sm font-medium text-white">
@@ -528,26 +579,14 @@ export default function MatrixPage() {
                     <div className="flex shrink-0 gap-2">
                       <Link
                         href={`/agent/${business.id}/${column.id}`}
-                        onClick={() => {
-                          trackEvent("matrix_result_opened", {
-                            business_id: business.id,
-                            engineering_id: column.id,
-                            destination: "agent",
-                          });
-                        }}
+                        onClick={() => trackDestination("agent", business.id, column.id)}
                         className="rounded-md border border-orange-500/40 px-2.5 py-1.5 text-xs font-medium text-orange-200 transition-colors hover:border-orange-400 hover:bg-orange-500/10"
                       >
                         Agent
                       </Link>
                       <Link
                         href={buildChatUrl(business.id, column.id)}
-                        onClick={() => {
-                          trackEvent("matrix_result_opened", {
-                            business_id: business.id,
-                            engineering_id: column.id,
-                            destination: "chat",
-                          });
-                        }}
+                        onClick={() => trackDestination("chat", business.id, column.id)}
                         className="rounded-md border border-slate-600 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
                       >
                         Chat
@@ -573,12 +612,7 @@ export default function MatrixPage() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setBusinessFilter("all");
-                    setEngineeringFilter("all");
-                    trackEvent("matrix_explorer_reset");
-                  }}
+                  onClick={resetExplorer}
                   className="mt-4 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600"
                 >
                   Tampilkan semua kombinasi
@@ -646,11 +680,11 @@ export default function MatrixPage() {
                           }`}
                           onMouseEnter={() => setHoveredCell({ row: business.id, col: col.id })}
                           onMouseLeave={() => setHoveredCell(null)}
-                          onClick={() => handleCellSelection(business.id, col.id)}
+                          onClick={() => selectCell(business.id, col.id, "grid")}
                           onKeyDown={(event) => {
                             if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault();
-                              handleCellSelection(business.id, col.id);
+                              selectCell(business.id, col.id, "grid");
                             }
                           }}
                         >
@@ -690,12 +724,14 @@ export default function MatrixPage() {
                 <div className="flex flex-wrap gap-3">
                   <Link
                     href={`/agent/${selectedCell.row}/${selectedCell.col}`}
+                    onClick={() => trackDestination("agent", selectedCell.row, selectedCell.col)}
                     className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
                   >
                     🤖 Buka AI Agent
                   </Link>
                   <Link
                     href={buildChatUrl(selectedCell.row, selectedCell.col)}
+                    onClick={() => trackDestination("chat", selectedCell.row, selectedCell.col)}
                     className="border border-orange-500/50 hover:border-orange-400 text-orange-300 hover:text-orange-200 px-5 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2"
                   >
                     💬 Chat Cepat

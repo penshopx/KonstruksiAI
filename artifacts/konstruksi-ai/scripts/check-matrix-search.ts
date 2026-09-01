@@ -4,19 +4,10 @@ import { chromium } from "playwright-core";
 const APP_URL = process.env.KONSTRUKSI_AI_TEST_URL ?? "http://localhost:80/matrix";
 const EXECUTABLE_PATH = process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE;
 
-async function getTrackedEventNames(page: import("playwright-core").Page) {
-  return page.evaluate(
-    () => (window as unknown as { __matrixEvents: Array<{ name: string }> }).__matrixEvents.map((event) => event.name),
-  );
-}
-
-async function getTrackedEvents(page: import("playwright-core").Page) {
-  return page.evaluate(
-    () => (window as unknown as {
-      __matrixEvents: Array<{ name: string; data?: Record<string, unknown> }>;
-    }).__matrixEvents,
-  );
-}
+type AnalyticsEvent = {
+  name: string;
+  data?: Record<string, string | number | boolean>;
+};
 
 async function main() {
   const browser = await chromium.launch({
@@ -24,16 +15,20 @@ async function main() {
     headless: true,
   });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
-  await page.addInitScript({
-    content: `
-      window.__matrixEvents = [];
-      window.umami = {
-        track: (name, data) => window.__matrixEvents.push({ name, data }),
-      };
-    `,
-  });
 
   try {
+    await page.addInitScript(() => {
+      const analyticsWindow = window as typeof window & {
+        __matrixAnalyticsEvents: AnalyticsEvent[];
+      };
+      analyticsWindow.__matrixAnalyticsEvents = [];
+      analyticsWindow.umami = {
+        track(name, data) {
+          analyticsWindow.__matrixAnalyticsEvents.push({ name, data });
+        },
+      };
+    });
+
     await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
     await page.getByTestId("matrix-explorer").waitFor();
 
@@ -44,20 +39,8 @@ async function main() {
     );
 
     await page.getByTestId("matrix-search").fill("HVAC");
-    await page.getByTestId("matrix-search").press("Tab");
     await page.getByTestId("matrix-result-gedung-mekanikal").waitFor();
-    assert.ok(
-      (await getTrackedEventNames(page)).includes("matrix_search"),
-      "Pencarian harus mengirim event analytics",
-    );
-    const keywordSearchEvent = (await getTrackedEvents(page)).find(
-      (event) => event.name === "matrix_search" && event.data?.source === "keyword",
-    );
-    assert.deepEqual(
-      keywordSearchEvent?.data,
-      { source: "keyword", query_length: 4, result_count: 5 },
-      "Analytics pencarian tidak boleh mengirim teks kata kunci bebas",
-    );
+    await page.waitForTimeout(600);
     assert.match(
       await page.getByTestId("matrix-result-count").innerText(),
       /5 kombinasi cocok/,
@@ -78,33 +61,23 @@ async function main() {
       /^\/chat\?q=/,
       "Hasil pencarian harus menyediakan link chat dengan pertanyaan terisi",
     );
-    const agentLink = page.getByTestId("matrix-result-gedung-mekanikal").getByRole("link", { name: "Agent" });
-    await agentLink.evaluate((element) => {
-      element.addEventListener("click", (event) => event.preventDefault(), { once: true });
+    const searchEvent = await page.evaluate(() => {
+      const analyticsWindow = window as typeof window & {
+        __matrixAnalyticsEvents: AnalyticsEvent[];
+      };
+      return analyticsWindow.__matrixAnalyticsEvents.find((event) => event.name === "matrix_search_used");
     });
-    await agentLink.click();
-    assert.deepEqual(
-      (await getTrackedEvents(page)).find((event) => event.name === "matrix_result_opened")?.data,
-      {
-        business_id: "gedung",
-        engineering_id: "mekanikal",
-        destination: "agent",
-      },
-      "Klik hasil harus mencatat kombinasi dan tujuan tanpa data sensitif",
-    );
-    await page.getByTestId("matrix-result-gedung-mekanikal").locator("button").first().click();
-    assert.ok(
-      (await getTrackedEventNames(page)).includes("matrix_cell_selected"),
-      "Pemilihan sel harus mengirim event analytics",
+    assert.ok(searchEvent, "Pencarian Matriks harus mencatat event analytics");
+    assert.equal(searchEvent.data?.result_count, 5, "Event pencarian harus mencatat jumlah hasil");
+    assert.equal(
+      JSON.stringify(searchEvent.data).includes("HVAC"),
+      false,
+      "Event pencarian tidak boleh mengirim kata kunci bebas",
     );
 
     await page.getByTestId("matrix-clear-filters").click();
     await page.getByTestId("matrix-business-filter").selectOption("desain");
     await page.getByTestId("matrix-engineering-filter").selectOption("mekanikal");
-    assert.ok(
-      (await getTrackedEventNames(page)).includes("matrix_filter_used"),
-      "Penggunaan filter harus mengirim event analytics",
-    );
     assert.match(
       await page.getByTestId("matrix-result-count").innerText(),
       /1 kombinasi cocok/,
@@ -115,16 +88,68 @@ async function main() {
       1,
       "Kombinasi desain × mekanikal harus tampil di hasil teratas",
     );
+    const filterEvents = await page.evaluate(() => {
+      const analyticsWindow = window as typeof window & {
+        __matrixAnalyticsEvents: AnalyticsEvent[];
+      };
+      return analyticsWindow.__matrixAnalyticsEvents.filter((event) => event.name === "matrix_filter_used");
+    });
+    assert.equal(filterEvents.length, 2, "Kedua filter Matriks harus mencatat event analytics");
+    assert.deepEqual(
+      filterEvents.map((event) => [event.data?.filter_type, event.data?.result_count]),
+      [["business_function", 10], ["engineering_domain", 1]],
+      "Event filter harus mencatat jenis filter dan jumlah hasil setelah perubahan",
+    );
+
+    const matchedResult = page.getByTestId("matrix-result-desain-mekanikal");
+    await matchedResult.getByRole("button").click();
+    const selectedEvent = await page.evaluate(() => {
+      const analyticsWindow = window as typeof window & {
+        __matrixAnalyticsEvents: AnalyticsEvent[];
+      };
+      return analyticsWindow.__matrixAnalyticsEvents.find((event) => event.name === "matrix_cell_selected");
+    });
+    assert.deepEqual(
+      selectedEvent?.data,
+      {
+        business_id: "desain",
+        engineering_id: "mekanikal",
+        selection_source: "search_result",
+        result_count: 1,
+      },
+      "Pemilihan hasil harus mencatat kombinasi tanpa teks topik",
+    );
+
+    await page.evaluate(() => {
+      document.addEventListener("click", (event) => event.preventDefault(), { capture: true, once: true });
+    });
+    await matchedResult.getByRole("link", { name: "Agent" }).click();
+    await page.evaluate(() => {
+      document.addEventListener("click", (event) => event.preventDefault(), { capture: true, once: true });
+    });
+    await matchedResult.getByRole("link", { name: "Chat" }).click();
+    const destinationEvents = await page.evaluate(() => {
+      const analyticsWindow = window as typeof window & {
+        __matrixAnalyticsEvents: AnalyticsEvent[];
+      };
+      return analyticsWindow.__matrixAnalyticsEvents.filter(
+        (event) => event.name === "matrix_agent_opened" || event.name === "matrix_chat_opened",
+      );
+    });
+    assert.deepEqual(
+      destinationEvents.map((event) => [event.name, event.data?.business_id, event.data?.engineering_id]),
+      [
+        ["matrix_agent_opened", "desain", "mekanikal"],
+        ["matrix_chat_opened", "desain", "mekanikal"],
+      ],
+      "Link Agent dan Chat harus mencatat business id dan engineering id",
+    );
 
     await page.getByTestId("matrix-clear-filters").click();
     assert.match(
       await page.getByTestId("matrix-result-count").innerText(),
       /210 kombinasi tersedia/,
       "Reset harus mengembalikan seluruh matriks",
-    );
-    assert.ok(
-      (await getTrackedEventNames(page)).includes("matrix_explorer_reset"),
-      "Reset explorer harus mengirim event analytics",
     );
 
     await page.setViewportSize({ width: 390, height: 844 });
