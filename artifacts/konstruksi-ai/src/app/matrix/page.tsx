@@ -2,6 +2,11 @@
 
 import Link from "@/shims/next-link";
 import { useState } from "react";
+import {
+  MATRIX_BUSINESS_FUNCTION_COUNT,
+  MATRIX_CONNECTION_COUNT,
+  MATRIX_ENGINEERING_DOMAIN_COUNT,
+} from "@/lib/agents";
 
 const businessFunctions = [
   { id: "perencanaan", icon: "📅", name: "Perencanaan Proyek", desc: "Perencanaan & Jadwal" },
@@ -426,8 +431,10 @@ export default function MatrixPage() {
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
             <div className="text-2xl mb-2">🤖</div>
-            <h3 className="text-white font-semibold mb-1">126 AI Agent Spesialis</h3>
-            <p className="text-slate-400 text-sm">21 fungsi bisnis × 6 bidang keteknikan = 126 AI Agent dengan keahlian unik masing-masing</p>
+            <h3 className="text-white font-semibold mb-1">{MATRIX_CONNECTION_COUNT} AI Agent Spesialis</h3>
+            <p className="text-slate-400 text-sm">
+              {MATRIX_BUSINESS_FUNCTION_COUNT} fungsi bisnis × {MATRIX_ENGINEERING_DOMAIN_COUNT} bidang keteknikan = {MATRIX_CONNECTION_COUNT} AI Agent dengan keahlian unik masing-masing
+            </p>
           </div>
           <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
             <div className="text-2xl mb-2">🎯</div>

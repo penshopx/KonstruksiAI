@@ -5,6 +5,7 @@ import Link from "@/shims/next-link";
 import { useRouter } from "@/shims/next-navigation";
 import LogoutButton from "./LogoutButton";
 import type { JWTPayload } from "@/lib/auth";
+import { MATRIX_CONNECTION_COUNT } from "@/lib/agents";
 
 const quickLinks = [
   { icon: "🏗️", title: "Teknik Konstruksi", desc: "10 sub-bidang keteknikan", href: "/konstruksi", color: "border-orange-500/30 hover:border-orange-500" },
@@ -103,7 +104,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {[
             { value: "3", label: "Sektor Industri", icon: "🏭" },
-            { value: "126", label: "Topik Konsultasi", icon: "💬" },
+            { value: String(MATRIX_CONNECTION_COUNT), label: "Topik Konsultasi", icon: "💬" },
             { value: "24/7", label: "Siap Membantu", icon: "⏰" },
             { value: "∞", label: "Pertanyaan Gratis", icon: "🚀" },
           ].map((stat) => (
@@ -154,7 +155,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-white font-bold text-lg">📊 Matriks Ruang Lingkup</h2>
-              <p className="text-slate-400 text-sm mt-1">126 titik koneksi antara bidang keteknikan dan fungsi bisnis</p>
+              <p className="text-slate-400 text-sm mt-1">{MATRIX_CONNECTION_COUNT} titik koneksi antara bidang keteknikan dan fungsi bisnis</p>
             </div>
             <Link
               href="/matrix"

@@ -1,6 +1,6 @@
 // ============================================================
-// KonstruksiAI — 126 AI Agent Definitions
-// 21 Business Functions × 6 Engineering Domains
+// KonstruksiAI — 210 AI Agent Definitions
+// 21 Business Functions × 10 Engineering Domains
 // ============================================================
 
 export interface AgentTask {
@@ -74,8 +74,13 @@ export const engineeringDomains = [
   { id: "migas_energi", label: "Migas & Energi Fosil", icon: "🛢️", color: "rose" },
 ];
 
+export const MATRIX_BUSINESS_FUNCTION_COUNT = businessFunctions.length;
+export const MATRIX_ENGINEERING_DOMAIN_COUNT = engineeringDomains.length;
+export const MATRIX_CONNECTION_COUNT =
+  MATRIX_BUSINESS_FUNCTION_COUNT * MATRIX_ENGINEERING_DOMAIN_COUNT;
+
 // ============================================================
-// AGENT DEFINITIONS — 126 Agents
+// AGENT DEFINITIONS — 210 Agents
 // ============================================================
 
 const agentDefinitions: Record<string, Omit<AIAgent, "id" | "businessId" | "columnId">> = {
@@ -1898,7 +1903,7 @@ Saat membantu:
 };
 
 // ============================================================
-// GENERATE ALL 126 AGENTS
+// GENERATE ALL 210 AGENTS
 // ============================================================
 
 // For business functions without explicit definitions, generate a generic agent
