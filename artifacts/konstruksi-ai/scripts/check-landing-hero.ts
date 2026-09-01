@@ -7,6 +7,8 @@ const EXECUTABLE_PATH = process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE;
 const HERO_VIEWPORTS = [
   { name: "desktop lebar", width: 1440, height: 900 },
   { name: "desktop pendek", width: 1280, height: 560 },
+  { name: "tablet", width: 834, height: 768 },
+  { name: "mobile web", width: 390, height: 844 },
 ] as const;
 
 const HERO_CARDS = [
