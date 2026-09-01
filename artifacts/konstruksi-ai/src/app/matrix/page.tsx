@@ -242,10 +242,32 @@ const matrixTopics: Record<string, Record<string, string>> = {
 export default function MatrixPage() {
   const [hoveredCell, setHoveredCell] = useState<{ row: string; col: string } | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ row: string; col: string } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [businessFilter, setBusinessFilter] = useState("all");
+  const [engineeringFilter, setEngineeringFilter] = useState("all");
 
   const getCellTopic = (businessId: string, colId: string) => {
     return matrixTopics[businessId]?.[colId] || "Konsultasi lintas bidang";
   };
+
+  const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
+  const explorerIsActive = Boolean(normalizedQuery || businessFilter !== "all" || engineeringFilter !== "all");
+  const matchingCells = businessFunctions.flatMap((business) =>
+    engineeringColumns.map((column) => {
+      const topic = getCellTopic(business.id, column.id);
+      const searchableText = `${business.name} ${business.desc} ${column.name} ${column.shortName} ${topic}`.toLocaleLowerCase();
+      return { business, column, topic, searchableText };
+    }),
+  ).filter(({ business, column, searchableText }) =>
+    (businessFilter === "all" || business.id === businessFilter)
+    && (engineeringFilter === "all" || column.id === engineeringFilter)
+    && (!normalizedQuery || searchableText.includes(normalizedQuery)),
+  );
+  const visibleBusinessIds = new Set(matchingCells.map(({ business }) => business.id));
+  const visibleColumnIds = new Set(matchingCells.map(({ column }) => column.id));
+  const visibleBusinesses = businessFunctions.filter((business) => visibleBusinessIds.has(business.id));
+  const visibleColumns = engineeringColumns.filter((column) => visibleColumnIds.has(column.id));
+  const quickMatches = matchingCells.slice(0, 6);
 
   const getSelectedBusiness = () => businessFunctions.find(b => b.id === selectedCell?.row);
   const getSelectedColumn = () => engineeringColumns.find(c => c.id === selectedCell?.col);
@@ -318,26 +340,189 @@ export default function MatrixPage() {
         </div>
       </section>
 
+      {/* Matrix Explorer */}
+      <div className="mx-auto mb-6 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div
+          className="rounded-2xl border border-orange-500/20 bg-slate-800/60 p-4 sm:p-5"
+          data-testid="matrix-explorer"
+        >
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-white font-semibold">Temukan kombinasi lebih cepat</h2>
+              <p className="text-slate-400 text-sm">
+                Cari berdasarkan fungsi bisnis, bidang keteknikan, atau topik pekerjaan.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+              <label className="relative block">
+                <span className="sr-only">Cari kombinasi Matriks</span>
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">⌕</span>
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Contoh: RAB, tender, elektrikal..."
+                  className="w-full rounded-lg border border-slate-600 bg-slate-900/80 py-2.5 pl-9 pr-3 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
+                  aria-label="Cari kombinasi Matriks"
+                  data-testid="matrix-search"
+                />
+              </label>
+              <label>
+                <span className="sr-only">Filter fungsi bisnis</span>
+                <select
+                  value={businessFilter}
+                  onChange={(event) => setBusinessFilter(event.target.value)}
+                  className="w-full rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
+                  aria-label="Filter fungsi bisnis"
+                  data-testid="matrix-business-filter"
+                >
+                  <option value="all">Semua fungsi bisnis</option>
+                  {businessFunctions.map((business) => (
+                    <option key={business.id} value={business.id}>{business.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span className="sr-only">Filter bidang keteknikan</span>
+                <select
+                  value={engineeringFilter}
+                  onChange={(event) => setEngineeringFilter(event.target.value)}
+                  className="w-full rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400"
+                  aria-label="Filter bidang keteknikan"
+                  data-testid="matrix-engineering-filter"
+                >
+                  <option value="all">Semua bidang teknik</option>
+                  {engineeringColumns.map((column) => (
+                    <option key={column.id} value={column.id}>{column.name}</option>
+                  ))}
+                </select>
+              </label>
+              {explorerIsActive ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setBusinessFilter("all");
+                    setEngineeringFilter("all");
+                  }}
+                  className="rounded-lg border border-slate-600 px-4 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+                  data-testid="matrix-clear-filters"
+                >
+                  Reset
+                </button>
+              ) : (
+                <div className="hidden md:block" aria-hidden="true" />
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-slate-500">Pencarian cepat:</span>
+              {["RAB", "Tender", "K3", "Elektrikal"].map((term) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => setSearchQuery(term)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    searchQuery.toLocaleLowerCase() === term.toLocaleLowerCase()
+                      ? "border-orange-400/70 bg-orange-500/20 text-orange-200"
+                      : "border-slate-600 text-slate-300 hover:border-orange-400/60 hover:text-orange-200"
+                  }`}
+                >
+                  {term}
+                </button>
+              ))}
+              <span className="ml-auto text-xs text-slate-400" aria-live="polite" data-testid="matrix-result-count">
+                {explorerIsActive
+                  ? `${matchingCells.length} kombinasi cocok`
+                  : `${MATRIX_CONNECTION_COUNT} kombinasi tersedia`}
+              </span>
+            </div>
+          </div>
+
+          {explorerIsActive && quickMatches.length > 0 && (
+            <div className="mt-4 border-t border-slate-700/70 pt-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold text-slate-200">Hasil teratas</h3>
+                <span className="text-xs text-slate-500">Pilih untuk membuka detail atau langsung chat</span>
+              </div>
+              <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+                {quickMatches.map(({ business, column, topic }) => (
+                  <div
+                    key={`${business.id}-${column.id}`}
+                    className="flex flex-col gap-3 rounded-xl border border-slate-700 bg-slate-900/50 p-3 sm:flex-row sm:items-center sm:justify-between"
+                    data-testid={`matrix-result-${business.id}-${column.id}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCell({ row: business.id, col: column.id })}
+                      className="min-w-0 text-left"
+                    >
+                      <span className="block truncate text-sm font-medium text-white">
+                        {business.icon} {business.name} <span className="text-slate-500">×</span> {column.shortName}
+                      </span>
+                      <span className="mt-1 block line-clamp-1 text-xs text-slate-400">{topic}</span>
+                    </button>
+                    <div className="flex shrink-0 gap-2">
+                      <Link
+                        href={`/agent/${business.id}/${column.id}`}
+                        className="rounded-md border border-orange-500/40 px-2.5 py-1.5 text-xs font-medium text-orange-200 transition-colors hover:border-orange-400 hover:bg-orange-500/10"
+                      >
+                        Agent
+                      </Link>
+                      <Link
+                        href={buildChatUrl(business.id, column.id)}
+                        className="rounded-md border border-slate-600 px-2.5 py-1.5 text-xs font-medium text-slate-300 transition-colors hover:border-slate-400 hover:text-white"
+                      >
+                        Chat
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Matrix Table */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
-              <thead>
-                <tr className="border-b border-slate-700">
-                  <th className="text-left p-4 text-slate-400 text-sm font-medium w-48 bg-slate-900/50">
-                    Fungsi Bisnis / Bidang
-                  </th>
-                  {engineeringColumns.map((col) => (
-                    <th key={col.id} className={`p-3 text-center text-xs font-semibold ${col.headerColor} border-l border-slate-700`}>
-                      <div className="text-white">{col.shortName}</div>
-                      <div className="text-slate-400 font-normal text-xs mt-0.5 hidden lg:block">{col.name}</div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {businessFunctions.map((business, rowIdx) => (
+            {matchingCells.length === 0 ? (
+              <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                <div className="mb-3 text-3xl">🔎</div>
+                <h2 className="text-white font-semibold">Tidak ada kombinasi yang cocok</h2>
+                <p className="mt-1 max-w-md text-sm text-slate-400">
+                  Coba kata kunci lain atau reset filter untuk melihat seluruh matriks.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setBusinessFilter("all");
+                    setEngineeringFilter("all");
+                  }}
+                  className="mt-4 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600"
+                >
+                  Tampilkan semua kombinasi
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[900px]">
+                  <thead>
+                    <tr className="border-b border-slate-700">
+                      <th className="text-left p-4 text-slate-400 text-sm font-medium w-48 bg-slate-900/50">
+                        Fungsi Bisnis / Bidang
+                      </th>
+                      {visibleColumns.map((col) => (
+                        <th key={col.id} className={`p-3 text-center text-xs font-semibold ${col.headerColor} border-l border-slate-700`}>
+                          <div className="text-white">{col.shortName}</div>
+                          <div className="text-slate-400 font-normal text-xs mt-0.5 hidden lg:block">{col.name}</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleBusinesses.map((business, rowIdx) => (
                   <tr
                     key={business.id}
                     className={`border-b border-slate-700/50 ${rowIdx % 2 === 0 ? "bg-slate-800/20" : "bg-slate-800/40"}`}
@@ -351,23 +536,34 @@ export default function MatrixPage() {
                         </div>
                       </div>
                     </td>
-                    {engineeringColumns.map((col) => {
+                    {visibleColumns.map((col) => {
                       const topic = getCellTopic(business.id, col.id);
                       const isHovered = hoveredCell?.row === business.id && hoveredCell?.col === col.id;
                       const isSelected = selectedCell?.row === business.id && selectedCell?.col === col.id;
+                      const cellSearchText = `${business.name} ${business.desc} ${col.name} ${col.shortName} ${topic}`.toLocaleLowerCase();
+                      const isSearchMatch = !normalizedQuery || cellSearchText.includes(normalizedQuery);
                       return (
                         <td
                           key={col.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`${business.name} × ${col.name}`}
                           className={`p-2 border-l border-slate-700/50 cursor-pointer transition-all ${
                             isSelected
                               ? "bg-orange-500/20 border-orange-500/50"
                               : isHovered
                               ? "bg-slate-700/60"
                               : "hover:bg-slate-700/40"
-                          }`}
+                          } ${normalizedQuery && !isSearchMatch ? "opacity-35" : ""}`}
                           onMouseEnter={() => setHoveredCell({ row: business.id, col: col.id })}
                           onMouseLeave={() => setHoveredCell(null)}
                           onClick={() => setSelectedCell(isSelected ? null : { row: business.id, col: col.id })}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              setSelectedCell(isSelected ? null : { row: business.id, col: col.id });
+                            }
+                          }}
                         >
                           <div className="text-center">
                             <div className={`w-2 h-2 rounded-full mx-auto mb-1 ${isSelected ? "bg-orange-400" : "bg-slate-600"}`}></div>
@@ -380,10 +576,11 @@ export default function MatrixPage() {
                       );
                     })}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
         </div>
 
         {/* Selected Cell Detail Panel */}
