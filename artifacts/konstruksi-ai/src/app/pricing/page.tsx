@@ -12,7 +12,7 @@ const PLANS = [
     id: "free",
     name: "Gratis",
     price: 0,
-    period: "selamanya",
+    period: "aktif saat ini",
     description: "Untuk profesional yang baru memulai",
     color: "border-slate-700",
     headerColor: "bg-slate-800",
@@ -20,19 +20,16 @@ const PLANS = [
     cta: "Mulai Gratis",
     ctaStyle: "bg-slate-700 hover:bg-slate-600 text-white",
     features: [
-      { text: "Chat AI tanpa batas", included: true },
-      { text: "8 Agen Spesialis Keteknikan", included: true },
+      { text: "Chat dengan 9 agen AI", included: true },
       { text: "6 Kalkulator Teknik", included: true },
-      { text: "Engineering Solver (3 domain)", included: true },
-      { text: "Matriks 21×10 Agen AI", included: true },
+      { text: "Engineering Solver (6 domain)", included: true },
+      { text: "Matriks 21×10", included: true },
       { text: "Riwayat percakapan lokal", included: true },
-      { text: "Export percakapan (.md)", included: true },
-      { text: "Respons AI streaming (GPT-4o mini)", included: false },
+      { text: "Export percakapan (.md, .pdf, .docx)", included: true },
+      { text: "Lampiran PDF/Word di chat", included: true },
+      { text: "Respons AI streaming", included: true },
       { text: "Riwayat cloud & sinkronisasi", included: false },
-      { text: "5 template dokumen premium tambahan", included: false },
-      { text: "Analisis dokumen PDF/Word", included: false },
-      { text: "API akses untuk integrasi", included: false },
-      { text: "Dukungan prioritas", included: false },
+      { text: "Template dokumen premium", included: false },
     ],
   },
   {
@@ -43,110 +40,84 @@ const PLANS = [
     description: "Untuk profesional & konsultan aktif",
     color: "border-orange-500/60",
     headerColor: "bg-orange-500/10",
-    badge: "Pembayaran aman",
+    badge: "Checkout aktif",
     cta: "Upgrade ke Pro",
     ctaStyle: "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25",
     features: [
-      { text: "Chat AI tanpa batas", included: true },
-      { text: "8 Agen Spesialis Keteknikan", included: true },
+      { text: "Chat dengan 9 agen AI", included: true },
       { text: "6 Kalkulator Teknik", included: true },
-      { text: "Engineering Solver (semua domain)", included: true },
-      { text: "Matriks 21×10 Agen AI", included: true },
+      { text: "Engineering Solver (6 domain)", included: true },
+      { text: "Matriks 21×10", included: true },
       { text: "Riwayat percakapan lokal", included: true },
-      { text: "Export percakapan (.md)", included: true },
-      { text: "Respons AI streaming (GPT-4o mini)", included: true },
+      { text: "Export percakapan (.md, .pdf, .docx)", included: true },
+      { text: "Lampiran PDF/Word di chat", included: true },
+      { text: "Respons AI streaming", included: true },
       { text: "Riwayat cloud & sinkronisasi", included: true },
-      { text: "5 template dokumen premium tambahan", included: true },
-      { text: "Analisis dokumen PDF/Word", included: false },
-      { text: "API akses untuk integrasi", included: false },
-      { text: "Dukungan prioritas", included: true },
+      { text: "Template dokumen premium", included: true },
     ],
   },
   {
     id: "enterprise",
-    name: "Enterprise",
+    name: "Kebutuhan Tim",
     price: null,
     period: "custom",
-    description: "Untuk perusahaan & tim besar",
+    description: "Diskusikan kebutuhan organisasi Anda",
     color: "border-blue-500/40",
     headerColor: "bg-blue-500/5",
-    badge: "Hubungi Kami",
-    cta: "Hubungi Sales",
+    badge: "Konsultasi",
+    cta: "Hubungi Tim",
     ctaStyle: "bg-blue-600 hover:bg-blue-700 text-white",
     features: [
-      { text: "Semua fitur Pro", included: true },
-      { text: "Analisis dokumen PDF/Word", included: true },
-      { text: "API akses untuk integrasi", included: true },
-      { text: "Custom AI agent untuk perusahaan", included: true },
-      { text: "White-label & branding custom", included: true },
-      { text: "SSO & manajemen tim", included: true },
-      { text: "SLA 99.9% uptime", included: true },
-      { text: "Dedicated account manager", included: true },
-      { text: "Pelatihan & onboarding tim", included: true },
-      { text: "Integrasi ERP/sistem internal", included: true },
-      { text: "Laporan penggunaan & analytics", included: true },
-      { text: "Dukungan 24/7", included: true },
-      { text: "Kontrak tahunan dengan diskon", included: true },
+      { text: "Belum merupakan paket aktif", included: true },
+      { text: "Kebutuhan akses tim dibahas bersama", included: true },
+      { text: "Integrasi perlu ditinjau per kasus", included: true },
+      { text: "Ruang lingkup dan dukungan disepakati sebelum aktivasi", included: true },
     ],
   },
 ];
 
 const COMPARISON_FEATURES = [
   { category: "Chat & AI", features: [
-    { name: "Chat AI tanpa batas", free: true, pro: true, enterprise: true },
-    { name: "Streaming response", free: false, pro: true, enterprise: true },
-    { name: "Konteks percakapan panjang", free: "5 pesan", pro: "50 pesan", enterprise: "Unlimited" },
+    { name: "Chat dengan agen AI", free: "9 agen", pro: "9 agen", enterprise: "Dibahas" },
+    { name: "Tampilan jawaban", free: "Streaming", pro: "Streaming", enterprise: "Dibahas" },
   ]},
   { category: "Agen & Solver", features: [
-    { name: "Agen Spesialis", free: "8 agen", pro: "8 agen", enterprise: "Custom" },
-    { name: "Engineering Solver", free: "3 domain", pro: "6 domain", enterprise: "Custom" },
-    { name: "Matriks Agen AI", free: true, pro: true, enterprise: true },
-    { name: "Custom AI Agent", free: false, pro: false, enterprise: true },
+    { name: "Engineering Solver", free: "6 domain", pro: "6 domain", enterprise: "Dibahas" },
+    { name: "Kalkulator teknik", free: "6 alat", pro: "6 alat", enterprise: "Dibahas" },
+    { name: "Matriks lintas bidang", free: "21×10", pro: "21×10", enterprise: "Dibahas" },
   ]},
-  { category: "Dokumen & Template", features: [
-    { name: "Template dokumen", free: "5 template", pro: "10 template", enterprise: "Unlimited" },
-    { name: "Analisis PDF/Word", free: false, pro: false, enterprise: true },
-    { name: "Export percakapan", free: ".md", pro: ".md, .pdf, .docx", enterprise: "Semua format" },
-    { name: "Riwayat cloud", free: false, pro: "1 tahun", enterprise: "Unlimited" },
-  ]},
-  { category: "Integrasi & API", features: [
-    { name: "API akses", free: false, pro: false, enterprise: true },
-    { name: "Webhook", free: false, pro: false, enterprise: true },
-    { name: "Integrasi ERP", free: false, pro: false, enterprise: true },
-    { name: "SSO (Single Sign-On)", free: false, pro: false, enterprise: true },
-  ]},
-  { category: "Dukungan", features: [
-    { name: "Dukungan email", free: "Komunitas", pro: "Prioritas", enterprise: "Dedicated" },
-    { name: "Response time", free: "3-5 hari", pro: "24 jam", enterprise: "4 jam" },
-    { name: "Onboarding", free: false, pro: "Self-service", enterprise: "Guided" },
-    { name: "SLA", free: false, pro: "99.5%", enterprise: "99.9%" },
+  { category: "Dokumen & Riwayat", features: [
+    { name: "Lampiran PDF/Word di chat", free: true, pro: true, enterprise: "Dibahas" },
+    { name: "Export percakapan", free: ".md, .pdf, .docx", pro: ".md, .pdf, .docx", enterprise: "Dibahas" },
+    { name: "Riwayat percakapan", free: "Lokal", pro: "Cloud sync", enterprise: "Dibahas" },
+    { name: "Template premium", free: false, pro: true, enterprise: "Dibahas" },
   ]},
 ];
 
 const FAQS = [
   {
     q: "Apakah paket Pro sudah bisa dibeli sekarang?",
-    a: "Belum. Paket Pro yang ditampilkan di halaman ini adalah rencana ke depan — belum ada sistem pembayaran yang aktif. Saat ini seluruh pengguna memakai paket Gratis, yang sudah mencakup fitur inti chat AI, agen spesialis, dan solver. Kami akan mengumumkan saat Pro resmi tersedia.",
+    a: "Belum jika checkout di halaman ini berstatus tidak tersedia. Paket Gratis tetap dapat digunakan untuk chat, solver, kalkulator, matriks, dan lampiran dokumen. Tombol upgrade hanya aktif ketika provider pembayaran dan verifikasi server sudah siap.",
   },
   {
     q: "Bagaimana cara pembayaran untuk paket Pro atau Enterprise?",
-    a: "Pembayaran Pro belum digabungkan ke aplikasi. Aktivasi akan tersedia setelah mekanisme checkout atau webhook pembayaran siap. Untuk kebutuhan Enterprise, hubungi tim kami untuk mendiskusikan opsi kontrak dan invoice secara langsung.",
+    a: "Jika checkout Pro aktif, pembayaran diproses oleh provider eksternal dan akses baru diberikan setelah statusnya terverifikasi di server. Kebutuhan organisasi dibahas langsung sebelum ada ruang lingkup atau biaya yang disepakati.",
   },
   {
     q: "Apakah bisa upgrade/downgrade paket kapan saja?",
-    a: "Setelah paket berbayar resmi diluncurkan, Anda akan bisa upgrade atau downgrade kapan saja. Untuk saat ini, seluruh akun berjalan di paket Gratis.",
+    a: "Upgrade hanya tersedia saat tombol checkout aktif. Pembatalan atau pembayaran gagal akan mengembalikan akses akun ke paket Gratis setelah status provider diverifikasi oleh server.",
   },
   {
     q: "Apa yang dimaksud dengan 'Respons AI streaming'?",
-    a: "Pada paket Pro, jawaban AI ditampilkan bertahap saat sedang dibuat. Paket Gratis tetap mendapat jawaban AI, tetapi hasilnya ditampilkan setelah respons selesai diproses.",
+    a: "Jawaban AI ditampilkan bertahap saat sedang dibuat. Fitur ini tersedia pada paket Gratis maupun Pro.",
   },
   {
     q: "Apakah data percakapan saya aman?",
-    a: "Data Anda dikirim melalui koneksi terenkripsi dan tidak digunakan untuk melatih model AI pihak ketiga. Untuk Enterprise, opsi data residency dapat didiskusikan langsung dengan tim kami.",
+    a: "Paket Gratis menyimpan riwayat chat di browser yang digunakan, sedangkan akun Pro dapat menyinkronkan riwayat ke server. Hindari memasukkan data rahasia dan tetap ikuti kebijakan data organisasi Anda.",
   },
   {
-    q: "Berapa pengguna yang bisa menggunakan satu akun Enterprise?",
-    a: "Paket Enterprise bisa dikonfigurasi untuk tim dari 5 hingga ribuan pengguna. Harga disesuaikan berdasarkan jumlah pengguna dan kebutuhan.",
+    q: "Apakah paket untuk kebutuhan tim sudah aktif?",
+    a: "Belum sebagai paket mandiri di aplikasi. Hubungi tim hanya untuk membahas kebutuhan; fitur, jumlah pengguna, dukungan, dan biaya tidak dianggap tersedia sebelum disepakati secara terpisah.",
   },
 ];
 
@@ -194,12 +165,12 @@ export default function PricingPage() {
     if (index === 0) {
       return {
         ...faq,
-        a: "Ya. Checkout Pro tersedia melalui provider pembayaran yang terhubung. Setelah pembayaran dikonfirmasi melalui webhook bertanda tangan, akses Pro diaktifkan otomatis.",
+        a: "Ya. Checkout Pro tersedia melalui provider pembayaran yang terhubung. Akses Pro diaktifkan setelah pembayaran dikonfirmasi oleh server.",
       };
     }
     return {
       ...faq,
-      a: "Pembayaran diproses oleh provider eksternal melalui checkout aman. Status aktif, gagal, dan pembatalan diverifikasi di server agar akses akun selalu mengikuti status pembayaran.",
+      a: "Pembayaran diproses oleh provider eksternal. Status aktif, gagal, dan pembatalan diverifikasi di server agar akses akun mengikuti status pembayaran.",
     };
   });
 
@@ -258,8 +229,8 @@ export default function PricingPage() {
           </h1>
           <p className="text-slate-400 text-xl max-w-2xl mx-auto mb-8">
             {billingConfigured
-              ? "Paket Gratis dan Pro tersedia sekarang. Upgrade diproses melalui checkout aman dan akses Pro aktif otomatis setelah pembayaran terverifikasi."
-              : "Paket Gratis aktif dan bisa dipakai sekarang. Paket Pro siap diaktifkan setelah provider pembayaran dikonfigurasi."}
+              ? "Paket Gratis dan Pro tersedia sekarang. Upgrade diproses melalui checkout dan akses Pro aktif setelah pembayaran terverifikasi."
+              : "Paket Gratis aktif dan bisa dipakai sekarang. Checkout Pro belum tersedia."}
           </p>
         </div>
 
@@ -281,7 +252,7 @@ export default function PricingPage() {
                   <div className={`text-center py-2 text-xs font-bold ${
                     isPro ? "bg-orange-500 text-white" : "bg-blue-600 text-white"
                   }`}>
-                    {isPro && !billingConfigured ? "Checkout belum dikonfigurasi" : plan.badge}
+                    {isPro && !billingConfigured ? "Belum tersedia" : plan.badge}
                   </div>
                 )}
 
@@ -298,7 +269,7 @@ export default function PricingPage() {
                   ) : displayPrice === 0 ? (
                     <div>
                       <span className="text-white font-bold text-3xl">Gratis</span>
-                      <span className="text-slate-400 text-sm ml-2">selamanya</span>
+                      <span className="text-slate-400 text-sm ml-2">aktif saat ini</span>
                     </div>
                   ) : (
                     <div>
@@ -310,7 +281,7 @@ export default function PricingPage() {
                         <div className="text-orange-300 text-xs mt-1">
                            {billingConfigured
                              ? "Langganan bulanan · checkout terverifikasi"
-                             : "Pembayaran belum tersedia"}
+                              : "Checkout belum tersedia"}
                         </div>
                       )}
                     </div>
@@ -360,7 +331,7 @@ export default function PricingPage() {
 
         {/* Feature Comparison Table */}
         <div className="mb-16">
-          <h2 className="text-white font-bold text-2xl text-center mb-8">Perbandingan Fitur Lengkap</h2>
+          <h2 className="text-white font-bold text-2xl text-center mb-8">Perbandingan Fitur</h2>
           <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
             {/* Table Header */}
             <div className="grid grid-cols-4 border-b border-slate-700">
@@ -370,11 +341,11 @@ export default function PricingPage() {
               </div>
               <div className="px-4 py-4 text-center border-l border-slate-700 bg-orange-500/5">
                 <div className="text-orange-400 font-bold text-sm">Pro</div>
-                <div className="text-slate-500 text-xs">Rp 299rb/bln · {billingConfigured ? "checkout aktif" : "menunggu konfigurasi provider"}</div>
+                <div className="text-slate-500 text-xs">Rp 299rb/bln · {billingConfigured ? "checkout aktif" : "belum tersedia"}</div>
               </div>
               <div className="px-4 py-4 text-center border-l border-slate-700">
-                <div className="text-blue-400 font-bold text-sm">Enterprise</div>
-                <div className="text-slate-500 text-xs">Custom</div>
+                <div className="text-blue-400 font-bold text-sm">Kebutuhan Tim</div>
+                <div className="text-slate-500 text-xs">Belum aktif</div>
               </div>
             </div>
 
@@ -439,22 +410,22 @@ export default function PricingPage() {
 
         {/* Enterprise CTA */}
         <div className="bg-gradient-to-r from-blue-500/10 via-slate-800 to-orange-500/10 border border-slate-700 rounded-2xl p-10 text-center">
-          <h2 className="text-white font-bold text-3xl mb-3">Butuh Solusi Enterprise?</h2>
+          <h2 className="text-white font-bold text-3xl mb-3">Ingin Membahas Kebutuhan Tim?</h2>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-6">
-            Kami menyediakan solusi custom untuk perusahaan konstruksi, konsultan, dan BUMN. Termasuk integrasi sistem, white-label, dan pelatihan tim.
+            Sampaikan konteks organisasi dan kebutuhan akses Anda. Fitur, integrasi, dukungan, serta biaya baru dianggap tersedia setelah disepakati bersama.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
               href="mailto:enterprise@konstruksi.ai"
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all hover:scale-105"
             >
-              📧 Hubungi Tim Enterprise
+              Hubungi Tim
             </a>
             <Link
               href="/chat"
               className="border border-slate-600 hover:border-slate-400 text-slate-300 hover:text-white px-8 py-3 rounded-xl font-semibold transition-all"
             >
-              💬 Demo Langsung
+              Buka Chat AI
             </Link>
           </div>
         </div>

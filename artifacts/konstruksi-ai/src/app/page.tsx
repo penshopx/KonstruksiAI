@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "@/shims/next-link";
 import NavbarAuth from "@/components/NavbarAuth";
 import {
@@ -92,7 +92,7 @@ const mainFeatures = [
   {
     icon: "📋",
     title: "Tender & Pengadaan",
-    description: "Analisis dokumen tender, estimasi biaya, penyusunan penawaran, dan strategi pemenangan tender.",
+    description: "Panduan untuk meninjau dokumen tender, estimasi biaya, penawaran, dan kelengkapan kualifikasi.",
     href: "/tender",
     badge: "Tender",
   },
@@ -106,7 +106,7 @@ const mainFeatures = [
   {
     icon: "📜",
     title: "Perijinan & Sertifikasi",
-    description: "Informasi SBU, SKK, IUJK, IMB/PBG, sertifikasi profesi, dan regulasi terkini.",
+    description: "Rujukan awal untuk SBU, SKK, IUJK, IMB/PBG, sertifikasi profesi, dan regulasi terkait.",
     href: "/perijinan",
     badge: "Perijinan",
   },
@@ -124,48 +124,48 @@ const quickQuestions = [
 const STATS = [
   { value: "Terarah", label: "Panduan berdasarkan kebutuhan kerja", detail: "Mulai dari tender hingga kepatuhan." },
   { value: "Terhubung", label: "Ruang kerja lintas fungsi", detail: "Fitur disusun untuk alur proyek." },
-  { value: "Terkini", label: "Referensi dan update industri", detail: "Selalu cek sumber asli sebelum mengambil keputusan." },
+  { value: "Telusuri", label: "Referensi dan update industri", detail: "Selalu cek sumber asli sebelum mengambil keputusan." },
   { value: "Praktis", label: "Bantuan untuk pekerjaan harian", detail: "Dibuat agar langkah berikutnya lebih jelas." },
 ];
 
 const FAQ_ITEMS = [
   {
     q: "Apakah KonstruksiAI bisa membantu menyusun RAB proyek?",
-    a: "Ya! KonstruksiAI dapat membantu menyusun Rencana Anggaran Biaya (RAB) dengan detail. Cukup berikan informasi proyek seperti jenis bangunan, luas, lokasi, dan spesifikasi, dan AI akan menghasilkan estimasi biaya yang terstruktur.",
+    a: "KonstruksiAI menyediakan kalkulator estimasi awal dan bantuan AI untuk meninjau asumsi RAB. Hasilnya perlu diperiksa kembali terhadap gambar, volume, harga satuan, lokasi, dan ketentuan proyek oleh tenaga profesional.",
   },
   {
     q: "Apakah informasi regulasi yang diberikan selalu terbaru?",
-    a: "KonstruksiAI dilatih dengan regulasi konstruksi Indonesia terkini termasuk UU Cipta Kerja, Perpres 16/2018, dan peraturan PUPR terbaru. Namun selalu disarankan untuk memverifikasi dengan sumber resmi untuk keputusan penting.",
+    a: "Tidak selalu. Radar dan jawaban AI membantu menemukan rujukan yang tersedia, tetapi tanggal, status berlaku, dan isi regulasi harus tetap diperiksa pada sumber resmi sebelum digunakan untuk keputusan penting.",
   },
   {
     q: "Bisakah KonstruksiAI membantu proses tender LPSE?",
-    a: "Tentu! AI kami memiliki keahlian khusus dalam tender pemerintah melalui LPSE. Mulai dari analisis dokumen tender, strategi penawaran, penyusunan metode pelaksanaan, hingga checklist dokumen kualifikasi.",
+    a: "KonstruksiAI dapat membantu meninjau dokumen, menyusun pertanyaan, membuat checklist, dan merapikan analisis tender. Keputusan penawaran dan kepatuhan tetap harus mengacu pada dokumen pemilihan serta evaluasi tim Anda.",
   },
   {
     q: "Apakah ada batasan jumlah pertanyaan yang bisa diajukan?",
-    a: "Tidak ada batasan! Anda bisa mengajukan pertanyaan sebanyak yang Anda butuhkan. Setiap percakapan tersimpan secara lokal di browser Anda sehingga bisa diakses kembali kapan saja.",
+    a: "Aplikasi tidak menampilkan kuota pertanyaan tetap. Ketersediaan jawaban AI tetap bergantung pada layanan yang sedang aktif. Pada paket Gratis, riwayat percakapan disimpan secara lokal di browser yang digunakan.",
   },
   {
     q: "Apakah KonstruksiAI bisa membuat dokumen K3 seperti JSA dan HIRARC?",
-    a: "Ya, KonstruksiAI dapat membantu membuat Job Safety Analysis (JSA), HIRARC, prosedur tanggap darurat, dan dokumen K3 lainnya sesuai standar SMK3 dan ISO 45001.",
+    a: "KonstruksiAI dapat membantu menyusun draf dan checklist K3 seperti JSA atau HIRARC. Dokumen akhir harus disesuaikan dengan bahaya, metode kerja, kondisi lapangan, dan persetujuan personel K3 yang berwenang.",
   },
   {
     q: "Bagaimana cara menggunakan fitur Matriks Ruang Lingkup?",
-    a: "Buka halaman Matriks dari menu navigasi. Di sana Anda akan menemukan grid interaktif 21×6 yang menghubungkan 21 fungsi bisnis dengan 6 kolom keteknikan. Klik setiap titik koneksi untuk membuka agen AI yang relevan.",
+    a: "Buka halaman Matriks dari menu navigasi. Grid interaktifnya menghubungkan 21 fungsi bisnis dengan 10 bidang keteknikan. Pilih sel untuk menyiapkan pertanyaan lintas bidang lalu lanjutkan ke Chat AI.",
   },
 ];
 
 const PLAN_FEATURES = [
-  { feature: "Chat dengan AI", free: true, pro: true },
-  { feature: "8 Agen Spesialis", free: true, pro: true },
+  { feature: "Chat dengan 9 agen AI", free: true, pro: true },
+  { feature: "6 kalkulator teknik", free: true, pro: true },
+  { feature: "Solver dengan 6 domain", free: true, pro: true },
   { feature: "Riwayat percakapan lokal", free: true, pro: true },
-  { feature: "Export percakapan (.md)", free: true, pro: true },
-  { feature: "Matriks Ruang Lingkup", free: true, pro: true },
-  { feature: "Bintang & label percakapan", free: true, pro: true },
-  { feature: "Respons AI streaming", free: false, pro: true },
+  { feature: "Export percakapan (.md, .pdf, .docx)", free: true, pro: true },
+  { feature: "Lampiran PDF/Word di chat", free: true, pro: true },
+  { feature: "Matriks 21×10", free: true, pro: true },
+  { feature: "Respons AI streaming", free: true, pro: true },
   { feature: "Riwayat cloud (sync)", free: false, pro: true },
   { feature: "Template dokumen premium", free: false, pro: true },
-  { feature: "Prioritas dukungan", free: false, pro: true },
 ];
 
 // ============================================================
@@ -242,13 +242,15 @@ function FAQSection() {
 // PRICING / PLAN COMPARISON
 // ============================================================
 
-function PlanComparisonSection() {
+function PlanComparisonSection({ billingConfigured }: { billingConfigured: boolean }) {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
       <div className="text-center mb-12">
         <h2 className="text-3xl font-bold text-white mb-4">Paket Layanan</h2>
         <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-          Paket Gratis aktif sekarang, paket Pro segera hadir
+          {billingConfigured
+            ? "Paket Gratis dan Pro tersedia sekarang; upgrade Pro diproses melalui checkout."
+            : "Paket Gratis aktif sekarang; checkout Pro belum tersedia."}
         </p>
       </div>
 
@@ -259,11 +261,13 @@ function PlanComparisonSection() {
             <div className="px-6 py-4 text-slate-400 text-sm font-medium">Fitur</div>
             <div className="px-6 py-4 text-center border-l border-slate-700">
               <div className="text-white font-bold">Gratis</div>
-              <div className="text-slate-500 text-xs mt-0.5">Selamanya</div>
+              <div className="text-slate-500 text-xs mt-0.5">Aktif sekarang</div>
             </div>
             <div className="px-6 py-4 text-center border-l border-slate-700 bg-orange-500/5">
               <div className="text-orange-400 font-bold">Pro</div>
-              <div className="text-slate-500 text-xs mt-0.5">Segera hadir</div>
+              <div className="text-slate-500 text-xs mt-0.5">
+                {billingConfigured ? "Checkout aktif" : "Belum tersedia"}
+              </div>
             </div>
           </div>
 
@@ -408,6 +412,31 @@ function HeaderNavItem({
 }
 
 export default function Home() {
+  const [billingConfigured, setBillingConfigured] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/billing/config", { credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("billing config unavailable");
+        return response.json() as Promise<{ configured?: boolean; checkoutAvailable?: boolean }>;
+      })
+      .then((config) => {
+        if (active) {
+          setBillingConfigured(
+            config.configured === true
+            && config.checkoutAvailable === true,
+          );
+        }
+      })
+      .catch(() => {
+        if (active) setBillingConfigured(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header / Navbar */}
@@ -623,7 +652,7 @@ export default function Home() {
         id="problem"
         icon="🚨"
         title="Tantangan Industri Konstruksi Indonesia"
-        subtitle="6 masalah utama yang dihadapi kontraktor dan profesional setiap hari"
+        subtitle="Enam area kerja yang membutuhkan persiapan dan verifikasi"
       >
       <div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
@@ -710,30 +739,30 @@ export default function Home() {
       <ExpandableSection
         icon="✨"
         title="Solusi & Nilai Tambah KonstruksiAI"
-        subtitle="Platform AI pertama yang dirancang khusus untuk industri konstruksi Indonesia"
+        subtitle="Alat bantu AI untuk menata analisis, rujukan, dan langkah kerja"
       >
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-white mb-4">
-            KonstruksiAI: Solusi Komprehensif untuk Industri Konstruksi Indonesia
+            Bantu pekerjaan konstruksi lebih mudah ditelusuri
           </h2>
           <p className="text-slate-400 text-lg max-w-3xl mx-auto">
-            Platform AI pertama yang dirancang khusus untuk mengatasi kompleksitas industri konstruksi Indonesia
+            Pilih alat sesuai kebutuhan, tambahkan konteks proyek, lalu tinjau hasilnya bersama tim yang berwenang.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           {/* What We Solve */}
           <div className="bg-gradient-to-br from-blue-900/20 to-slate-800 border border-blue-500/30 rounded-2xl p-8">
-            <h3 className="text-2xl font-bold text-white mb-6">🎯 Masalah yang Kami Atasi</h3>
+            <h3 className="text-2xl font-bold text-white mb-6">🎯 Pekerjaan yang Dapat Dibantu</h3>
             <div className="space-y-4">
               {[
-                "✅ Birokrasi perijinan yang rumit → Solusi otomatis",
-                "✅ Tender yang sulit dimenangkan → Strategi pemenangan terbukti",
-                "✅ Kurangnya tenaga ahli → Database kompetensi lengkap",
-                "✅ Estimasi biaya tidak akurat → Kalkulator RAB presisi",
-                "✅ Regulasi yang selalu berubah → Update real-time",
-                "✅ K3 yang diabaikan → Sistem manajemen K3 terintegrasi"
+                "Alur perizinan → petakan dokumen dan rujukan yang perlu diperiksa",
+                "Persiapan tender → susun checklist dan pertanyaan evaluasi",
+                "Kebutuhan tenaga ahli → tinjau kompetensi dan dokumen pendukung",
+                "Estimasi awal → hitung dengan asumsi yang terlihat",
+                "Perubahan regulasi → pantau sumber yang tersedia di Radar",
+                "Persiapan K3 → susun draf JSA, HIRARC, dan kontrol risiko"
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <span className="text-green-400 mt-0.5">•</span>
@@ -745,15 +774,15 @@ export default function Home() {
 
           {/* How We Do It */}
           <div className="bg-gradient-to-br from-green-900/20 to-slate-800 border border-green-500/30 rounded-2xl p-8">
-            <h3 className="text-2xl font-bold text-white mb-6">🚀 Bagaimana Kami Melakukannya</h3>
+            <h3 className="text-2xl font-bold text-white mb-6">🚀 Fitur yang Tersedia</h3>
             <div className="space-y-4">
               {[
-                "🤖 AI yang memahami bahasa Indonesia dan regulasi lokal",
-                "📊 Database relasional yang terintegrasi",
-                "⚡ Real-time processing untuk analisis instan",
-                "🔄 Workflow automation untuk proses bisnis",
-                "📱 Mobile-first design untuk akses dimana saja",
-                "🔒 Enterprise-grade security dan compliance"
+                "Chat AI berbahasa Indonesia dengan agen spesialis",
+                "Solver untuk enam domain pekerjaan keteknikan",
+                "Enam kalkulator dengan asumsi dan catatan hasil",
+                "Radar untuk menelusuri update dari sumber yang tersedia",
+                "Ruang Proyek untuk menyimpan konteks pekerjaan tim",
+                "Knowledge Base, simulasi, dan matriks lintas bidang"
               ].map((item, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <span className="text-blue-400 mt-0.5">•</span>
@@ -803,7 +832,7 @@ export default function Home() {
       <ExpandableSection
         icon="⚙️"
         title="Cara Kerja KonstruksiAI"
-        subtitle="5 langkah dari input hingga solusi — proses kompleks dalam hitungan detik"
+        subtitle="5 langkah untuk menyiapkan konteks, meninjau hasil, dan memverifikasi keputusan"
       >
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -814,36 +843,36 @@ export default function Home() {
               {
                 step: "1",
                 icon: "📥",
-                title: "Input Data",
-                desc: "Upload dokumen, ajukan pertanyaan, atau gunakan mini-apps",
+                title: "Pilih Kebutuhan",
+                desc: "Buka chat, solver, kalkulator, atau fitur lain yang sesuai",
                 color: "from-blue-500 to-blue-600"
               },
               {
                 step: "2",
                 icon: "🤖",
-                title: "AI Processing",
-                desc: "Algoritma canggih menganalisis data dengan regulasi terkini",
+                title: "Tambah Konteks",
+                desc: "Tulis pertanyaan dan lampirkan dokumen bila diperlukan",
                 color: "from-purple-500 to-purple-600"
               },
               {
                 step: "3",
                 icon: "⚡",
-                title: "Real-time Analysis",
-                desc: "Proses kompleks dalam hitungan detik, bukan hari",
+                title: "Tinjau Hasil",
+                desc: "Baca asumsi, langkah, dan rujukan yang diberikan",
                 color: "from-orange-500 to-orange-600"
               },
               {
                 step: "4",
                 icon: "📊",
-                title: "Actionable Output",
-                desc: "Rekomendasi konkret dengan strategi implementasi",
+                title: "Bandingkan Sumber",
+                desc: "Periksa kembali dokumen proyek dan sumber resmi",
                 color: "from-green-500 to-green-600"
               },
               {
                 step: "5",
                 icon: "🎯",
-                title: "Execute & Win",
-                desc: "Terapkan solusi untuk kesuksesan maksimal",
+                title: "Putuskan Bersama",
+                desc: "Gunakan hasil sebagai bahan analisis tim profesional",
                 color: "from-red-500 to-red-600"
               }
             ].map((item, i) => (
@@ -871,18 +900,18 @@ export default function Home() {
           {[
             {
               icon: "🧠",
-              title: "AI & Machine Learning",
-              features: ["NLP untuk bahasa Indonesia", "OCR foto dokumen (Vision AI)", "Analisis risiko & skor kepatuhan tender berbasis AI", "Basis data persyaratan perizinan & pencocokan bukti"]
+              title: "Analisis Berbantuan AI",
+              features: ["Chat berbahasa Indonesia", "Pembacaan lampiran dokumen", "Analisis tender dan risiko", "Pencocokan persyaratan dan bukti"]
             },
             {
               icon: "⚙️",
-              title: "Automation Engine",
-              features: ["Workflow Automation", "Document Processing", "Real-time Calculations", "API Integrations"]
+              title: "Alat Kerja",
+              features: ["Solver enam domain", "Enam kalkulator teknik", "Matriks 21×10", "Ruang Proyek"]
             },
             {
               icon: "🔒",
-              title: "Enterprise Security",
-              features: ["Enkripsi kata sandi (bcrypt)", "Kontrol akses", "Audit Trails", "Praktik keamanan berkelanjutan"]
+              title: "Kontrol Pengguna",
+              features: ["Kata sandi disimpan dalam bentuk hash", "Akses ruang kerja berbasis anggota", "Riwayat lokal untuk paket Gratis", "Sinkronisasi cloud untuk akun Pro"]
             }
           ].map((tech, i) => (
             <div key={tech.title} className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
@@ -939,12 +968,12 @@ export default function Home() {
             <h3 className="text-2xl font-bold text-white mb-6">👷 Untuk Profesional & Konsultan</h3>
             <div className="space-y-4">
               {[
-                { icon: "🎓", title: "Sertifikasi SKK/SKKNI Mudah", desc: "Panduan lengkap dan bimbingan untuk semua jenjang kompetensi" },
+                { icon: "🎓", title: "Persiapan Sertifikasi", desc: "Gunakan materi belajar dan simulasi sebagai bahan latihan sebelum proses resmi." },
                 { icon: "💼", title: "Pengembangan Karier Terarah", desc: "Petakan kompetensi, dokumen, dan area belajar yang relevan dengan peran Anda." },
-                { icon: "📚", title: "Pengetahuan Update Real-time", desc: "Regulasi terbaru dan teknologi konstruksi terkini" },
-                { icon: "🔧", title: "Tools Produktivitas Canggih", desc: "Kalkulator teknik, template dokumen, dan automation workflow" },
-                { icon: "🤝", title: "Kolaborasi Global", desc: "Berkolaborasi dengan profesional konstruksi dari seluruh dunia" },
-                { icon: "💎", title: "Nilai Pasar Tinggi", desc: "Keahlian yang dibutuhkan pasar dengan sertifikasi terakreditasi" }
+                { icon: "📚", title: "Rujukan yang Dapat Ditelusuri", desc: "Gunakan Knowledge Base dan Radar sebagai titik awal, lalu periksa sumber resminya." },
+                { icon: "🔧", title: "Alat Bantu Produktivitas", desc: "Gunakan kalkulator, template, solver, dan chat sesuai kebutuhan pekerjaan." },
+                { icon: "🤝", title: "Konteks Kerja Bersama", desc: "Simpan konteks proyek agar pembahasan tim lebih konsisten." },
+                { icon: "💎", title: "Belajar Sesuai Peran", desc: "Pilih materi dan simulasi yang relevan dengan kompetensi yang ingin dilatih." }
               ].map((benefit, i) => (
                 <div key={benefit.title} className="flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg">
                   <span className="text-2xl">{benefit.icon}</span>
@@ -1009,7 +1038,7 @@ export default function Home() {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-white mb-4">Bidang Keteknikan</h2>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Cakupan lengkap tiga sektor utama keteknikan Indonesia
+            Tiga kelompok bidang yang dapat dijelajahi dari landing page
           </p>
         </div>
 
@@ -1085,20 +1114,20 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
               <div className="inline-flex items-center gap-2 bg-purple-500/20 border border-purple-500/40 rounded-full px-3 py-1 mb-4">
-                <span className="text-purple-400 text-xs font-medium">🆕 Baru!</span>
+                <span className="text-purple-400 text-xs font-medium">📚 Materi & Template</span>
               </div>
               <h2 className="text-3xl font-bold text-white mb-4">
                 Knowledge Base Keteknikan
               </h2>
               <p className="text-slate-400 text-lg mb-6 leading-relaxed">
-                Akses <strong className="text-purple-400">artikel teknis pilihan</strong>,{" "}
-                <strong className="text-purple-400">video tutorial</strong>, dan{" "}
-                <strong className="text-purple-400">template dokumen</strong> profesional untuk bidang konstruksi, energi, dan migas.
+                Jelajahi <strong className="text-purple-400">artikel</strong>,{" "}
+                <strong className="text-purple-400">video</strong>, dan{" "}
+                <strong className="text-purple-400">template dokumen</strong> yang tersedia untuk konstruksi, energi, dan migas.
               </p>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="flex items-center gap-2 text-slate-300 text-sm">
                   <span className="text-green-400">✓</span>
-                  <span>Artikel teknis lengkap</span>
+                  <span>Artikel teknis</span>
                 </div>
                 <div className="flex items-center gap-2 text-slate-300 text-sm">
                   <span className="text-green-400">✓</span>
@@ -1131,7 +1160,7 @@ export default function Home() {
                 <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-4">
                   <span className="text-2xl mb-2 block">📋</span>
                   <h4 className="text-slate-200 font-medium text-sm mb-1">Tender & LPSE</h4>
-                  <p className="text-slate-500 text-xs">Strategi menang tender pemerintah</p>
+                  <p className="text-slate-500 text-xs">Persiapan dan evaluasi tender pemerintah</p>
                 </div>
               </div>
               <div className="space-y-4 mt-8">
@@ -1143,7 +1172,7 @@ export default function Home() {
                 <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-4">
                   <span className="text-2xl mb-2 block">📜</span>
                   <h4 className="text-slate-200 font-medium text-sm mb-1">SBU & Sertifikasi</h4>
-                  <p className="text-slate-500 text-xs">Panduan lengkap perijinan konstruksi</p>
+                  <p className="text-slate-500 text-xs">Rujukan awal perijinan konstruksi</p>
                 </div>
               </div>
             </div>
@@ -1161,7 +1190,7 @@ export default function Home() {
             </div>
             <h2 className="text-2xl font-bold text-white mb-3">Bimtek Keteknikan</h2>
             <p className="text-slate-400 mb-5 leading-relaxed">
-              Modul bimbingan teknis komprehensif untuk meningkatkan kompetensi di bidang konstruksi, energi, K3, dan manajemen proyek.
+              Modul belajar mandiri yang tersedia untuk konstruksi, energi, K3, dan manajemen proyek.
             </p>
             <div className="grid grid-cols-2 gap-3 mb-6">
               {[
@@ -1193,7 +1222,7 @@ export default function Home() {
             </div>
             <h2 className="text-2xl font-bold text-white mb-3">Simulasi Ujian SKK</h2>
             <p className="text-slate-400 mb-5 leading-relaxed">
-              Latihan soal ujian sertifikasi SKK/SKKNI dengan penjelasan lengkap. Persiapkan diri sebelum ujian resmi.
+              Latihan soal SKK/SKKNI dengan pembahasan sebagai bahan persiapan. Hasil simulasi bukan sertifikat atau penilaian resmi.
             </p>
             <div className="grid grid-cols-2 gap-3 mb-6">
               {[
@@ -1245,11 +1274,11 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-full px-4 py-1.5 mb-4">
-            <span className="text-orange-300 text-sm font-medium">✨ Fitur Unggulan</span>
+            <span className="text-orange-300 text-sm font-medium">Alat Kerja</span>
           </div>
-          <h2 className="text-3xl font-bold text-white mb-4">Platform Keteknikan Terlengkap</h2>
+          <h2 className="text-3xl font-bold text-white mb-4">Solver dan Kalkulator Keteknikan</h2>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Lebih dari sekadar chatbot — KonstruksiAI adalah platform lengkap untuk profesional keteknikan Indonesia
+            Pilih analisis berbantuan AI atau perhitungan cepat dengan asumsi yang dapat ditinjau.
           </p>
         </div>
 
@@ -1263,9 +1292,9 @@ export default function Home() {
                   <span className="text-xs font-medium text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full">Engineering Solver</span>
                 </div>
               </div>
-              <h3 className="text-white font-bold text-xl mb-3">Selesaikan Masalah Teknik</h3>
+              <h3 className="text-white font-bold text-xl mb-3">Susun Analisis Masalah Teknik</h3>
               <p className="text-slate-400 text-sm leading-relaxed mb-4">
-                Deskripsikan permasalahan teknis Anda, dan AI akan menganalisis serta memberikan solusi terstruktur lengkap dengan regulasi, perhitungan, dan langkah implementasi.
+                Deskripsikan masalah dan konteksnya untuk mendapatkan draf analisis, rujukan, serta langkah berikutnya yang perlu diverifikasi.
               </p>
               <div className="flex flex-wrap gap-2 mb-4">
                 {["Struktur", "Energi", "Tender", "Perijinan", "Migas", "Manajemen"].map(tag => (
@@ -1287,7 +1316,7 @@ export default function Home() {
                   <span className="text-xs font-medium text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded-full">Engineering Calculators</span>
                 </div>
               </div>
-              <h3 className="text-white font-bold text-xl mb-3">Kalkulator Teknik Instan</h3>
+              <h3 className="text-white font-bold text-xl mb-3">Enam Kalkulator Teknik</h3>
               <p className="text-slate-400 text-sm leading-relaxed mb-4">
                 6 kalkulator teknik siap pakai: estimasi RAB, analisis balok beton, kalkulasi PLTS, mix design beton, skor tender, dan kapasitas IPAL.
               </p>
@@ -1324,10 +1353,10 @@ export default function Home() {
               </div>
               <h2 className="text-2xl font-bold text-white mb-3">Matriks Ruang Lingkup</h2>
               <p className="text-slate-400 mb-4 leading-relaxed">
-                Eksplorasi <strong className="text-white">126 titik koneksi</strong> antara bidang keteknikan konstruksi dengan 21 fungsi bisnis & profesional — dari Real Estate, Finance, Legal, HR, Marketing, hingga Medical dan IT.
+                Eksplorasi <strong className="text-white">210 kombinasi</strong> antara 21 fungsi bisnis dan 10 bidang keteknikan. Setiap sel menyiapkan pertanyaan untuk dilanjutkan ke Chat AI.
               </p>
               <div className="flex flex-wrap gap-2 mb-6">
-                {["🏠 Real Estate", "💰 Finance", "👨‍⚖️ Legal", "👋 HR", "💻 IT", "📈 Marketing", "🏥 Medical", "+14 lainnya"].map((tag) => (
+                {["Perencanaan", "Estimasi & RAB", "Tender", "K3", "Perijinan", "Kontrak", "SDM", "+14 lainnya"].map((tag) => (
                   <span key={tag} className="text-xs bg-slate-700 text-slate-300 px-2.5 py-1 rounded-full">{tag}</span>
                 ))}
               </div>
@@ -1364,7 +1393,7 @@ export default function Home() {
       <FAQSection />
 
       {/* Plan Comparison */}
-      <PlanComparisonSection />
+      <PlanComparisonSection billingConfigured={billingConfigured} />
 
       {/* Final CTA - ACTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -1379,11 +1408,11 @@ export default function Home() {
 
           <div className="relative z-10">
             <div className="inline-flex items-center gap-2 bg-white/10 border border-white/30 rounded-full px-4 py-2 mb-6">
-              <span className="text-white text-sm font-medium">🚀 Gratis untuk dicoba, tanpa kartu kredit</span>
+              <span className="text-white text-sm font-medium">Paket Gratis aktif tanpa checkout</span>
             </div>
 
             <h2 className="text-4xl font-bold text-white mb-4">
-              Jangan Biarkan Industri Konstruksi Indonesia Terus Darurat!
+              Mulai dari pekerjaan yang perlu dirapikan hari ini
             </h2>
 
             <p className="text-orange-100 text-xl mb-6 max-w-3xl mx-auto">
@@ -1393,7 +1422,7 @@ export default function Home() {
             {/* Urgency Elements */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-3xl mx-auto">
               {[
-                { icon: "🚀", title: "Gratis Selamanya", desc: "Tidak ada biaya tersembunyi" },
+                { icon: "🚀", title: "Paket Gratis Aktif", desc: "Daftar tanpa proses pembayaran" },
                 { icon: "⚡", title: "Mulai dengan Panduan", desc: "Pilih fitur sesuai kebutuhan kerja" },
                 { icon: "🛡️", title: "Gunakan dengan Bijak", desc: "Verifikasi rujukan untuk keputusan penting" }
               ].map((item, i) => (
@@ -1411,13 +1440,13 @@ export default function Home() {
                 href="/register"
                 className="bg-white text-orange-600 hover:bg-orange-50 px-10 py-5 rounded-xl font-bold text-xl transition-all hover:scale-105 inline-block shadow-lg animate-pulse"
               >
-                🚀 DAFTAR GRATIS SEKARANG - Ubah Masa Depan Anda!
+                Daftar Paket Gratis
               </Link>
               <Link
                 href="/chat"
                 className="border-2 border-white text-white hover:bg-white hover:text-orange-600 px-8 py-5 rounded-xl font-bold text-xl transition-all inline-block"
               >
-                💬 Coba Demo Gratis
+                Buka Chat AI
               </Link>
             </div>
 
@@ -1438,7 +1467,7 @@ export default function Home() {
         <div className="mt-12 bg-slate-800 border border-slate-700 rounded-2xl p-8">
           <div className="text-center mb-8">
             <h3 className="text-2xl font-bold text-white mb-2">Cara Bergabung dengan KonstruksiAI</h3>
-            <p className="text-slate-400">Proses pendaftaran yang sangat mudah - hanya 3 langkah!</p>
+            <p className="text-slate-400">Daftar akun Gratis lalu pilih fitur yang ingin digunakan.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1447,22 +1476,22 @@ export default function Home() {
                 step: "1",
                 icon: "📝",
                 title: "Daftar Akun",
-                desc: "Buat akun gratis dengan email Anda. Verifikasi email dan lengkapi profil perusahaan/profesional Anda.",
-                time: "2 menit"
+                desc: "Buat akun Gratis dengan nama, email, dan kata sandi.",
+                time: "Langkah 1"
               },
               {
                 step: "2",
                 icon: "🎯",
-                title: "Pilih Paket",
-                desc: "Pilih paket yang sesuai dengan kebutuhan Anda. Mulai dari paket gratis hingga enterprise.",
-                time: "1 menit"
+                title: "Pilih Fitur",
+                desc: "Mulai dari chat, solver, kalkulator, Radar, atau Ruang Proyek.",
+                time: "Langkah 2"
               },
               {
                 step: "3",
                 icon: "🚀",
                 title: "Mulai Gunakan",
-                desc: "Akses semua fitur KonstruksiAI. Mulai dengan chat AI atau jelajahi mini-apps sesuai kebutuhan.",
-                time: "Sekarang juga!"
+                desc: "Tambahkan konteks, tinjau hasil, dan verifikasi sebelum mengambil keputusan.",
+                time: "Langkah 3"
               }
             ].map((item, i) => (
               <div key={item.step} className="text-center">
@@ -1484,7 +1513,7 @@ export default function Home() {
               href="/register"
               className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-xl font-semibold transition-all hover:scale-105 inline-block"
             >
-              Mulai Proses Pendaftaran →
+              Daftar Paket Gratis →
             </Link>
           </div>
         </div>
@@ -1500,7 +1529,7 @@ export default function Home() {
                 <span className="text-white font-semibold">KonstruksiAI</span>
               </div>
               <p className="text-slate-500 text-xs leading-relaxed">
-                Platform AI keteknikan terlengkap untuk profesional Indonesia
+                Alat bantu AI untuk pekerjaan keteknikan Indonesia
               </p>
             </div>
             <div>
