@@ -292,14 +292,19 @@ export default function MatrixPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 rounded-full px-4 py-1.5 mb-4">
-            <span className="text-orange-300 text-sm font-medium">📊 Matriks Ruang Lingkup</span>
+            <span className="text-orange-300 text-sm font-medium">
+              📊 Matriks Ruang Lingkup · {MATRIX_BUSINESS_FUNCTION_COUNT} × {MATRIX_ENGINEERING_DOMAIN_COUNT} = {MATRIX_CONNECTION_COUNT}
+            </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            Keteknikan × Fungsi Bisnis
+            Matriks {MATRIX_BUSINESS_FUNCTION_COUNT} × {MATRIX_ENGINEERING_DOMAIN_COUNT}: Keteknikan × Fungsi Bisnis
           </h1>
           <p className="text-slate-400 text-lg max-w-3xl mx-auto">
-            Eksplorasi keterhubungan antara <strong className="text-white">bidang keteknikan konstruksi</strong> dengan{" "}
-            <strong className="text-white">21 fungsi bisnis & profesional</strong>. Klik sel matriks untuk langsung konsultasi AI.
+            Eksplorasi{" "}
+            <strong className="text-white">
+              {MATRIX_CONNECTION_COUNT} kombinasi ({MATRIX_BUSINESS_FUNCTION_COUNT} fungsi bisnis × {MATRIX_ENGINEERING_DOMAIN_COUNT} bidang keteknikan)
+            </strong>{" "}
+            untuk menghubungkan bidang keteknikan konstruksi dengan fungsi bisnis & profesional. Klik sel matriks untuk langsung konsultasi AI.
           </p>
         </div>
 
