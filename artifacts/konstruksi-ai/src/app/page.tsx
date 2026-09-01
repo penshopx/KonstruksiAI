@@ -489,54 +489,69 @@ export default function Home() {
 
       {/* Hero Section - ATTENTION */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
-        {/* Industry Problem Alert */}
+        {/* Positioning */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-full px-4 py-2 mb-6">
-            <span className="text-red-400 text-sm font-medium animate-pulse">🚨 KONDISI DARURAT INDUSTRI KONSTRUKSI INDONESIA</span>
+          <div className="inline-flex items-center gap-2 bg-cyan-400/10 border border-cyan-400/30 rounded-full px-4 py-2 mb-6">
+            <span className="text-cyan-300 text-sm font-semibold tracking-wide">● ASISTEN AI KHUSUS KETEKNIAN INDONESIA</span>
           </div>
         </div>
 
-        {/* Hero challenges */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 max-w-4xl mx-auto">
+        {/* Contractor outcomes */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 max-w-5xl mx-auto">
           {[
-            { value: "Perizinan", label: "Alur yang rumit", desc: "Butuh navigasi yang jelas" },
-            { value: "Tender", label: "Persaingan ketat", desc: "Dokumen harus siap dan relevan" },
-            { value: "Kompetensi", label: "Kesiapan tim", desc: "Kebutuhan terus berkembang" },
-            { value: "Proyek", label: "Risiko berlapis", desc: "Waktu, biaya, dan kepatuhan" },
-          ].map((stat, i) => (
-            <div key={stat.label} className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
-              <div className="text-lg font-bold text-red-400 mb-1">{stat.value}</div>
-              <div className="text-red-300 font-semibold text-sm mb-1">{stat.label}</div>
-              <div className="text-red-400/70 text-xs">{stat.desc}</div>
-            </div>
+            { value: "RAB & Estimasi", label: "Tinjau asumsi biaya", desc: "Gunakan kalkulator dan panduan yang lebih terstruktur", href: "/tools", tone: "orange" },
+            { value: "Tender & Dokumen", label: "Siapkan pekerjaan", desc: "Susun analisis, checklist, dan pertanyaan yang relevan", href: "/tender", tone: "cyan" },
+            { value: "Legal & K3", label: "Jaga kepatuhan", desc: "Telusuri regulasi, sertifikasi, dan pengendalian risiko", href: "/legal-licensing", tone: "blue" },
+          ].map((outcome) => (
+            <Link
+              key={outcome.value}
+              href={outcome.href}
+              className={`group rounded-2xl border p-5 text-left transition-all hover:-translate-y-1 ${
+                outcome.tone === "orange"
+                  ? "border-orange-400/30 bg-orange-400/[0.08] hover:border-orange-300/60"
+                  : outcome.tone === "cyan"
+                    ? "border-cyan-400/30 bg-cyan-400/[0.07] hover:border-cyan-300/60"
+                    : "border-blue-400/30 bg-blue-400/[0.07] hover:border-blue-300/60"
+              }`}
+            >
+              <div className={`mb-1 text-base font-bold ${
+                outcome.tone === "orange" ? "text-orange-300" : outcome.tone === "cyan" ? "text-cyan-300" : "text-blue-300"
+              }`}>
+                {outcome.value}
+              </div>
+              <div className="mb-1 text-sm font-semibold text-white">{outcome.label}</div>
+              <div className="text-xs leading-relaxed text-slate-400 group-hover:text-slate-300">{outcome.desc}</div>
+              <div className="mt-3 text-xs font-semibold text-slate-300 group-hover:text-white">Buka alatnya →</div>
+            </Link>
           ))}
         </div>
 
-        {/* Problem Statement */}
+        {/* Outcome statement */}
         <div className="text-center mb-10">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
-            Industri Konstruksi Indonesia
-            <span className="text-red-400 block">Sedang Darurat!</span>
+            RAB, tender, dan dokumen proyek
+            <span className="text-orange-400 block">lebih terarah dengan AI</span>
           </h1>
 
           <p className="text-slate-300 text-lg sm:text-xl max-w-4xl mx-auto mb-6 leading-relaxed">
-            Proyek dapat tertahan oleh birokrasi perizinan, tender yang menuntut kesiapan dokumen,
-            serta kebutuhan kompetensi yang terus berubah. <strong className="text-red-400">Setiap keputusan perlu ditopang konteks dan sumber yang dapat diverifikasi.</strong>
+            KonstruksiAI membantu kontraktor, konsultan, dan tim proyek menyusun langkah kerja,
+            meninjau asumsi, serta menemukan rujukan yang relevan untuk pekerjaan konstruksi Indonesia.
           </p>
 
           <p className="text-slate-400 text-base max-w-3xl mx-auto">
-            Masalahnya? Sistem yang ketinggalan zaman, regulasi yang tumpang tindih, dan kurangnya akses ke pengetahuan teknis terkini.
+            Mulai dari pertanyaan sederhana, dokumen tender, atau kebutuhan teknis—lalu verifikasi
+            rekomendasi terhadap dokumen dan sumber resmi sebelum mengambil keputusan.
           </p>
         </div>
 
-        {/* Solution Introduction */}
+        {/* Solution introduction */}
         <div className="bg-gradient-to-r from-orange-600/20 to-blue-600/20 border border-orange-500/30 rounded-2xl p-6 mb-10">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-white mb-3">
-              ✨ Solusi Revolusioner untuk Industri Konstruksi Indonesia
+              Satu tempat untuk pekerjaan teknis yang perlu ditelusuri
             </h2>
             <p className="text-slate-300 text-lg">
-              Platform AI pertama yang memahami kompleksitas industri konstruksi Indonesia
+              Chat AI, solver, kalkulator, Radar, dan ruang proyek dalam satu alur kerja.
             </p>
           </div>
         </div>
@@ -578,25 +593,25 @@ export default function Home() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
           <Link
             href="/register"
-            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-10 py-5 rounded-xl font-bold text-xl transition-all hover:scale-105 shadow-lg shadow-orange-500/25 animate-pulse"
+            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-10 py-5 rounded-xl font-bold text-xl transition-all hover:scale-105 shadow-lg shadow-orange-500/25"
           >
-            🚀 DAFTAR GRATIS SEKARANG - Ubah Masa Depan Anda!
+            Mulai Gratis →
           </Link>
           <Link
             href="#problem"
             className="border-2 border-slate-600 hover:border-orange-400 text-slate-300 hover:text-white px-8 py-5 rounded-xl font-semibold text-lg transition-all"
           >
-            Mengapa Industri Konstruksi Butuh KonstruksiAI?
+            Lihat masalah yang bisa dirapikan
           </Link>
         </div>
 
         {/* Trust Indicators */}
         <div className="text-center">
           <p className="text-slate-500 text-sm mb-4">Dirancang untuk mendampingi pekerjaan profesional konstruksi Indonesia</p>
-          <div className="flex justify-center items-center gap-6 text-slate-600">
-            <span>🏗️ Kontraktor</span>
-            <span>👷 Profesional</span>
-            <span>📊 Konsultan</span>
+          <div className="flex flex-wrap justify-center items-center gap-x-6 gap-y-2 text-slate-500 text-sm">
+            <span>✓ Paket Gratis aktif sekarang</span>
+            <span>✓ Mulai tanpa kartu kredit</span>
+            <span>✓ Verifikasi sumber tetap diutamakan</span>
           </div>
         </div>
       </section>
