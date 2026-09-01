@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:workspace-revocation-tabs": "pnpm exec tsx scripts/check-workspace-revocation-tabs.ts",
     "test:zoomed-chat-controls": "pnpm exec tsx scripts/check-zoomed-chat-controls.ts",
+    "test:landing-ctas": "pnpm exec tsx scripts/check-landing-ctas.ts",
     "test:solver-markdown": "rm -rf dist/solver-markdown-test && pnpm exec tsc src/lib/solver-markdown.ts src/lib/solver-markdown.test.ts --outDir dist/solver-markdown-test --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck && node --test dist/solver-markdown-test/solver-markdown.test.js"
   },
   "devDependencies": {
