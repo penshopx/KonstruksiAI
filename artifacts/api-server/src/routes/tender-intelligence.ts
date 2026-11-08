@@ -5,9 +5,11 @@ import OpenAI from "openai";
 import {
   classifyTenderAnalysisError,
   getTenderAnalysisErrorDiagnostics,
+  getTenderProviderRequestId,
   isRetryableTenderProviderError,
   TenderAnalysisFailureError,
 } from "../lib/tender-analysis-errors";
+import { acquireTenderAnalysisRun } from "../lib/tender-run-guard";
 import {
   createExecutionRecord,
   resolveExecutionWorkspace,
@@ -376,11 +378,12 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
   const session = await getSessionFromRequest(req);
   if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  if (!checkRateLimit(session.userId)) {
-    res.status(429).json({
-      error: "Batas permintaan analisis aplikasi tercapai.",
-      code: "REQUEST_RATE_LIMITED",
-      action: "Tunggu satu menit sebelum menjalankan analisis kembali.",
+  const releaseRun = acquireTenderAnalysisRun(session.userId);
+  if (!releaseRun) {
+    res.status(409).json({
+      error: "Analisis Tender lain untuk akun Anda masih berjalan.",
+      code: "ANALYSIS_IN_PROGRESS",
+      action: "Tunggu analisis yang sedang berjalan selesai, termasuk di tab lain, lalu periksa riwayat hasil sebelum mencoba kembali.",
       retryable: true,
     });
     return;
@@ -388,8 +391,19 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
 
   let executionId: string | null = null;
   let processingProviderResponse = false;
+  let attempt = 0;
+  const requestStartedAt = performance.now();
 
   try {
+    if (!checkRateLimit(session.userId)) {
+      res.status(429).json({
+        error: "Batas permintaan analisis aplikasi tercapai.",
+        code: "REQUEST_RATE_LIMITED",
+        action: "Tunggu satu menit sebelum menjalankan analisis kembali.",
+        retryable: true,
+      });
+      return;
+    }
     const {
       projectName,
       tenderType,
@@ -472,15 +486,15 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
     executionId = execution.id;
     await transitionExecutionRecord(executionId, "pending", { status: "running" });
 
-    let attempt = 0;
     let raw: string | null = null;
     let lastErr: unknown;
 
     processingProviderResponse = true;
     while (attempt < MAX_COMPLETION_ATTEMPTS) {
       attempt += 1;
+      const attemptStartedAt = performance.now();
       try {
-        const completion = await getOpenAI().chat.completions.create({
+        const { data: completion, response, request_id } = await getOpenAI().chat.completions.create({
           model: "openai/gpt-4o-mini",
           max_tokens: 4096,
           temperature: 0.3,
@@ -490,13 +504,32 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
             { role: "user", content: userContent },
           ],
           stream: false,
-        });
+        }).withResponse();
+        const providerRequestId = getTenderProviderRequestId({ request_id, response });
+        req.log.info({
+          executionId,
+          attempt,
+          maxAttempts: MAX_COMPLETION_ATTEMPTS,
+          durationMs: Math.round(performance.now() - attemptStartedAt),
+          providerStatus: response.status,
+          ...(providerRequestId ? { providerRequestId } : {}),
+        }, "Tender AI attempt completed");
         raw = completion.choices[0]?.message?.content ?? null;
         lastErr = undefined;
         break;
       } catch (err) {
         lastErr = err;
-        if (!isRetryableTenderProviderError(err) || attempt >= MAX_COMPLETION_ATTEMPTS) break;
+        const willRetry = isRetryableTenderProviderError(err) && attempt < MAX_COMPLETION_ATTEMPTS;
+        req.log.warn({
+          executionId,
+          attempt,
+          maxAttempts: MAX_COMPLETION_ATTEMPTS,
+          durationMs: Math.round(performance.now() - attemptStartedAt),
+          failureCode: classifyTenderAnalysisError(err).code,
+          willRetry,
+          ...getTenderAnalysisErrorDiagnostics(err),
+        }, "Tender AI attempt failed");
+        if (!willRetry) break;
         await wait(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1));
       }
     }
@@ -580,6 +613,8 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
     req.log.error({
       failureCode: failure.code,
       executionId,
+      attempts: attempt,
+      durationMs: Math.round(performance.now() - requestStartedAt),
       ...getTenderAnalysisErrorDiagnostics(err),
     }, "POST /tender-intelligence/analyze error");
     res.status(failure.statusCode).json({
@@ -589,6 +624,14 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       retryable: failure.retryable,
       ...(executionId ? { executionId } : {}),
     });
+  } finally {
+    releaseRun();
+    req.log.info({
+      executionId,
+      attempts: attempt,
+      durationMs: Math.round(performance.now() - requestStartedAt),
+      statusCode: res.statusCode,
+    }, "Tender analysis request finished");
   }
 });
 

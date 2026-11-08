@@ -168,14 +168,43 @@ export function isRetryableTenderProviderError(error: unknown): boolean {
   return failure.code === "AI_PROVIDER_RATE_LIMITED" || failure.code === "AI_PROVIDER_UNAVAILABLE";
 }
 
+export function getTenderProviderRequestId(source: unknown): string | undefined {
+  const record = asRecord(source);
+  const headers = record?.headers ?? asRecord(record?.response)?.headers;
+  const readHeader = (name: string): string | undefined => {
+    const values = asRecord(headers);
+    // The SDK can use node-fetch Headers rather than globalThis.Headers.
+    if (typeof values?.get === "function") {
+      try {
+        const value: unknown = values.get.call(headers, name);
+        return typeof value === "string" ? value : undefined;
+      } catch {
+        return undefined;
+      }
+    }
+    const key = Object.keys(values ?? {}).find(key => key.toLowerCase() === name);
+    return key ? stringField(values, key) : undefined;
+  };
+  const candidates = [
+    stringField(record, "request_id"),
+    stringField(record, "_request_id"),
+    readHeader("x-request-id"),
+    readHeader("x-openrouter-request-id"),
+  ];
+  return candidates.find(value => value !== undefined &&
+    /^[a-zA-Z0-9_.:-]{1,150}$/.test(value) && !/^sk-/i.test(value));
+}
+
 export function getTenderAnalysisErrorDiagnostics(error: unknown): {
   errorName: string;
   providerStatus?: number;
   providerCode?: string;
   providerType?: string;
   networkCode?: string;
+  providerRequestId?: string;
 } {
   const metadata = getErrorMetadata(error);
+  const providerRequestId = getTenderProviderRequestId(error);
   const safeToken = (value: string | undefined) =>
     value && /^[a-zA-Z0-9_.:-]{1,100}$/.test(value) ? value : undefined;
   return {
@@ -184,5 +213,6 @@ export function getTenderAnalysisErrorDiagnostics(error: unknown): {
     ...(safeToken(metadata.code) ? { providerCode: safeToken(metadata.code) } : {}),
     ...(safeToken(metadata.type) ? { providerType: safeToken(metadata.type) } : {}),
     ...(safeToken(metadata.networkCode) ? { networkCode: safeToken(metadata.networkCode) } : {}),
+    ...(providerRequestId ? { providerRequestId } : {}),
   };
 }

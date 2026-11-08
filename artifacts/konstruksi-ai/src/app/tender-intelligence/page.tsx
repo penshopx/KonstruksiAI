@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   TENDER_REQUIREMENTS,
   TENDER_CHECKLISTS,
@@ -87,6 +87,7 @@ export default function TenderIntelligencePage() {
   const [projectDetails, setProjectDetails] = useState("");
   const [analysis, setAnalysis] = useState<TenderAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const analysisInFlight = useRef(false);
   const [analysisError, setAnalysisError] = useState<AnalysisFailure | null>(null);
   const [retryOfId, setRetryOfId] = useState<string | null>(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
@@ -171,7 +172,7 @@ export default function TenderIntelligencePage() {
   };
 
   const handleAnalyze = async () => {
-    if (!projectName.trim() || isAnalyzing) return;
+    if (!projectName.trim() || analysisInFlight.current) return;
     const validDocuments = documents.filter(doc => doc.documentType.trim());
     if (validDocuments.length === 0) {
       setAnalysisError({
@@ -183,6 +184,7 @@ export default function TenderIntelligencePage() {
       return;
     }
 
+    analysisInFlight.current = true;
     setIsAnalyzing(true);
     setAnalysisError(null);
     setAnalysis(null);
@@ -253,6 +255,7 @@ export default function TenderIntelligencePage() {
         retryable: true,
       });
     } finally {
+      analysisInFlight.current = false;
       setIsAnalyzing(false);
     }
   };
