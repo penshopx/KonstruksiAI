@@ -539,6 +539,7 @@ export function FloatingChatbots() {
   const isRadarOpen = activePanel === "radar";
   const isMainChatPage = location === "/chat";
   const isLandingPage = location === "/";
+  const isWorkforcePrototypePage = location === "/workforce-assignment";
   const activeFilter = RADAR_FILTERS.find((filter) => filter.id === radarFilter) ?? RADAR_FILTERS[0]!;
   const visibleArticles = activeFilter.keywords
     ? articles.filter((article) => {
@@ -547,6 +548,8 @@ export function FloatingChatbots() {
     })
     : articles;
   const hasSourceIssue = sources.some((source) => source.status === "error");
+
+  if (isWorkforcePrototypePage) return null;
 
   const handleArticleElaboration = (article: RadarArticle) => {
     setRadarContext(article);

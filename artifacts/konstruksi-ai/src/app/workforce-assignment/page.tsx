@@ -1,1002 +1,338 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  analyzeWorkforceAssignment,
-  type ProjectPosition,
-  type PersonnelProfile,
-  type WorkforceAssignmentResult,
-  type AssignmentMatch
-} from "@/lib/workforce-assignment";
-import NavbarAuth from "@/components/NavbarAuth";
+  AlertTriangle,
+  ArrowRight,
+  BriefcaseBusiness,
+  Check,
+  ChevronRight,
+  CircleHelp,
+  HardHat,
+  MapPin,
+  Plus,
+  RotateCcw,
+  ShieldAlert,
+  Trash2,
+  UserRound,
+  X,
+} from "lucide-react";
 
-const STEPS = [
-  { id: "project", label: "📋 Setup Proyek", icon: "📋" },
-  { id: "positions", label: "👥 Kebutuhan Posisi", icon: "👥" },
-  { id: "personnel", label: "👷 Database Personel", icon: "👷" },
-  { id: "analysis", label: "📊 Analisis Matching", icon: "📊" },
-  { id: "results", label: "✅ Rekomendasi Assignment", icon: "✅" }
-];
+type Availability = "now" | "soon" | "flexible";
+type Worker = {
+  id: string;
+  name: string;
+  trade: string;
+  skills: string[];
+  area: string;
+  availability: Availability;
+  updatedAt: string;
+};
+type Job = {
+  id: string;
+  title: string;
+  skills: string[];
+  area: string;
+  availability: Availability;
+  updatedAt: string;
+};
 
-// Mock personnel data for demonstration
-const MOCK_PERSONNEL: PersonnelProfile[] = [
-  {
-    id: "P-001",
-    name: "Ahmad Sutanto",
-    currentPosition: "Pengawas Lapangan",
-    skills: [
-      { skillName: "Project Management", proficiencyLevel: "advanced", yearsOfExperience: 8, lastUsedDate: "2024-01-15", verified: true },
-      { skillName: "Construction Supervision", proficiencyLevel: "expert", yearsOfExperience: 10, lastUsedDate: "2024-01-15", verified: true }
-    ],
-    certifications: [
-      { certificationType: "SKK", certificationLevel: "Pengawas Lapangan", issuedDate: "2022-01-01", expiryDate: "2027-01-01", issuingAuthority: "LPJK", verificationStatus: "verified" },
-      { certificationType: "K3", certificationLevel: "Umum", issuedDate: "2023-01-01", expiryDate: "2026-01-01", issuingAuthority: "Kemnaker", verificationStatus: "verified" }
-    ],
-    experience: [
-      { domain: "Construction", yearsOfExperience: 12, projectCount: 15, projectTypes: ["Building", "Infrastructure"], lastProjectDate: "2024-01-15", keyAchievements: ["On-time delivery", "Quality compliance"] }
-    ],
-    availability: {
-      status: "available",
-      availableFrom: "2024-02-01",
-      maxConcurrentProjects: 2,
-      currentCommitments: []
-    },
-    location: "Jakarta",
-    workPreferences: {
-      workType: "onsite",
-      maxWorkHoursPerWeek: 50,
-      noticePeriodDays: 30,
-      willingToRelocate: true
-    },
-    performanceRating: 4.5,
-    skkReadinessScore: 85
-  },
-  {
-    id: "P-002",
-    name: "Budi Santoso",
-    currentPosition: "Kepala Proyek",
-    skills: [
-      { skillName: "Project Management", proficiencyLevel: "expert", yearsOfExperience: 15, lastUsedDate: "2024-01-10", verified: true },
-      { skillName: "Contract Management", proficiencyLevel: "advanced", yearsOfExperience: 12, lastUsedDate: "2024-01-10", verified: true }
-    ],
-    certifications: [
-      { certificationType: "SKK", certificationLevel: "Kepala Proyek", issuedDate: "2021-01-01", expiryDate: "2026-01-01", issuingAuthority: "LPJK", verificationStatus: "verified" },
-      { certificationType: "SBU", certificationLevel: "Besar", issuedDate: "2022-01-01", expiryDate: "2025-01-01", issuingAuthority: "LPJK", verificationStatus: "verified" }
-    ],
-    experience: [
-      { domain: "Construction", yearsOfExperience: 18, projectCount: 25, projectTypes: ["Building", "Infrastructure", "Energy"], lastProjectDate: "2024-01-10", keyAchievements: ["Budget control", "Team leadership"] }
-    ],
-    availability: {
-      status: "partially_available",
-      availableFrom: "2024-03-01",
-      maxConcurrentProjects: 1,
-      currentCommitments: [
-        { projectId: "PROJ-001", projectName: "Current Project", role: "Kepala Proyek", commitmentPercentage: 80, endDate: "2024-06-30" }
-      ]
-    },
-    location: "Bandung",
-    workPreferences: {
-      workType: "hybrid",
-      maxWorkHoursPerWeek: 45,
-      noticePeriodDays: 45,
-      willingToRelocate: false
-    },
-    performanceRating: 4.8,
-    skkReadinessScore: 92
-  },
-  {
-    id: "P-003",
-    name: "Citra Dewi",
-    currentPosition: "Tenaga Ahli Elektrikal",
-    skills: [
-      { skillName: "Electrical Design", proficiencyLevel: "expert", yearsOfExperience: 10, lastUsedDate: "2024-01-05", verified: true },
-      { skillName: "Power Systems", proficiencyLevel: "advanced", yearsOfExperience: 8, lastUsedDate: "2024-01-05", verified: true }
-    ],
-    certifications: [
-      { certificationType: "SKK", certificationLevel: "Tenaga Ahli Elektrikal", issuedDate: "2023-01-01", expiryDate: "2028-01-01", issuingAuthority: "LPJK", verificationStatus: "verified" },
-      { certificationType: "Electrical Safety", certificationLevel: "Expert", issuedDate: "2023-01-01", expiryDate: "2026-01-01", issuingAuthority: "PLN", verificationStatus: "verified" }
-    ],
-    experience: [
-      { domain: "Electrical Engineering", yearsOfExperience: 12, projectCount: 20, projectTypes: ["Power Distribution", "Substation", "Renewable Energy"], lastProjectDate: "2024-01-05", keyAchievements: ["System reliability", "Safety compliance"] }
-    ],
-    availability: {
-      status: "available",
-      availableFrom: "2024-02-15",
-      maxConcurrentProjects: 2,
-      currentCommitments: []
-    },
-    location: "Surabaya",
-    workPreferences: {
-      workType: "onsite",
-      maxWorkHoursPerWeek: 48,
-      noticePeriodDays: 30,
-      willingToRelocate: true
-    },
-    performanceRating: 4.6,
-    skkReadinessScore: 88
-  }
-];
+const STORAGE_KEY = "konstruksi-ai-workforce-prototype-v1";
+const AREAS = ["Jakarta Pusat", "Jakarta Selatan", "Jakarta Barat", "Jakarta Timur", "Jakarta Utara"];
+const AVAILABILITY_LABEL: Record<Availability, string> = {
+  now: "Siap sekarang",
+  soon: "Dalam 2 minggu",
+  flexible: "Fleksibel",
+};
+const inputClass = "wa-input";
 
-const SKILL_OPTIONS = [
-  "Project Management", "Construction Supervision", "Contract Management",
-  "Electrical Design", "Power Systems", "Civil Engineering", "Structural Analysis",
-  "Quality Control", "Safety Management", "Cost Control", "Risk Management"
-];
+function makeId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
-const CERTIFICATION_TYPES = [
-  "SKK", "K3", "SBU", "Electrical Safety", "Mechanical Engineering",
-  "Civil Engineering", "Quality Management", "Environmental Management"
-];
+function normalizeSkills(value: string) {
+  return [...new Set(value.split(",").map((skill) => skill.trim()).filter(Boolean))];
+}
+
+function scoreMatch(worker: Worker, job: Job) {
+  const desired = job.skills.map((skill) => skill.toLocaleLowerCase("id"));
+  const skills = worker.skills.filter((skill) => desired.includes(skill.toLocaleLowerCase("id")));
+  const area = worker.area === job.area;
+  const available =
+    job.availability === "flexible" ||
+    worker.availability === "flexible" ||
+    worker.availability === job.availability ||
+    (worker.availability === "now" && job.availability === "soon");
+  const score = Math.round(((skills.length / Math.max(desired.length, 1)) * 0.6 + (area ? 0.25 : 0) + (available ? 0.15 : 0)) * 100);
+  return { skills, area, available, score };
+}
+
+function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
+  return (
+    <label className="wa-field">
+      <span className="wa-label">{label}</span>
+      {children}
+      {hint && <span className="wa-hint">{hint}</span>}
+    </label>
+  );
+}
 
 export default function WorkforceAssignmentPage() {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [project, setProject] = useState({
-    id: "PROJ-001",
-    name: "Pembangunan Gardu Induk 150 kV",
-    sector: "ketenagalistrikan",
-    location: "Jawa Barat",
-    startDate: "2024-06-01",
-    endDate: "2025-06-01"
-  });
-  const [positions, setPositions] = useState<ProjectPosition[]>([
-    {
-      id: "POS-001",
-      projectId: "PROJ-001",
-      positionName: "Kepala Proyek",
-      positionCode: "03.01.01",
-      requiredCount: 1,
-      skillRequirements: [
-        { skillName: "Project Management", proficiencyLevel: "expert", mandatory: true, yearsRequired: 10 }
-      ],
-      certificationRequirements: [
-        { certificationType: "SKK", certificationLevel: "Kepala Proyek", mandatory: true, expiryBuffer: 6 }
-      ],
-      experienceRequirements: [
-        { domain: "Construction", yearsRequired: 8, projectTypes: ["Infrastructure", "Energy"], mandatory: true }
-      ],
-      availabilityRequirements: [
-        { availabilityType: "full_time", workHoursPerWeek: 45, noticePeriodDays: 30, locationPreference: ["Jawa Barat"] }
-      ],
-      priority: "high",
-      startDate: "2024-06-01",
-      endDate: "2025-06-01",
-      location: "Jawa Barat",
-      workType: "onsite"
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [ready, setReady] = useState(false);
+  const [storageError, setStorageError] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [workerForm, setWorkerForm] = useState({ name: "", trade: "", skills: "", area: AREAS[0], availability: "now" as Availability });
+  const [jobForm, setJobForm] = useState({ title: "", skills: "", area: AREAS[0], availability: "now" as Availability });
+  const [editingWorker, setEditingWorker] = useState<string | null>(null);
+  const [editingJob, setEditingJob] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"profiles" | "jobs">("profiles");
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as { workers?: Worker[]; jobs?: Job[] };
+        setWorkers(Array.isArray(saved.workers) ? saved.workers : []);
+        setJobs(Array.isArray(saved.jobs) ? saved.jobs : []);
+      }
+    } catch {
+      setStorageError(true);
+    } finally {
+      setReady(true);
     }
-  ]);
-  const [selectedPersonnel, setSelectedPersonnel] = useState<string[]>(["P-001", "P-002", "P-003"]);
-  const [assignmentResult, setAssignmentResult] = useState<WorkforceAssignmentResult | null>(null);
+  }, []);
 
-  const availablePersonnel = useMemo(() =>
-    MOCK_PERSONNEL.filter(p => selectedPersonnel.includes(p.id)),
-    [selectedPersonnel]
-  );
-
-  const handleRunAnalysis = () => {
-    const result = analyzeWorkforceAssignment(
-      project.id,
-      project.name,
-      positions,
-      availablePersonnel
-    );
-    setAssignmentResult(result);
-    setCurrentStep(STEPS.length - 1);
-  };
-
-  const updatePosition = (index: number, field: string, value: any) => {
-    setPositions(prev => prev.map((pos, i) =>
-      i === index ? { ...pos, [field]: value } : pos
-    ));
-  };
-
-  const updatePositionSkills = (index: number, skills: any[]) => {
-    setPositions(prev => prev.map((pos, i) =>
-      i === index ? { ...pos, skillRequirements: skills } : pos
-    ));
-  };
-
-  const updatePositionCertifications = (index: number, certifications: any[]) => {
-    setPositions(prev => prev.map((pos, i) =>
-      i === index ? { ...pos, certificationRequirements: certifications } : pos
-    ));
-  };
-
-  const addPosition = () => {
-    const newPosition: ProjectPosition = {
-      id: `POS-${positions.length + 1}`,
-      projectId: project.id,
-      positionName: "",
-      positionCode: "",
-      requiredCount: 1,
-      skillRequirements: [],
-      certificationRequirements: [],
-      experienceRequirements: [],
-      availabilityRequirements: [{
-        availabilityType: "full_time",
-        workHoursPerWeek: 40,
-        noticePeriodDays: 30,
-        locationPreference: [project.location]
-      }],
-      priority: "medium",
-      startDate: project.startDate,
-      endDate: project.endDate,
-      location: project.location,
-      workType: "onsite"
-    };
-    setPositions(prev => [...prev, newPosition]);
-  };
-
-  const removePosition = (index: number) => {
-    setPositions(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const renderProjectStep = () => (
-    <div className="space-y-6">
-      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-slate-100 mb-4">Informasi Proyek</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Nama Proyek *
-            </label>
-            <input
-              type="text"
-              value={project.name}
-              onChange={(e) => setProject(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Sektor
-            </label>
-            <select
-              value={project.sector}
-              onChange={(e) => setProject(prev => ({ ...prev, sector: e.target.value }))}
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
-            >
-              <option value="konstruksi">Konstruksi</option>
-              <option value="ketenagalistrikan">Ketenagalistrikan</option>
-              <option value="minyak_gas">Minyak & Gas</option>
-              <option value="pertambangan">Pertambangan</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Lokasi
-            </label>
-            <input
-              type="text"
-              value={project.location}
-              onChange={(e) => setProject(prev => ({ ...prev, location: e.target.value }))}
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Tanggal Mulai
-            </label>
-            <input
-              type="date"
-              value={project.startDate}
-              onChange={(e) => setProject(prev => ({ ...prev, startDate: e.target.value }))}
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
-              Tanggal Selesai
-            </label>
-            <input
-              type="date"
-              value={project.endDate}
-              onChange={(e) => setProject(prev => ({ ...prev, endDate: e.target.value }))}
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderPositionsStep = () => (
-    <div className="space-y-6">
-      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-slate-100">Kebutuhan Posisi</h3>
-          <button
-            onClick={addPosition}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm"
-          >
-            + Tambah Posisi
-          </button>
-        </div>
-
-        <div className="space-y-6">
-          {positions.map((position, index) => (
-            <div key={position.id} className="border border-slate-600 rounded-lg p-4">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                      Nama Posisi *
-                    </label>
-                    <input
-                      type="text"
-                      value={position.positionName}
-                      onChange={(e) => updatePosition(index, 'positionName', e.target.value)}
-                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
-                      placeholder="Kepala Proyek, Pengawas Lapangan, dll"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                      Kode SKK
-                    </label>
-                    <input
-                      type="text"
-                      value={position.positionCode}
-                      onChange={(e) => updatePosition(index, 'positionCode', e.target.value)}
-                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
-                      placeholder="03.01.01"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                      Jumlah Dibutuhkan
-                    </label>
-                    <input
-                      type="number"
-                      value={position.requiredCount}
-                      onChange={(e) => updatePosition(index, 'requiredCount', Number(e.target.value))}
-                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
-                      min="1"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                      Prioritas
-                    </label>
-                    <select
-                      value={position.priority}
-                      onChange={(e) => updatePosition(index, 'priority', e.target.value)}
-                      className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 focus:border-blue-500 focus:outline-none"
-                    >
-                      <option value="low">Rendah</option>
-                      <option value="medium">Sedang</option>
-                      <option value="high">Tinggi</option>
-                    </select>
-                  </div>
-                </div>
-
-                {positions.length > 1 && (
-                  <button
-                    onClick={() => removePosition(index)}
-                    className="ml-4 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
-                  >
-                    Hapus
-                  </button>
-                )}
-              </div>
-
-              {/* Skills Requirements */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Kebutuhan Kompetensi
-                </label>
-                <div className="space-y-2">
-                  {position.skillRequirements.map((skill, skillIndex) => (
-                    <div key={skillIndex} className="flex items-center gap-2">
-                      <select
-                        value={skill.skillName}
-                        onChange={(e) => {
-                          const newSkills = [...position.skillRequirements];
-                          newSkills[skillIndex] = { ...skill, skillName: e.target.value };
-                          updatePositionSkills(index, newSkills);
-                        }}
-                        className="flex-1 bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-100 text-sm"
-                      >
-                        {SKILL_OPTIONS.map(option => (
-                          <option key={option} value={option}>{option}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={skill.proficiencyLevel}
-                        onChange={(e) => {
-                          const newSkills = [...position.skillRequirements];
-                          newSkills[skillIndex] = { ...skill, proficiencyLevel: e.target.value as any };
-                          updatePositionSkills(index, newSkills);
-                        }}
-                        className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-100 text-sm"
-                      >
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                        <option value="expert">Expert</option>
-                      </select>
-                      <input
-                        type="number"
-                        value={skill.yearsRequired}
-                        onChange={(e) => {
-                          const newSkills = [...position.skillRequirements];
-                          newSkills[skillIndex] = { ...skill, yearsRequired: Number(e.target.value) };
-                          updatePositionSkills(index, newSkills);
-                        }}
-                        className="w-20 bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-100 text-sm"
-                        placeholder="Years"
-                      />
-                      <button
-                        onClick={() => {
-                          const newSkills = position.skillRequirements.filter((_, i) => i !== skillIndex);
-                          updatePositionSkills(index, newSkills);
-                        }}
-                        className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => {
-                      const newSkills = [...position.skillRequirements, {
-                        skillName: SKILL_OPTIONS[0],
-                        proficiencyLevel: 'intermediate' as const,
-                        mandatory: true,
-                        yearsRequired: 3
-                      }];
-                      updatePositionSkills(index, newSkills);
-                    }}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
-                  >
-                    + Tambah Skill
-                  </button>
-                </div>
-              </div>
-
-              {/* Certification Requirements */}
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Kebutuhan Sertifikasi
-                </label>
-                <div className="space-y-2">
-                  {position.certificationRequirements.map((cert, certIndex) => (
-                    <div key={certIndex} className="flex items-center gap-2">
-                      <select
-                        value={cert.certificationType}
-                        onChange={(e) => {
-                          const newCerts = [...position.certificationRequirements];
-                          newCerts[certIndex] = { ...cert, certificationType: e.target.value };
-                          updatePositionCertifications(index, newCerts);
-                        }}
-                        className="flex-1 bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-100 text-sm"
-                      >
-                        {CERTIFICATION_TYPES.map(option => (
-                          <option key={option} value={option}>{option}</option>
-                        ))}
-                      </select>
-                      <input
-                        type="text"
-                        value={cert.certificationLevel}
-                        onChange={(e) => {
-                          const newCerts = [...position.certificationRequirements];
-                          newCerts[certIndex] = { ...cert, certificationLevel: e.target.value };
-                          updatePositionCertifications(index, newCerts);
-                        }}
-                        className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-100 text-sm"
-                        placeholder="Level"
-                      />
-                      <input
-                        type="number"
-                        value={cert.expiryBuffer}
-                        onChange={(e) => {
-                          const newCerts = [...position.certificationRequirements];
-                          newCerts[certIndex] = { ...cert, expiryBuffer: Number(e.target.value) };
-                          updatePositionCertifications(index, newCerts);
-                        }}
-                        className="w-20 bg-slate-700 border border-slate-600 rounded px-2 py-1 text-slate-100 text-sm"
-                        placeholder="Buffer (months)"
-                      />
-                      <button
-                        onClick={() => {
-                          const newCerts = position.certificationRequirements.filter((_, i) => i !== certIndex);
-                          updatePositionCertifications(index, newCerts);
-                        }}
-                        className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    onClick={() => {
-                      const newCerts = [...position.certificationRequirements, {
-                        certificationType: CERTIFICATION_TYPES[0],
-                        certificationLevel: 'Umum',
-                        mandatory: true,
-                        expiryBuffer: 6
-                      }];
-                      updatePositionCertifications(index, newCerts);
-                    }}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
-                  >
-                    + Tambah Sertifikasi
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderPersonnelStep = () => (
-    <div className="space-y-6">
-      <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-slate-100 mb-4">Database Personel</h3>
-        <p className="text-slate-400 text-sm mb-6">
-          Pilih personel yang tersedia untuk assignment matching. Sistem akan mencocokkan berdasarkan kompetensi, sertifikasi, pengalaman, dan availability.
-        </p>
-
-        <div className="space-y-4">
-          {MOCK_PERSONNEL.map((personnel) => (
-            <div key={personnel.id} className="border border-slate-600 rounded-lg p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h4 className="text-slate-100 font-medium">{personnel.name}</h4>
-                  <p className="text-slate-400 text-sm">{personnel.currentPosition}</p>
-                  <p className="text-slate-500 text-xs">{personnel.location}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    personnel.availability.status === 'available' ? 'bg-green-500/20 text-green-400' :
-                    personnel.availability.status === 'partially_available' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-red-500/20 text-red-400'
-                  }`}>
-                    {personnel.availability.status.replace('_', ' ').toUpperCase()}
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={selectedPersonnel.includes(personnel.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedPersonnel(prev => [...prev, personnel.id]);
-                      } else {
-                        setSelectedPersonnel(prev => prev.filter(id => id !== personnel.id));
-                      }
-                    }}
-                    className="w-4 h-4"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <span className="text-slate-400">SKK Score:</span>
-                  <span className="text-slate-100 ml-2">{personnel.skkReadinessScore}%</span>
-                </div>
-                <div>
-                  <span className="text-slate-400">Performance:</span>
-                  <span className="text-slate-100 ml-2">{personnel.performanceRating}/5</span>
-                </div>
-                <div>
-                  <span className="text-slate-400">Sertifikasi:</span>
-                  <span className="text-slate-100 ml-2">{personnel.certifications.length} aktif</span>
-                </div>
-              </div>
-
-              <div className="mt-3">
-                <span className="text-slate-400 text-sm">Top Skills:</span>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {personnel.skills.slice(0, 3).map((skill, index) => (
-                    <span key={index} className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs">
-                      {skill.skillName} ({skill.proficiencyLevel})
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6 p-4 bg-slate-700/50 rounded-lg">
-          <h4 className="text-slate-100 font-medium mb-2">Ringkasan Seleksi:</h4>
-          <p className="text-slate-300 text-sm">
-            {selectedPersonnel.length} personel dipilih dari {MOCK_PERSONNEL.length} tersedia
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderAnalysisStep = () => {
-    if (!assignmentResult) return null;
-
-    const statusConfig = {
-      eligible: { label: "Ready", color: "bg-green-500/20 text-green-400 border-green-500/40" },
-      conditionally_eligible: { label: "Conditional", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40" },
-      not_eligible: { label: "Not Ready", color: "bg-red-500/20 text-red-400 border-red-500/40" }
-    };
-
-    return (
-      <div className="space-y-6">
-        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-slate-100 mb-4">Hasil Analisis Workforce Assignment</h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div className="text-center">
-              <div className={`text-4xl font-bold mb-2 ${
-                assignmentResult.overallAssignmentScore >= 80 ? 'text-green-400' :
-                assignmentResult.overallAssignmentScore >= 60 ? 'text-yellow-400' :
-                'text-red-400'
-              }`}>
-                {assignmentResult.overallAssignmentScore}%
-              </div>
-              <div className="text-slate-400 text-sm">Assignment Score</div>
-            </div>
-
-            <div className="text-center">
-              <div className="text-4xl font-bold text-green-400 mb-2">
-                {assignmentResult.summary.filledPositions}
-              </div>
-              <div className="text-slate-400 text-sm">Posisi Terisi</div>
-            </div>
-
-            <div className="text-center">
-              <div className="text-4xl font-bold text-orange-400 mb-2">
-                {assignmentResult.summary.unfilledPositions}
-              </div>
-              <div className="text-slate-400 text-sm">Posisi Kosong</div>
-            </div>
-
-            <div className="text-center">
-              <div className={`text-2xl font-bold mb-2 ${
-                assignmentResult.riskAssessment.overallRisk === 'low' ? 'text-green-400' :
-                assignmentResult.riskAssessment.overallRisk === 'medium' ? 'text-yellow-400' :
-                'text-red-400'
-              }`}>
-                {assignmentResult.riskAssessment.overallRisk.toUpperCase()}
-              </div>
-              <div className="text-slate-400 text-sm">Risk Level</div>
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <h4 className="text-slate-100 font-medium mb-3">Summary:</h4>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-slate-100">{assignmentResult.summary.totalPositions}</div>
-                <div className="text-slate-400 text-sm">Total Positions</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-400">{assignmentResult.summary.filledPositions}</div>
-                <div className="text-slate-400 text-sm">Filled</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-yellow-400">{assignmentResult.summary.partiallyFilledPositions}</div>
-                <div className="text-slate-400 text-sm">Partial</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-red-400">{assignmentResult.summary.unfilledPositions}</div>
-                <div className="text-slate-400 text-sm">Unfilled</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-slate-100 mb-4">Risk Assessment</h3>
-          <div className="space-y-3">
-            {assignmentResult.riskAssessment.riskFactors.map((risk, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 border border-slate-600 rounded-lg">
-                <span className="text-red-400 mt-1">⚠️</span>
-                <span className="text-slate-300">{risk}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4">
-            <h4 className="text-slate-100 font-medium mb-2">Mitigation Strategies:</h4>
-            <ul className="text-green-400 text-sm space-y-1">
-              {assignmentResult.riskAssessment.mitigationStrategies.map((strategy, index) => (
-                <li key={index}>• {strategy}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderResultsStep = () => {
-    if (!assignmentResult) return null;
-
-    return (
-      <div className="space-y-6">
-        {assignmentResult.positionRecommendations.map((rec) => (
-          <div key={rec.positionId} className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-100">{rec.positionName}</h3>
-                <p className="text-slate-400 text-sm">Dibutuhkan: {rec.requiredCount} orang</p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-green-400">{rec.bestMatches.length}</div>
-                <div className="text-slate-400 text-sm">Best Matches</div>
-              </div>
-            </div>
-
-            {/* Best Matches */}
-            <div className="mb-6">
-              <h4 className="text-slate-100 font-medium mb-3">Rekomendasi Utama:</h4>
-              <div className="space-y-3">
-                {rec.bestMatches.slice(0, rec.requiredCount).map((match: AssignmentMatch) => (
-                  <div key={match.personnelId} className="border border-slate-600 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h5 className="text-slate-100 font-medium">{match.personnelName}</h5>
-                        <p className="text-slate-400 text-sm">Match Score: {match.matchScore}% ({match.compatibilityLevel})</p>
-                      </div>
-                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        match.riskLevel === 'low' ? 'bg-green-500/20 text-green-400' :
-                        match.riskLevel === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-red-500/20 text-red-400'
-                      }`}>
-                        {match.riskLevel.toUpperCase()} Risk
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mb-3">
-                      <div>
-                        <span className="text-slate-400">Skills:</span>
-                        <span className="text-slate-100 ml-2">{match.matchBreakdown.skills}%</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400">Certifications:</span>
-                        <span className="text-slate-100 ml-2">{match.matchBreakdown.certifications}%</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400">Experience:</span>
-                        <span className="text-slate-100 ml-2">{match.matchBreakdown.experience}%</span>
-                      </div>
-                    </div>
-
-                    {match.strengths.length > 0 && (
-                      <div className="mb-2">
-                        <span className="text-slate-400 text-sm">Strengths:</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {match.strengths.map((strength: string, index: number) => (
-                            <span key={index} className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
-                              {strength}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {match.gaps.length > 0 && (
-                      <div className="mb-2">
-                        <span className="text-slate-400 text-sm">Gaps:</span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {match.gaps.map((gap: string, index: number) => (
-                            <span key={index} className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs">
-                              {gap}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Gap Analysis */}
-            {(rec.gapAnalysis.skillGaps.length > 0 ||
-              rec.gapAnalysis.certificationGaps.length > 0 ||
-              rec.gapAnalysis.experienceGaps.length > 0) && (
-              <div className="mb-6">
-                <h4 className="text-slate-100 font-medium mb-3">Gap Analysis:</h4>
-                <div className="space-y-2">
-                  {rec.gapAnalysis.skillGaps.length > 0 && (
-                    <div>
-                      <span className="text-slate-400 text-sm">Skill Gaps:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {rec.gapAnalysis.skillGaps.map((gap: string, index: number) => (
-                          <span key={index} className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs">
-                            {gap}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {rec.gapAnalysis.certificationGaps.length > 0 && (
-                    <div>
-                      <span className="text-slate-400 text-sm">Certification Gaps:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {rec.gapAnalysis.certificationGaps.map((gap: string, index: number) => (
-                          <span key={index} className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs">
-                            {gap}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Action Recommendations */}
-            <div>
-              <h4 className="text-slate-100 font-medium mb-3">Rekomendasi Tindakan:</h4>
-              <div className="space-y-2">
-                {rec.recommendations.trainingRecommendations.map((rec, index) => (
-                  <div key={`training-${index}`} className="flex items-start gap-3">
-                    <span className="text-blue-400 mt-1">📚</span>
-                    <span className="text-slate-300 text-sm">{rec}</span>
-                  </div>
-                ))}
-                {rec.recommendations.hiringRecommendations.map((rec, index) => (
-                  <div key={`hiring-${index}`} className="flex items-start gap-3">
-                    <span className="text-green-400 mt-1">👥</span>
-                    <span className="text-slate-300 text-sm">{rec}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Overall Actions */}
-        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-slate-100 mb-4">Action Timeline</h3>
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-slate-100 font-medium mb-2">Immediate Actions (1-7 days):</h4>
-              <ul className="text-slate-300 text-sm space-y-1">
-                {assignmentResult.timeline.immediateActions.map((action, index) => (
-                  <li key={index}>• {action}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-slate-100 font-medium mb-2">Short-term Actions (1-4 weeks):</h4>
-              <ul className="text-slate-300 text-sm space-y-1">
-                {assignmentResult.timeline.shortTermActions.map((action, index) => (
-                  <li key={index}>• {action}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-slate-100 font-medium mb-2">Long-term Actions (1-6 months):</h4>
-              <ul className="text-slate-300 text-sm space-y-1">
-                {assignmentResult.timeline.longTermActions.map((action, index) => (
-                  <li key={index}>• {action}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const canProceed = () => {
-    switch (currentStep) {
-      case 0: return project.name && project.sector && project.location;
-      case 1: return positions.every(p => p.positionName && p.requiredCount > 0);
-      case 2: return selectedPersonnel.length > 0;
-      case 3: return true; // Analysis can always run
-      default: return true;
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ workers, jobs }));
+      setStorageError(false);
+    } catch {
+      setStorageError(true);
     }
-  };
+  }, [workers, jobs, ready]);
+
+  const matchCount = useMemo(() => jobs.length * workers.length, [jobs.length, workers.length]);
+
+  function submitWorker(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const skills = normalizeSkills(workerForm.skills);
+    if (!workerForm.name.trim() || !workerForm.trade.trim() || skills.length === 0) {
+      setNotice("Lengkapi nama, bidang kerja, dan minimal satu keahlian.");
+      return;
+    }
+    if (editingWorker) {
+      setWorkers((current) => current.map((item) => item.id === editingWorker ? { ...item, ...workerForm, name: workerForm.name.trim(), trade: workerForm.trade.trim(), skills, updatedAt: new Date().toISOString() } : item));
+      setNotice("Profil tes diperbarui.");
+    } else {
+      setWorkers((current) => [{ ...workerForm, id: makeId(), name: workerForm.name.trim(), trade: workerForm.trade.trim(), skills, updatedAt: new Date().toISOString() }, ...current]);
+      setNotice("Profil tes disimpan di browser ini.");
+    }
+    setWorkerForm({ name: "", trade: "", skills: "", area: AREAS[0], availability: "now" });
+    setEditingWorker(null);
+    setActiveTab("profiles");
+  }
+
+  function submitJob(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const skills = normalizeSkills(jobForm.skills);
+    if (!jobForm.title.trim() || skills.length === 0) {
+      setNotice("Lengkapi judul kebutuhan dan minimal satu keahlian.");
+      return;
+    }
+    if (editingJob) {
+      setJobs((current) => current.map((item) => item.id === editingJob ? { ...item, ...jobForm, title: jobForm.title.trim(), skills, updatedAt: new Date().toISOString() } : item));
+      setNotice("Kebutuhan tes diperbarui.");
+    } else {
+      setJobs((current) => [{ ...jobForm, id: makeId(), title: jobForm.title.trim(), skills, updatedAt: new Date().toISOString() }, ...current]);
+      setNotice("Kebutuhan tes disimpan di browser ini.");
+    }
+    setJobForm({ title: "", skills: "", area: AREAS[0], availability: "now" });
+    setEditingJob(null);
+    setActiveTab("jobs");
+  }
+
+  function startEditWorker(worker: Worker) {
+    setEditingWorker(worker.id);
+    setWorkerForm({ name: worker.name, trade: worker.trade, skills: worker.skills.join(", "), area: worker.area, availability: worker.availability });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function startEditJob(job: Job) {
+    setEditingJob(job.id);
+    setJobForm({ title: job.title, skills: job.skills.join(", "), area: job.area, availability: job.availability });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function clearLocalRecords() {
+    if (!window.confirm("Hapus semua profil dan kebutuhan tes dari browser ini?")) return;
+    setWorkers([]);
+    setJobs([]);
+    setNotice("Semua data tes lokal telah dihapus.");
+  }
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <NavbarAuth />
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-100 mb-2">👷 Workforce Assignment</h1>
-          <p className="text-slate-400">Matching personel dengan kebutuhan proyek berdasarkan kompetensi dan availability</p>
+    <main className="workforce-page">
+      <style>{`
+        .workforce-page{--ink:#edf5ff;--muted:#a8bbd3;--line:#263c57;--panel:#0e1b2a;--panel2:#12243a;--canvas:#08111d;--blue:#81baff;--blue-strong:#2787ff;--lime:#c8ef75;min-height:100dvh;background:radial-gradient(ellipse at 78% -10%,#183253 0,transparent 42%),var(--canvas);color:var(--ink);font-family:var(--app-font-sans,ui-sans-serif,system-ui,sans-serif);padding:28px clamp(18px,4vw,64px) 64px}
+        .wa-shell{max-width:1440px;margin:0 auto}.wa-topline{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:0 0 18px;margin-bottom:38px}.wa-brand{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:750;letter-spacing:.02em}.wa-mark{width:34px;height:34px;display:grid;place-items:center;background:var(--lime);color:#102031;border-radius:9px}.wa-top-meta{font:11px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.13em;color:var(--muted)}.wa-hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,.7fr);gap:42px;align-items:end;margin-bottom:30px}.wa-kicker{display:flex;align-items:center;gap:9px;color:var(--lime);font:700 11px ui-monospace,monospace;letter-spacing:.15em;text-transform:uppercase;margin-bottom:16px}.wa-kicker:before{content:"";width:25px;height:1px;background:currentColor}.wa-hero h1{font-size:clamp(36px,5vw,66px);line-height:.98;letter-spacing:-.055em;max-width:760px;margin:0;font-weight:730}.wa-hero h1 span{color:var(--blue)}.wa-lede{color:var(--muted);font-size:15px;line-height:1.7;max-width:650px;margin:20px 0 0}.wa-hero-aside{border-left:2px solid var(--lime);padding:4px 0 4px 18px;color:#d8e6f6;font-size:13px;line-height:1.65}.wa-hero-aside strong{display:block;color:var(--lime);font:700 10px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+        .wa-notice{display:flex;gap:13px;align-items:flex-start;background:#152238;border:1px solid #395273;border-radius:11px;padding:14px 17px;margin:26px 0 28px;color:#cbdcf0;font-size:12px;line-height:1.6}.wa-notice svg{color:var(--blue);flex:0 0 auto;margin-top:1px}.wa-notice strong{color:#fff}.wa-notice .wa-notice-tag{display:inline-block;color:var(--lime);font:700 10px ui-monospace,monospace;letter-spacing:.09em;text-transform:uppercase;margin-right:8px}.wa-stats{display:flex;gap:0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0d1927;margin-bottom:28px}.wa-stat{padding:16px 22px;min-width:155px;border-right:1px solid var(--line)}.wa-stat:last-child{border:0}.wa-stat b{display:block;font-size:22px;letter-spacing:-.04em}.wa-stat span{font:10px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}.wa-stat.status b{color:var(--lime);font-size:13px;letter-spacing:0;padding:5px 0}
+        .wa-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,.72fr);gap:22px;align-items:start}.wa-card{background:linear-gradient(145deg,rgba(18,36,58,.96),rgba(12,25,40,.98));border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 18px 45px #0002}.wa-card-head{padding:19px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;align-items:center}.wa-card-title{display:flex;gap:11px;align-items:center}.wa-card-icon{width:34px;height:34px;display:grid;place-items:center;background:#1c3551;color:var(--blue);border-radius:9px}.wa-card-head h2{font-size:15px;margin:0;font-weight:700;letter-spacing:-.02em}.wa-card-head p{color:var(--muted);font-size:11px;margin:4px 0 0}.wa-card-body{padding:22px}.wa-form{display:grid;grid-template-columns:1fr 1fr;gap:16px}.wa-field{display:flex;flex-direction:column;gap:7px;min-width:0}.wa-field.full{grid-column:1/-1}.wa-label{font-size:11px;font-weight:650;color:#dce8f6;letter-spacing:.015em}.wa-input{width:100%;height:43px;border:1px solid #34506c;border-radius:7px;background:#081522;color:#f1f7ff;padding:0 12px;font:13px inherit;outline:none;transition:border-color .16s,background .16s}.wa-input:focus{border-color:var(--blue);background:#0c1d30}.wa-input::placeholder{color:#7188a3}.wa-hint{color:#8ea4bf;font-size:10px;line-height:1.45}.wa-form-actions{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-top:3px}.wa-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:39px;border:1px solid transparent;border-radius:7px;padding:0 14px;font-size:11px;font-weight:700;cursor:pointer;transition:transform .15s,background .15s,border-color .15s;color:#091521;background:var(--lime)}.wa-button:hover{transform:translateY(-1px);background:#d7fa8f}.wa-button:focus-visible,.wa-tab:focus-visible{outline:2px solid var(--blue);outline-offset:3px}.wa-button.secondary{background:transparent;border-color:#405b78;color:#dce8f6}.wa-button.secondary:hover{background:#1a304a}.wa-button.danger{background:transparent;border-color:#72414a;color:#ffc2c2}.wa-button.danger:hover{background:#3c2028}.wa-button.small{min-height:30px;padding:0 9px;font-size:10px}.wa-feedback{font-size:11px;color:var(--lime);min-height:16px}.wa-divider{height:1px;background:var(--line);margin:23px 0}.wa-list-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.wa-list-title h3{font-size:12px;margin:0}.wa-list-title span{font:10px ui-monospace,monospace;color:var(--muted)}.wa-empty{border:1px dashed #3a526d;border-radius:10px;padding:22px 18px;text-align:center;color:var(--muted);background:#0b1826}.wa-empty-mark{margin:0 auto 11px;width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:#17304a;color:var(--blue)}.wa-empty strong{display:block;color:#e9f2fc;font-size:12px;margin-bottom:5px}.wa-empty p{font-size:11px;line-height:1.55;margin:0 auto;max-width:300px}.wa-record{border:1px solid #2a415b;background:#0a1725;border-radius:9px;padding:13px 14px;margin-top:9px;animation:wa-in .22s ease both}.wa-record-top{display:flex;justify-content:space-between;gap:10px}.wa-record h4{font-size:13px;margin:0 0 4px}.wa-record-sub{font-size:10px;color:var(--muted)}.wa-record-actions{display:flex;gap:5px}.wa-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}.wa-tag{padding:4px 7px;border-radius:4px;font-size:9px;color:#cfe4ff;background:#1a304a}.wa-record-meta{display:flex;flex-wrap:wrap;gap:11px;margin-top:10px;color:#9eb2ca;font-size:10px}.wa-record-meta span{display:inline-flex;align-items:center;gap:4px}.wa-tabs{display:flex;gap:5px;padding:4px;background:#091522;border:1px solid var(--line);border-radius:8px}.wa-tab{border:0;background:transparent;color:var(--muted);padding:7px 11px;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer}.wa-tab[aria-selected=true]{background:#213b58;color:#f3f8ff}.wa-match-list{display:flex;flex-direction:column;gap:13px}.wa-match-card{border:1px solid #2c4561;background:#0b1928;border-radius:10px;padding:15px}.wa-match-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.wa-match-head h3{font-size:13px;margin:0 0 4px}.wa-match-head p{font-size:10px;color:var(--muted);margin:0}.wa-score{color:var(--lime);font:700 17px ui-monospace,monospace}.wa-score small{display:block;color:#93a9c1;font:9px ui-monospace,monospace;text-align:right;text-transform:uppercase;letter-spacing:.08em}.wa-progress{height:4px;background:#1c3045;border-radius:10px;margin:13px 0;overflow:hidden}.wa-progress span{height:100%;display:block;background:linear-gradient(90deg,#62a9ff,var(--lime));border-radius:10px}.wa-reasons{display:grid;grid-template-columns:1fr 1fr;gap:7px}.wa-reason{display:flex;align-items:flex-start;gap:6px;color:#c5d5e8;font-size:10px;line-height:1.45}.wa-reason svg{color:var(--lime);flex:0 0 auto}.wa-reason.no svg{color:#e2a0a0}.wa-job-label{font:700 9px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--blue);margin:0 0 7px}.wa-job-block{padding-bottom:11px;margin-bottom:11px;border-bottom:1px solid #20344a}.wa-job-block:last-child{border:0;margin:0;padding:0}.wa-disclaimer{font-size:10px;line-height:1.6;color:#8fa5be;margin-top:14px}.wa-bottom{display:flex;justify-content:space-between;align-items:center;gap:14px;padding-top:20px;margin-top:28px;border-top:1px solid var(--line);font:10px ui-monospace,monospace;color:#8297b0}.wa-storage{display:inline-flex;align-items:center;gap:6px;color:var(--lime)}.wa-error{color:#ffb5b5}.wa-skeleton{height:120px;border-radius:10px;background:linear-gradient(90deg,#102137,#1a2d43,#102137);background-size:200% 100%;animation:wa-shimmer 1.3s linear infinite}@keyframes wa-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}@keyframes wa-shimmer{to{background-position:-200% 0}}@media(max-width:950px){.wa-layout{grid-template-columns:1fr}.wa-hero{grid-template-columns:1fr;gap:20px}.wa-hero-aside{max-width:500px}}@media(max-width:600px){.workforce-page{padding:18px 14px 40px}.wa-topline{margin-bottom:28px}.wa-top-meta{font-size:9px}.wa-hero{margin-bottom:22px}.wa-stats{overflow-x:auto}.wa-stat{padding:14px 16px;min-width:125px}.wa-card-body{padding:16px}.wa-card-head{padding:15px 16px}.wa-form{grid-template-columns:1fr}.wa-field.full,.wa-form-actions{grid-column:auto}.wa-reasons{grid-template-columns:1fr}.wa-bottom{align-items:flex-start;flex-direction:column}.wa-button{min-height:42px}.wa-record-actions{flex-shrink:0}}
+      `}</style>
+      <div className="wa-shell">
+        <header className="wa-topline">
+          <div className="wa-brand"><span className="wa-mark"><HardHat size={19} /></span><span>KONSTRUKSIAI <span style={{ color: "#8ea4bf", fontWeight: 500 }}> / WORKFORCE LAB</span></span></div>
+          <div className="wa-top-meta">Internal prototype · Jakarta pilot</div>
+        </header>
+
+        <section className="wa-hero">
+          <div>
+            <div className="wa-kicker">Ruang uji pencocokan tenaga kerja</div>
+            <h1>Temukan kecocokan.<br /><span>Bukan janji penempatan.</span></h1>
+            <p className="wa-lede">Buat profil tukang dan kebutuhan kerja uji, lalu lihat alasan kecocokan berbasis data yang Anda masukkan. Mulai dari Jakarta, untuk evaluasi internal.</p>
+          </div>
+          <aside className="wa-hero-aside">
+            <strong>Ruang kerja privat</strong>
+            Tidak terhubung ke lowongan aktif atau layanan rekrutmen. Data hanya tersimpan di browser ini dan dapat dilihat siapa pun yang memakai browser/perangkat yang sama. Gunakan nama alias, jangan masukkan identitas atau data pekerja nyata.
+          </aside>
+        </section>
+
+        <div className="wa-notice" role="status" data-testid="status-prototype-disclosure">
+          <ShieldAlert size={18} />
+          <div><span className="wa-notice-tag">Internal only</span><strong>Ini bukan marketplace kerja dan bukan layanan verifikasi.</strong> Profil bersifat deklarasi mandiri. Tidak ada sertifikat yang diunggah atau diverifikasi, tidak ada informasi kontak, dan tidak ada penempatan nyata. Hapus data kapan saja dari browser ini.</div>
         </div>
 
-        {/* Progress Steps */}
-        <div className="flex items-center justify-between mb-8">
-          {STEPS.map((step, index) => (
-            <div key={step.id} className="flex items-center">
-              <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                index <= currentStep
-                  ? 'border-blue-500 bg-blue-500 text-white'
-                  : 'border-slate-600 text-slate-400'
-              }`}>
-                {step.icon}
+        <section className="wa-stats" aria-label="Ringkasan workspace">
+          <div className="wa-stat"><b data-testid="text-profile-count">{workers.length}</b><span>Profil uji</span></div>
+          <div className="wa-stat"><b data-testid="text-job-count">{jobs.length}</b><span>Kebutuhan uji</span></div>
+          <div className="wa-stat"><b data-testid="text-match-count">{matchCount}</b><span>Pasangan untuk ditinjau</span></div>
+          <div className="wa-stat status"><span>Status sesi</span><b data-testid="status-storage">{storageError ? "Penyimpanan bermasalah" : ready ? "Tersimpan lokal" : "Memuat data…"}</b></div>
+        </section>
+
+        {storageError && <div className="wa-notice wa-error" role="alert" data-testid="status-storage-error"><AlertTriangle size={18} /><div>Penyimpanan browser tidak tersedia. Perubahan mungkin tidak bertahan setelah halaman ditutup.</div></div>}
+
+        <div className="wa-layout">
+          <section className="wa-card">
+            <div className="wa-card-head">
+              <div className="wa-card-title"><span className="wa-card-icon"><UserRound size={18} /></span><div><h2>Data uji Anda</h2><p>Kelola profil tukang dan kebutuhan kerja lokal</p></div></div>
+              <div className="wa-tabs" role="tablist" aria-label="Jenis data">
+                <button className="wa-tab" role="tab" aria-selected={activeTab === "profiles"} data-testid="tab-profiles" onClick={() => setActiveTab("profiles")}>Profil</button>
+                <button className="wa-tab" role="tab" aria-selected={activeTab === "jobs"} data-testid="tab-jobs" onClick={() => setActiveTab("jobs")}>Kebutuhan</button>
               </div>
-              <span className={`ml-2 text-sm ${
-                index <= currentStep ? 'text-slate-100' : 'text-slate-400'
-              }`}>
-                {step.label}
-              </span>
-              {index < STEPS.length - 1 && (
-                <div className={`w-12 h-0.5 mx-4 ${
-                  index < currentStep ? 'bg-blue-500' : 'bg-slate-600'
-                }`} />
+            </div>
+            <div className="wa-card-body">
+              {!ready ? <div className="wa-skeleton" data-testid="status-loading" /> : activeTab === "profiles" ? (
+                <>
+                  <form className="wa-form" onSubmit={submitWorker} data-testid="form-worker">
+                    <Field label="Nama alias uji *" hint="Gunakan nama fiktif; jangan masukkan identitas pekerja nyata.">
+                      <input className={inputClass} data-testid="input-worker-name" value={workerForm.name} onChange={(e) => setWorkerForm({ ...workerForm, name: e.target.value })} placeholder="Contoh: Tukang Uji 01" required maxLength={80} />
+                    </Field>
+                    <Field label="Bidang kerja *">
+                      <input className={inputClass} data-testid="input-worker-trade" value={workerForm.trade} onChange={(e) => setWorkerForm({ ...workerForm, trade: e.target.value })} placeholder="Contoh: Tukang batu" required maxLength={80} />
+                    </Field>
+                    <Field label="Keahlian *" hint="Pisahkan beberapa keahlian dengan koma. Deklarasi mandiri, tidak diverifikasi.">
+                      <input className={inputClass} data-testid="input-worker-skills" value={workerForm.skills} onChange={(e) => setWorkerForm({ ...workerForm, skills: e.target.value })} placeholder="Pasang bata, plester, aci" required maxLength={240} />
+                    </Field>
+                    <Field label="Area kerja di Jakarta *">
+                      <select className={inputClass} data-testid="select-worker-area" value={workerForm.area} onChange={(e) => setWorkerForm({ ...workerForm, area: e.target.value })}>{AREAS.map((area) => <option key={area}>{area}</option>)}</select>
+                    </Field>
+                    <Field label="Ketersediaan *">
+                      <select className={inputClass} data-testid="select-worker-availability" value={workerForm.availability} onChange={(e) => setWorkerForm({ ...workerForm, availability: e.target.value as Availability })}>{Object.entries(AVAILABILITY_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+                    </Field>
+                    <div className="wa-form-actions">
+                      <button className="wa-button" type="submit" data-testid="button-save-worker">{editingWorker ? <><Check size={15} /> Simpan perubahan</> : <><Plus size={15} /> Simpan profil uji</>}</button>
+                      {editingWorker && <button className="wa-button secondary" type="button" data-testid="button-cancel-worker-edit" onClick={() => { setEditingWorker(null); setWorkerForm({ name: "", trade: "", skills: "", area: AREAS[0], availability: "now" }); }}><X size={14} /> Batal</button>}
+                      <span className="wa-feedback" role="status" data-testid="status-form-feedback">{notice}</span>
+                    </div>
+                  </form>
+                  <div className="wa-divider" />
+                  <div className="wa-list-title"><h3>Profil tukang tersimpan</h3><span>{workers.length} RECORD{workers.length === 1 ? "" : "S"}</span></div>
+                  {!workers.length ? <div className="wa-empty" data-testid="empty-worker-list"><div className="wa-empty-mark"><UserRound size={18} /></div><strong>Belum ada profil uji</strong><p>Mulai dengan mengisi form di atas. Hanya data yang Anda tambahkan sendiri akan muncul di sini.</p></div> :
+                    workers.map((worker) => <article className="wa-record" key={worker.id} data-testid={`card-worker-${worker.id}`}>
+                      <div className="wa-record-top"><div><h4>{worker.name}</h4><div className="wa-record-sub">{worker.trade}</div></div><div className="wa-record-actions"><button className="wa-button secondary small" type="button" data-testid={`button-edit-worker-${worker.id}`} onClick={() => startEditWorker(worker)}>Edit</button><button className="wa-button danger small" type="button" aria-label={`Hapus profil ${worker.name}`} data-testid={`button-delete-worker-${worker.id}`} onClick={() => { if (window.confirm(`Hapus profil uji ${worker.name}?`)) { setWorkers((current) => current.filter((item) => item.id !== worker.id)); setNotice("Profil uji dihapus."); } }}><Trash2 size={13} /></button></div></div>
+                      <div className="wa-tags">{worker.skills.map((skill) => <span className="wa-tag" key={skill}>{skill}</span>)}</div>
+                      <div className="wa-record-meta"><span><MapPin size={12} />{worker.area}</span><span><ChevronRight size={12} />{AVAILABILITY_LABEL[worker.availability]}</span><span>Deklarasi mandiri · belum diverifikasi</span></div>
+                    </article>)}
+                </>
+              ) : (
+                <>
+                  <form className="wa-form" onSubmit={submitJob} data-testid="form-job">
+                    <Field label="Judul kebutuhan *">
+                      <input className={inputClass} data-testid="input-job-title" value={jobForm.title} onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })} placeholder="Contoh: Tukang pasang keramik" required maxLength={100} />
+                    </Field>
+                    <Field label="Keahlian yang dibutuhkan *" hint="Pisahkan dengan koma; pencocokan hanya membaca daftar ini.">
+                      <input className={inputClass} data-testid="input-job-skills" value={jobForm.skills} onChange={(e) => setJobForm({ ...jobForm, skills: e.target.value })} placeholder="Pasang keramik, potong keramik" required maxLength={240} />
+                    </Field>
+                    <Field label="Area kerja di Jakarta *">
+                      <select className={inputClass} data-testid="select-job-area" value={jobForm.area} onChange={(e) => setJobForm({ ...jobForm, area: e.target.value })}>{AREAS.map((area) => <option key={area}>{area}</option>)}</select>
+                    </Field>
+                    <Field label="Ketersediaan yang dibutuhkan *">
+                      <select className={inputClass} data-testid="select-job-availability" value={jobForm.availability} onChange={(e) => setJobForm({ ...jobForm, availability: e.target.value as Availability })}>{Object.entries(AVAILABILITY_LABEL).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+                    </Field>
+                    <div className="wa-form-actions">
+                      <button className="wa-button" type="submit" data-testid="button-save-job">{editingJob ? <><Check size={15} /> Simpan perubahan</> : <><Plus size={15} /> Simpan kebutuhan uji</>}</button>
+                      {editingJob && <button className="wa-button secondary" type="button" data-testid="button-cancel-job-edit" onClick={() => { setEditingJob(null); setJobForm({ title: "", skills: "", area: AREAS[0], availability: "now" }); }}><X size={14} /> Batal</button>}
+                      <span className="wa-feedback" role="status" data-testid="status-job-feedback">{notice}</span>
+                    </div>
+                  </form>
+                  <div className="wa-divider" />
+                  <div className="wa-list-title"><h3>Kebutuhan kerja tersimpan</h3><span>{jobs.length} RECORD{jobs.length === 1 ? "" : "S"}</span></div>
+                  {!jobs.length ? <div className="wa-empty" data-testid="empty-job-list"><div className="wa-empty-mark"><BriefcaseBusiness size={18} /></div><strong>Belum ada kebutuhan uji</strong><p>Beralih ke Profil untuk membuat profil tukang, lalu buat kebutuhan uji di sini.</p></div> :
+                    jobs.map((job) => <article className="wa-record" key={job.id} data-testid={`card-job-${job.id}`}>
+                      <div className="wa-record-top"><div><h4>{job.title}</h4><div className="wa-record-sub">{job.skills.join(" · ")}</div></div><div className="wa-record-actions"><button className="wa-button secondary small" type="button" data-testid={`button-edit-job-${job.id}`} onClick={() => startEditJob(job)}>Edit</button><button className="wa-button danger small" type="button" aria-label={`Hapus kebutuhan ${job.title}`} data-testid={`button-delete-job-${job.id}`} onClick={() => { if (window.confirm(`Hapus kebutuhan uji ${job.title}?`)) { setJobs((current) => current.filter((item) => item.id !== job.id)); setNotice("Kebutuhan uji dihapus."); } }}><Trash2 size={13} /></button></div></div>
+                      <div className="wa-record-meta"><span><MapPin size={12} />{job.area}</span><span><ChevronRight size={12} />Butuh: {AVAILABILITY_LABEL[job.availability]}</span></div>
+                    </article>)}
+                </>
               )}
             </div>
-          ))}
+          </section>
+
+          <section className="wa-card">
+            <div className="wa-card-head">
+              <div className="wa-card-title"><span className="wa-card-icon"><CircleHelp size={18} /></span><div><h2>Penjelasan kecocokan</h2><p>Aturan sederhana, bukan rekomendasi penempatan</p></div></div>
+              <span className="wa-top-meta">RULESET 01</span>
+            </div>
+            <div className="wa-card-body">
+              {!ready ? <div className="wa-skeleton" data-testid="status-match-loading" /> : !jobs.length || !workers.length ? (
+                <div className="wa-empty" data-testid="empty-matches"><div className="wa-empty-mark"><ArrowRight size={18} /></div><strong>Belum ada kecocokan untuk ditinjau</strong><p>Langkah 1: tambahkan profil deklarasi mandiri. Langkah 2: buat kebutuhan uji. Hasil akan muncul saat keduanya tersedia.</p></div>
+              ) : (
+                <div className="wa-match-list" data-testid="list-matches">
+                  {jobs.map((job) => {
+                    const ranked = workers.map((worker) => ({ worker, result: scoreMatch(worker, job) })).sort((a, b) => b.result.score - a.result.score);
+                    return <div className="wa-job-block" key={job.id}>
+                      <div className="wa-job-label">Kebutuhan uji · {job.area}</div>
+                      <div className="wa-match-list">
+                        {ranked.map(({ worker, result }) => <article className="wa-match-card" key={`${job.id}-${worker.id}`} data-testid={`match-${job.id}-${worker.id}`}>
+                          <div className="wa-match-head">
+                            <div><h3>{worker.name} <span style={{ color: "#9eb2ca", fontWeight: 450 }}>· {worker.trade}</span></h3><p>{job.title}</p></div>
+                            <div className="wa-score" data-testid={`text-match-score-${job.id}-${worker.id}`}>{result.score}<small>indikator</small></div>
+                          </div>
+                          <div className="wa-progress" aria-label={`Skor aturan ${result.score}`}><span style={{ width: `${result.score}%` }} /></div>
+                          <div className="wa-reasons">
+                            <div className={`wa-reason ${result.skills.length ? "" : "no"}`}>{result.skills.length ? <Check size={13} /> : <X size={13} />}Keahlian cocok: {result.skills.length ? result.skills.join(", ") : "tidak ada"}</div>
+                            <div className={`wa-reason ${result.area ? "" : "no"}`}>{result.area ? <Check size={13} /> : <X size={13} />}Area {result.area ? "sama" : "berbeda"}: {worker.area} / {job.area}</div>
+                            <div className={`wa-reason ${result.available ? "" : "no"}`}>{result.available ? <Check size={13} /> : <X size={13} />}Ketersediaan {result.available ? "sesuai" : "belum sesuai"}: {AVAILABILITY_LABEL[worker.availability]}</div>
+                          </div>
+                          <p className="wa-disclaimer">Indikator ini hanya menghitung keahlian yang tertulis, area Jakarta, dan ketersediaan. Bukan pemeriksaan kompetensi, sertifikasi, atau hasil penempatan.</p>
+                        </article>)}
+                      </div>
+                    </div>;
+                  })}
+                </div>
+              )}
+              <div className="wa-divider" />
+              <div className="wa-notice" style={{ margin: 0 }} data-testid="status-match-method"><CircleHelp size={17} /><div><strong>Cara membaca angka:</strong> skill 60%, area yang sama 25%, ketersediaan sesuai 15%. Setiap indikator dapat diperiksa di bawah skor. Angka bukan probabilitas keberhasilan.</div></div>
+            </div>
+          </section>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex flex-wrap gap-2 mb-8 border-b border-slate-700 pb-4">
-          {STEPS.map((step, index) => (
-            <button
-              key={step.id}
-              onClick={() => setCurrentStep(index)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                currentStep === index
-                  ? "bg-blue-600 text-white"
-                  : "text-slate-300 hover:text-white hover:bg-slate-800"
-              }`}
-            >
-              {step.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Step Content */}
-        {currentStep === 0 && renderProjectStep()}
-        {currentStep === 1 && renderPositionsStep()}
-        {currentStep === 2 && renderPersonnelStep()}
-        {currentStep === 3 && renderAnalysisStep()}
-        {currentStep === 4 && renderResultsStep()}
-
-        {/* Action Buttons */}
-        <div className="flex justify-between mt-8">
-          <button
-            onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-            disabled={currentStep === 0}
-            className="px-6 py-2 border border-slate-600 rounded-lg text-slate-300 hover:border-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Previous
-          </button>
-
-          <div className="flex gap-3">
-            {currentStep === STEPS.length - 2 && (
-              <button
-                onClick={handleRunAnalysis}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
-              >
-                Run Assignment Analysis
-              </button>
-            )}
-
-            {currentStep < STEPS.length - 1 && (
-              <button
-                onClick={() => setCurrentStep(currentStep + 1)}
-                disabled={!canProceed()}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            )}
-
-            {currentStep === STEPS.length - 1 && (
-              <button
-                onClick={() => window.location.reload()}
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium"
-              >
-                New Assignment Analysis
-              </button>
-            )}
-          </div>
-        </div>
+        <footer className="wa-bottom">
+          <span><span className={`wa-storage ${storageError ? "wa-error" : ""}`}><span aria-hidden="true">●</span>{storageError ? "Browser storage error" : "Local browser storage"}</span> · Data uji tidak dikirim ke server.</span>
+          <button className="wa-button danger small" type="button" onClick={clearLocalRecords} data-testid="button-clear-local-data" disabled={!workers.length && !jobs.length}><RotateCcw size={13} /> Hapus semua data lokal</button>
+        </footer>
       </div>
-    </div>
+    </main>
   );
 }
