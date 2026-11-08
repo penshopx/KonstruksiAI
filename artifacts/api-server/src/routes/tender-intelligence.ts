@@ -24,11 +24,12 @@ const router = Router();
 let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY environment variable is not set");
+    if (!process.env.OPENROUTER_API_KEY) {
+      throw new Error("OPENROUTER_API_KEY environment variable is not set");
     }
     _openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: "https://openrouter.ai/api/v1",
       timeout: 90_000,
       maxRetries: 0,
     });
@@ -450,7 +451,7 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       attempt += 1;
       try {
         const completion = await getOpenAI().chat.completions.create({
-          model: "gpt-4o-mini",
+          model: "openai/gpt-4o-mini",
           max_tokens: 4096,
           temperature: 0.3,
           response_format: { type: "json_object" },
