@@ -234,6 +234,105 @@ test("Tender endpoint failures and retry recovery stay safe without provider det
         }
       }
     });
+    await t.test("invalid model responses after transient retries fail without saving results", async t => {
+      // Keep the matrix below the real per-account request limit.
+      const registration = await fetch(`${base}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Tender Invalid Response Retry Regression",
+          email: `tender-invalid-${randomUUID()}@example.test`,
+          password: "synthetic-password-123",
+        }),
+      });
+      assert.equal(registration.status, 200);
+      const retryToken = /auth-token=([^;]+)/.exec(registration.headers.get("set-cookie") ?? "")?.[1];
+      assert.ok(retryToken);
+      const invalidResponses = [
+        { name: "null content", content: null },
+        { name: "empty content", content: "" },
+        { name: "malformed JSON", content: `{"privateDetail":"${privateDetail}"` },
+        // Invalid top-level types, not omitted document assessments.
+        { name: "invalid schema", content: JSON.stringify({
+          completenessChecks: privateDetail, risks: {}, recommendations: false,
+          complianceScore: privateDetail, summary: null,
+        }) },
+      ];
+      const error = "Respons model AI kosong atau tidak sesuai format analisis yang dibutuhkan.";
+      const action = "Coba jalankan analisis kembali. Jika terus terjadi, informasikan tim teknis.";
+      for (const statuses of [[503], [429], [503, 429], [429, 503]]) {
+        for (const invalidResponse of invalidResponses) {
+          await t.test(`${statuses.join(" then ")} then ${invalidResponse.name}`, async () => {
+            providerCalls = 0;
+            transientStatuses = statuses;
+            providerFailure = undefined;
+            modelContent = invalidResponse.content;
+            const previousExecutions = await db.select().from(aiExecutionHistory);
+            const previousIds = new Set(previousExecutions.map(row => row.id));
+            const previousResults = await db.select().from(tenderAnalysisResults);
+            const observedIds: string[] = [];
+            observeAttempt = async () => {
+              const executions = await db.select().from(aiExecutionHistory);
+              const current = executions.filter(row => !previousIds.has(row.id));
+              assert.equal(executions.length, previousExecutions.length + 1);
+              assert.equal(current.length, 1, "Retries must share one execution");
+              const execution = current[0]!;
+              observedIds.push(execution.id);
+              assert.equal(execution.status, "running");
+              assert.equal(execution.errorMessage, null);
+              assert.equal(execution.completedAt, null);
+              assert.equal(execution.resultRef, null);
+              assert.deepEqual(await db.select().from(tenderAnalysisResults), previousResults);
+            };
+            try {
+              const response = await fetch(`${base}/api/tender-intelligence/analyze`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Cookie: `auth-token=${retryToken}` },
+                body: JSON.stringify({
+                  requestId: randomUUID(),
+                  projectName: "Proyek Uji Respons Tidak Valid Setelah Retry",
+                  documents: [{ documentType: "SBU", present: true, required: true, notes: "" }],
+                }),
+              });
+              assert.equal(response.status, 502);
+              const body = await response.json() as { executionId: string };
+              assert.equal(typeof body.executionId, "string");
+              assert.ok(body.executionId.length > 0);
+              assert.deepEqual(body, {
+                executionId: body.executionId,
+                code: "AI_INVALID_MODEL_RESPONSE",
+                error,
+                action,
+                retryable: true,
+              }, "Invalid content must replace the earlier transient classification");
+              assert.doesNotMatch(JSON.stringify(body),
+                /PROVIDER_PRIVATE_DETAIL|sk-synthetic|Bearer|authorization|OPENROUTER_API_KEY|request_id|providerRequestId|AI_PROVIDER_/);
+              assert.equal(providerCalls, statuses.length + 1,
+                "Invalid content must stop automatic retries, even with retry budget remaining");
+              assert.deepEqual(observedIds, Array(statuses.length + 1).fill(body.executionId));
+              const executions = await db.select().from(aiExecutionHistory);
+              const current = executions.filter(row => !previousIds.has(row.id));
+              assert.equal(executions.length, previousExecutions.length + 1);
+              assert.equal(current.length, 1, "Only one failed execution may be created");
+              const execution = current[0]!;
+              assert.equal(execution.id, body.executionId);
+              assert.equal(execution.status, "failed");
+              assert.equal(execution.errorMessage, `${error} ${action}`);
+              assert.equal(execution.resultRef, null);
+              assert.ok(execution.completedAt);
+              assert.ok(execution.completedAt.getTime() >= execution.startedAt.getTime());
+              assert.deepEqual(await db.select().from(tenderAnalysisResults), previousResults,
+                "Invalid model content after retry must not persist a result");
+            } finally {
+              observeAttempt = undefined;
+              transientStatuses = [];
+              providerFailure = undefined;
+              modelContent = null;
+            }
+          });
+        }
+      }
+    });
     for (const statuses of [[503], [429], [503, 429], [429, 503]]) {
       await t.test(`${statuses.join(" then ")} then success on attempt ${statuses.length + 1}`, async () => {
         providerCalls = 0;
