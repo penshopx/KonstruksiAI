@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import OpenAI from "openai";
+import type { TenderAnalysisPayload } from "../lib/tender-history";
 
 // Only synthetic credentials, isolated storage, and a stubbed SDK are used.
 // No application code test switch or network-capable provider fallback.
@@ -15,8 +16,20 @@ const privateDetail = "PROVIDER_PRIVATE_DETAIL sk-synthetic-do-not-expose";
 let providerCalls = 0;
 let providerFailure: unknown;
 let modelContent: string | null = null;
+let transientStatuses: number[] = [];
+let observeAttempt: (() => Promise<void>) | undefined;
 
-test("Tender endpoint failures provide safe, actionable guidance without provider details", async t => {
+function syntheticProviderFailure(status: number, code?: string) {
+  return {
+    status,
+    code,
+    message: privateDetail,
+    error: { message: privateDetail },
+    headers: { authorization: `Bearer ${privateDetail}` },
+  };
+}
+
+test("Tender endpoint failures and retry recovery stay safe without provider details", async t => {
   let unexpectedTransportCalls = 0;
   t.mock.method(OpenAI.prototype, "request", () => {
     unexpectedTransportCalls++;
@@ -26,11 +39,14 @@ test("Tender endpoint failures provide safe, actionable guidance without provide
     providerCalls++;
     return {
       withResponse: async () => {
+        await observeAttempt?.();
+        const transientStatus = transientStatuses[providerCalls - 1];
+        if (transientStatus) throw syntheticProviderFailure(transientStatus);
         if (providerFailure) throw providerFailure;
         return {
           data: { choices: [{ message: { content: modelContent } }] },
           response: { status: 200 },
-          request_id: "req_synthetic",
+          request_id: `req_${privateDetail}`,
         };
       },
     };
@@ -72,13 +88,9 @@ test("Tender endpoint failures provide safe, actionable guidance without provide
       await t.test(scenario.name, async () => {
         providerCalls = 0;
         modelContent = scenario.content ?? null;
-        providerFailure = scenario.providerStatus ? {
-          status: scenario.providerStatus,
-          code: scenario.providerCode,
-          message: privateDetail,
-          error: { message: privateDetail },
-          headers: { authorization: `Bearer ${privateDetail}` },
-        } : undefined;
+        providerFailure = scenario.providerStatus
+          ? syntheticProviderFailure(scenario.providerStatus, scenario.providerCode)
+          : undefined;
         const response = await fetch(`${base}/api/tender-intelligence/analyze`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Cookie: `auth-token=${token}` },
@@ -108,6 +120,140 @@ test("Tender endpoint failures provide safe, actionable guidance without provide
       });
       // The first request must test absence before the lazy client is initialized.
       process.env.OPENROUTER_API_KEY = "sk-synthetic-offline-test-only";
+    }
+    for (const statuses of [[503], [429], [503, 429], [429, 503]]) {
+      await t.test(`${statuses.join(" then ")} then success on attempt ${statuses.length + 1}`, async () => {
+        providerCalls = 0;
+        providerFailure = undefined;
+        transientStatuses = statuses;
+        const documents = [
+          { documentType: "SBU", present: true, required: true, notes: "Berlaku sampai 2028" },
+          { documentType: "SMK3", present: false, required: true, notes: "Dalam proses" },
+          { documentType: "Brosur", present: false, required: false, notes: "Opsional" },
+        ];
+        const checklistState = { "admin-1": { checked: true, notes: "Akta tersedia" } };
+        const summary = {
+          administrativeRequirements: "Lengkapi SMK3.",
+          technicalRequirements: "SBU sesuai.",
+          financialRequirements: "Periksa jaminan.",
+          keyRisks: "SMK3 belum tersedia.",
+          nextSteps: "Siapkan dokumen wajib.",
+        };
+        modelContent = JSON.stringify({
+          // Reordered assessments and optimistic missing-document scores must
+          // still reconcile to the user's input after a provider retry.
+          completenessChecks: [
+            { documentType: "Brosur", completenessScore: 90, missingElements: [], notes: "" },
+            { documentType: "SMK3", completenessScore: 98, missingElements: [], notes: "" },
+            { documentType: "SBU", completenessScore: 94, missingElements: [], notes: "Masih berlaku." },
+          ],
+          risks: [],
+          recommendations: ["Lengkapi SMK3 sebelum pengajuan."],
+          complianceScore: 98,
+          summary,
+        });
+        const previousExecutions = await db.select().from(aiExecutionHistory);
+        const previousIds = new Set(previousExecutions.map(row => row.id));
+        const previousResults = await db.select().from(tenderAnalysisResults);
+        const observations: {
+          id: string; status: string; errorMessage: string | null;
+          resultRef: string | null; completedAt: Date | null;
+          executionCount: number; resultCount: number;
+        }[] = [];
+        observeAttempt = async () => {
+          const executions = await db.select().from(aiExecutionHistory);
+          const current = executions.filter(row => !previousIds.has(row.id));
+          assert.equal(current.length, 1, "Provider retries must share one execution");
+          observations.push({
+            ...current[0]!,
+            executionCount: executions.length,
+            resultCount: (await db.select().from(tenderAnalysisResults)).length,
+          });
+        };
+        const response = await fetch(`${base}/api/tender-intelligence/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Cookie: `auth-token=${token}` },
+          body: JSON.stringify({
+            requestId: randomUUID(),
+            projectName: "Proyek Uji Pemulihan",
+            documents,
+            checklistState,
+          }),
+        });
+        observeAttempt = undefined;
+        assert.equal(response.status, 200);
+        const body = await response.json() as TenderAnalysisPayload & {
+          status: string; executionId: string; resultRef: string;
+          result: TenderAnalysisPayload & { id: string; executionId: string };
+        };
+        assert.deepEqual(Object.keys(body).sort(), [
+          "completenessChecks", "complianceScore", "executionId", "overallCompleteness",
+          "recommendations", "result", "resultRef", "risks", "status", "summary",
+        ]);
+        assert.equal(body.status, "succeeded");
+        assert.equal(providerCalls, statuses.length + 1, "Stop retrying immediately after success");
+        assert.equal(observations.length, providerCalls);
+        for (const observation of observations) {
+          assert.equal(observation.id, body.executionId);
+          assert.equal(observation.status, "running", "Transient failures must not fail the execution");
+          assert.equal(observation.errorMessage, null);
+          assert.equal(observation.resultRef, null);
+          assert.equal(observation.completedAt, null);
+          assert.equal(observation.executionCount, previousExecutions.length + 1);
+          assert.equal(observation.resultCount, previousResults.length, "No result before model success");
+        }
+        assert.doesNotMatch(JSON.stringify(body),
+          /PROVIDER_PRIVATE_DETAIL|sk-synthetic|Bearer|authorization|OPENROUTER_API_KEY|request_id|providerRequestId|AI_PROVIDER_|"error"|"action"|"retryable"/);
+        assert.equal(body.resultRef, `tender:${body.result.id}`);
+        assert.equal(body.result.id, body.executionId);
+        assert.equal(body.result.executionId, body.executionId);
+        assert.deepEqual(body.result.documents, documents);
+        assert.deepEqual(body.result.checklistState, checklistState);
+        const expectedChecks = [
+          { ...documents[0], completenessScore: 94, missingElements: [], notes: "Masih berlaku." },
+          {
+            ...documents[1], completenessScore: 0,
+            missingElements: ["Dokumen SMK3 belum tersedia; siapkan dokumen ini sebelum pengajuan tender."],
+            notes: "Dokumen belum dilengkapi.",
+          },
+          {
+            ...documents[2], completenessScore: 0,
+            missingElements: ["Dokumen Brosur belum tersedia; siapkan dokumen ini sebelum pengajuan tender."],
+            notes: "Dokumen belum dilengkapi.",
+          },
+        ];
+        assert.deepEqual(body.completenessChecks, expectedChecks);
+        assert.deepEqual(body.result.completenessChecks, expectedChecks);
+        assert.equal(body.overallCompleteness, 31);
+        assert.equal(body.complianceScore, 50);
+        assert.equal(body.result.overallCompleteness, body.overallCompleteness);
+        assert.equal(body.result.complianceScore, body.complianceScore);
+        assert.deepEqual(body.summary, summary);
+        assert.deepEqual(body.result.summary, summary);
+        assert.deepEqual(body.recommendations, ["Lengkapi SMK3 sebelum pengajuan."]);
+        assert.deepEqual(body.result.recommendations, body.recommendations);
+        assert.deepEqual(body.risks, []);
+        assert.deepEqual(body.result.risks, body.risks);
+        const executions = await db.select().from(aiExecutionHistory);
+        assert.equal(executions.length, previousExecutions.length + 1);
+        const execution = executions.find(row => row.id === body.executionId);
+        assert.ok(execution);
+        assert.equal(execution.status, "succeeded");
+        assert.equal(execution.errorMessage, null, "No stale failure after a successful retry");
+        assert.equal(execution.resultRef, body.resultRef);
+        assert.ok(execution.completedAt);
+        assert.ok(execution.completedAt.getTime() >= execution.startedAt.getTime());
+        const results = await db.select().from(tenderAnalysisResults);
+        assert.equal(results.length, previousResults.length + 1, "Only one result may be persisted");
+        const saved = results.filter(row => row.executionId === body.executionId);
+        assert.equal(saved.length, 1);
+        assert.equal(saved[0]!.id, body.result.id);
+        assert.deepEqual(JSON.parse(saved[0]!.documents), documents);
+        assert.deepEqual(JSON.parse(saved[0]!.checklistState), checklistState);
+        assert.deepEqual(JSON.parse(saved[0]!.completenessChecks), expectedChecks);
+        assert.equal(saved[0]!.overallCompleteness, 31);
+        assert.equal(saved[0]!.complianceScore, 50);
+      });
     }
     assert.equal(unexpectedTransportCalls, 0, "All provider traffic must stop at the SDK stub");
   } finally {
