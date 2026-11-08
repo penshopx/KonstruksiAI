@@ -23,6 +23,9 @@ export function initializeDatabase() {
       checked_at TEXT NOT NULL,
       code TEXT NOT NULL
     )`);
+    // Retention runs separately after startup, never as a destructive migration.
+    db.run(sql`CREATE INDEX IF NOT EXISTS tender_provider_audit_checked_at_idx
+      ON tender_provider_audit(checked_at)`);
     db.run(sql`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,

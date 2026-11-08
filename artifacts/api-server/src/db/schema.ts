@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, uniqueIndex, blob } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex, index, blob } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -22,7 +22,9 @@ export const tenderProviderAudit = sqliteTable("tender_provider_audit", {
   accountId: integer("account_id").notNull(),
   checkedAt: text("checked_at").notNull(),
   code: text("code").notNull(),
-});
+}, (table) => ({
+  checkedAtIndex: index("tender_provider_audit_checked_at_idx").on(table.checkedAt),
+}));
 
 export const paymentSubscriptions = sqliteTable("payment_subscriptions", {
   id: integer("id").primaryKey({ autoIncrement: true }),

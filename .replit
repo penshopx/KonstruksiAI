@@ -76,6 +76,10 @@ args = "tender-provider-setup-browser"
 task = "workflow.run"
 args = "tender-recovery-browser"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "tender-provider-audit-retention"
+
 [[workflows.workflow]]
 name = "artifacts/api-server: API Server"
 author = "agent"
@@ -239,6 +243,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/konstruksi-ai run test:tender-recovery"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "tender-provider-audit-retention"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test:tender-provider-audit-retention"
 
 [workflows.workflow.metadata]
 isValidation = true
