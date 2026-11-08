@@ -51,6 +51,12 @@ interface ChecklistProgress {
   notes: string;
 }
 
+interface AnalysisFailure {
+  message: string;
+  action: string;
+  retryable: boolean;
+}
+
 let nextDocumentId = 0;
 function makeDocumentId(): string {
   nextDocumentId += 1;
@@ -81,7 +87,7 @@ export default function TenderIntelligencePage() {
   const [projectDetails, setProjectDetails] = useState("");
   const [analysis, setAnalysis] = useState<TenderAnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<AnalysisFailure | null>(null);
   const [retryOfId, setRetryOfId] = useState<string | null>(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
@@ -168,7 +174,11 @@ export default function TenderIntelligencePage() {
     if (!projectName.trim() || isAnalyzing) return;
     const validDocuments = documents.filter(doc => doc.documentType.trim());
     if (validDocuments.length === 0) {
-      setAnalysisError("Tambahkan minimal satu dokumen sebelum menjalankan analisis.");
+      setAnalysisError({
+        message: "Belum ada dokumen yang dapat dianalisis.",
+        action: "Tambahkan minimal satu nama atau jenis dokumen terlebih dahulu.",
+        retryable: false,
+      });
       setActiveTab("completeness");
       return;
     }
@@ -205,7 +215,17 @@ export default function TenderIntelligencePage() {
         } else if (res.status === 400 || res.status === 403 || res.status === 404) {
           setRetryOfId(null);
         }
-        throw new Error(body.error || `Gagal menjalankan analisis (status ${res.status})`);
+        setAnalysisError({
+          message: res.status === 401 ? "Sesi masuk Anda tidak tersedia atau sudah berakhir."
+            : typeof body.error === "string" ? body.error : "Layanan analisis tidak dapat memproses permintaan.",
+          action: typeof body.action === "string" ? body.action
+            : res.status === 401 ? "Masuk kembali sebelum menjalankan analisis."
+            : res.status === 400 ? "Periksa dan perbaiki data yang Anda masukkan."
+            : res.status === 403 || res.status === 404 ? "Periksa kembali akses dan ruang proyek yang dipilih."
+            : "Tunggu beberapa saat, lalu coba kembali.",
+          retryable: typeof body.retryable === "boolean" ? body.retryable : res.status >= 500 || res.status === 429,
+        });
+        return;
       }
 
       const data = await res.json();
@@ -225,8 +245,12 @@ export default function TenderIntelligencePage() {
       setRetryOfId(null);
       setHistoryRefreshKey((current) => current + 1);
       setActiveTab("overview");
-    } catch (err) {
-      setAnalysisError(err instanceof Error ? err.message : "Gagal menjalankan analisis tender. Silakan coba lagi.");
+    } catch {
+      setAnalysisError({
+        message: "Koneksi terputus atau respons layanan analisis tidak dapat dibaca.",
+        action: "Periksa koneksi Anda, lalu coba kembali. Data formulir tetap tersedia.",
+        retryable: true,
+      });
     } finally {
       setIsAnalyzing(false);
     }
@@ -416,8 +440,9 @@ export default function TenderIntelligencePage() {
         </div>
 
         {analysisError && (
-          <div className="mt-4 bg-red-500/10 border border-red-500/40 rounded-lg p-4 text-red-300 text-sm">
-            {analysisError}
+          <div role="alert" data-testid="status-tender-analysis-error" className="mt-4 bg-red-500/10 border border-red-500/40 rounded-lg p-4 text-red-300 text-sm">
+            <p className="font-semibold" data-testid="text-tender-failure-reason">{analysisError.message}</p>
+            <p className="mt-2 text-red-100" data-testid="text-tender-failure-action">{analysisError.action}</p>
             {retryOfId && (
               <p className="mt-1 text-xs text-red-200/70">
                 Percobaan berikutnya akan ditautkan ke eksekusi gagal ini.
@@ -428,10 +453,11 @@ export default function TenderIntelligencePage() {
 
         <button
           onClick={handleAnalyze}
+          data-testid="button-analyze-tender"
           disabled={isAnalyzing || !projectName.trim()}
           className="mt-6 w-full sm:w-auto px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {isAnalyzing ? "Menganalisis..." : retryOfId ? "🔄 Ulangi & Catat Pengulangan" : "🚀 Jalankan Analisis AI"}
+          {isAnalyzing ? "Menganalisis..." : analysisError && !analysisError.retryable ? "Jalankan setelah perbaikan" : retryOfId ? "🔄 Ulangi & Catat Pengulangan" : "🚀 Jalankan Analisis AI"}
         </button>
       </div>
 

@@ -3,6 +3,12 @@ import type { Request, Response } from "express";
 import { getSessionFromRequest } from "../lib/auth";
 import OpenAI from "openai";
 import {
+  classifyTenderAnalysisError,
+  getTenderAnalysisErrorDiagnostics,
+  isRetryableTenderProviderError,
+  TenderAnalysisFailureError,
+} from "../lib/tender-analysis-errors";
+import {
   createExecutionRecord,
   resolveExecutionWorkspace,
   transitionExecutionRecord,
@@ -25,7 +31,7 @@ let _openai: OpenAI | null = null;
 function getOpenAI(): OpenAI {
   if (!_openai) {
     if (!process.env.OPENROUTER_API_KEY) {
-      throw new Error("OPENROUTER_API_KEY environment variable is not set");
+      throw new TenderAnalysisFailureError("AI_PROVIDER_NOT_CONFIGURED");
     }
     _openai = new OpenAI({
       apiKey: process.env.OPENROUTER_API_KEY,
@@ -72,19 +78,6 @@ setInterval(() => {
 
 const MAX_COMPLETION_ATTEMPTS = 3;
 const RETRY_BASE_DELAY_MS = 500;
-const RETRYABLE_STATUS_CODES = new Set([429, 500, 503]);
-
-function getErrorStatus(error: unknown): number | undefined {
-  if (typeof error !== "object" || error === null || !("status" in error)) return undefined;
-  const status = (error as { status?: unknown }).status;
-  return typeof status === "number" ? status : undefined;
-}
-
-function isRetryableOpenAIError(error: unknown): boolean {
-  const status = getErrorStatus(error);
-  return status !== undefined && RETRYABLE_STATUS_CODES.has(status);
-}
-
 function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -380,11 +373,17 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
   if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
 
   if (!checkRateLimit(session.userId)) {
-    res.status(429).json({ error: "Terlalu banyak permintaan. Silakan tunggu sebentar dan coba lagi." });
+    res.status(429).json({
+      error: "Batas permintaan analisis aplikasi tercapai.",
+      code: "REQUEST_RATE_LIMITED",
+      action: "Tunggu satu menit sebelum menjalankan analisis kembali.",
+      retryable: true,
+    });
     return;
   }
 
   let executionId: string | null = null;
+  let processingProviderResponse = false;
 
   try {
     const {
@@ -473,6 +472,7 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
     let raw: string | null = null;
     let lastErr: unknown;
 
+    processingProviderResponse = true;
     while (attempt < MAX_COMPLETION_ATTEMPTS) {
       attempt += 1;
       try {
@@ -492,25 +492,26 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
         break;
       } catch (err) {
         lastErr = err;
-        if (!isRetryableOpenAIError(err) || attempt >= MAX_COMPLETION_ATTEMPTS) break;
+        if (!isRetryableTenderProviderError(err) || attempt >= MAX_COMPLETION_ATTEMPTS) break;
         await wait(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1));
       }
     }
 
     if (lastErr) throw lastErr;
-    if (!raw) throw new Error("AI tidak mengembalikan respons. Silakan coba lagi.");
+    if (!raw) throw new TenderAnalysisFailureError("AI_INVALID_MODEL_RESPONSE");
 
     let parsed: unknown;
     try {
       parsed = JSON.parse(raw);
     } catch {
-      throw new Error("AI mengembalikan format yang tidak valid. Silakan coba lagi.");
+      throw new TenderAnalysisFailureError("AI_INVALID_MODEL_RESPONSE");
     }
 
     const aiResult = validateTenderAIResult(parsed);
     if (!aiResult) {
-      throw new Error("AI mengembalikan struktur data yang tidak lengkap. Silakan coba lagi.");
+      throw new TenderAnalysisFailureError("AI_INVALID_MODEL_RESPONSE");
     }
+    processingProviderResponse = false;
 
     // Trust the user's document status over the model, especially for scores
     // and the explanation shown when a document has not been provided.
@@ -555,20 +556,30 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       summary: aiResult.summary,
     });
   } catch (err) {
+    const failure = classifyTenderAnalysisError(processingProviderResponse
+      ? err
+      : new TenderAnalysisFailureError("AI_INTERNAL_ERROR"));
     if (executionId) {
       try {
         await transitionExecutionRecord(executionId, ["pending", "running"], {
           status: "failed",
           completedAt: new Date(),
-          errorMessage: "Analisis AI gagal diproses. Silakan coba lagi.",
+          errorMessage: `${failure.error} ${failure.action}`,
         });
       } catch (historyErr) {
         req.log.warn({ err: historyErr, executionId }, "Tender execution history update failed");
       }
     }
-    req.log.error({ err }, "POST /tender-intelligence/analyze error");
-    res.status(500).json({
-      error: "Analisis AI gagal diproses. Silakan coba lagi.",
+    req.log.error({
+      failureCode: failure.code,
+      executionId,
+      ...getTenderAnalysisErrorDiagnostics(err),
+    }, "POST /tender-intelligence/analyze error");
+    res.status(failure.statusCode).json({
+      error: failure.error,
+      code: failure.code,
+      action: failure.action,
+      retryable: failure.retryable,
       ...(executionId ? { executionId } : {}),
     });
   }

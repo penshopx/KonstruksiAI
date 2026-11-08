@@ -64,6 +64,10 @@ test("classifies invalid model responses and rejected model requests", () => {
     classifyTenderAnalysisError({ status: 400, message: "model not found" }).code,
     "AI_PROVIDER_REQUEST_REJECTED",
   );
+  assert.equal(
+    classifyTenderAnalysisError({ code: "invalid_response" }).code,
+    "AI_INVALID_MODEL_RESPONSE",
+  );
 });
 
 test("falls back to a safe internal error and records only bounded diagnostic metadata", () => {
@@ -84,4 +88,6 @@ test("retries transient provider failures but not authentication or billing fail
   assert.equal(isRetryableTenderProviderError({ code: "ETIMEDOUT" }), true);
   assert.equal(isRetryableTenderProviderError({ status: 401 }), false);
   assert.equal(isRetryableTenderProviderError({ status: 402 }), false);
+  assert.equal(isRetryableTenderProviderError({ status: 429, code: "insufficient_quota" }), false);
+  assert.equal(classifyTenderAnalysisError(new Error("Unexpected database failure")).code, "AI_INTERNAL_ERROR");
 });

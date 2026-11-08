@@ -9,6 +9,7 @@
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:build-race": "node ./check-build-race.mjs",
+    "test:tender-analysis-errors": "mkdir -p \"${API_TEST_DIST_DIR:-.test-dist}\" && pnpm exec esbuild src/lib/tender-analysis-errors.test.ts --bundle --platform=node --format=esm --outfile=\"${API_TEST_DIST_DIR:-.test-dist}/tender-analysis-errors.test.mjs\" && node --test --test-reporter=tap \"${API_TEST_DIST_DIR:-.test-dist}/tender-analysis-errors.test.mjs\"",
     "test:radar": "mkdir -p \"${API_TEST_DIST_DIR:-.test-dist}\" && pnpm exec esbuild src/lib/radar.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --outfile=\"${API_TEST_DIST_DIR:-.test-dist}/radar.test.mjs\" && node --test --test-reporter=tap \"${API_TEST_DIST_DIR:-.test-dist}/radar.test.mjs\"",
     "test:upload-security": "mkdir -p \"${API_TEST_DIST_DIR:-.test-dist}\" && pnpm exec esbuild src/lib/url-fetch.test.ts --bundle --platform=node --format=esm --outfile=\"${API_TEST_DIST_DIR:-.test-dist}/url-fetch.test.mjs\" && node --test --test-reporter=tap \"${API_TEST_DIST_DIR:-.test-dist}/url-fetch.test.mjs\"",
     "test:chat-recovery": "mkdir -p \"${API_TEST_DIST_DIR:-.test-dist}\" && pnpm exec esbuild src/lib/chat-stream-retry.test.ts --bundle --platform=node --format=esm --outfile=\"${API_TEST_DIST_DIR:-.test-dist}/chat-stream-retry.test.mjs\" && node --test --test-reporter=tap \"${API_TEST_DIST_DIR:-.test-dist}/chat-stream-retry.test.mjs\"",

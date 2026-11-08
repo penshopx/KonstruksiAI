@@ -126,9 +126,13 @@ export function classifyTenderAnalysisError(error: unknown): TenderAnalysisFailu
     return { code: "AI_PROVIDER_RATE_LIMITED", ...FAILURE_MESSAGES.AI_PROVIDER_RATE_LIMITED };
   }
 
+  if (/invalid[_ -]?response|model[_ -]?output/.test(code)) {
+    return { code: "AI_INVALID_MODEL_RESPONSE", ...FAILURE_MESSAGES.AI_INVALID_MODEL_RESPONSE };
+  }
+
   if (
-    /invalid[_ -]?(model|response)|content[_ -]?filter|model[_ -]?output/.test(code) ||
-    /invalid model|no endpoints found|content filter|invalid model response/.test(message)
+    /invalid[_ -]?model|content[_ -]?filter/.test(code) ||
+    /invalid model|no endpoints found|content filter/.test(message)
   ) {
     return { code: "AI_PROVIDER_REQUEST_REJECTED", ...FAILURE_MESSAGES.AI_PROVIDER_REQUEST_REJECTED };
   }
@@ -160,11 +164,8 @@ export function classifyTenderAnalysisError(error: unknown): TenderAnalysisFailu
 }
 
 export function isRetryableTenderProviderError(error: unknown): boolean {
-  const metadata = getErrorMetadata(error);
-  if (metadata.status === 429 || [408, 425, 500, 502, 503, 504].includes(metadata.status ?? -1)) {
-    return true;
-  }
-  return ["ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN"].includes(metadata.networkCode ?? "");
+  const failure = classifyTenderAnalysisError(error);
+  return failure.code === "AI_PROVIDER_RATE_LIMITED" || failure.code === "AI_PROVIDER_UNAVAILABLE";
 }
 
 export function getTenderAnalysisErrorDiagnostics(error: unknown): {
@@ -175,11 +176,13 @@ export function getTenderAnalysisErrorDiagnostics(error: unknown): {
   networkCode?: string;
 } {
   const metadata = getErrorMetadata(error);
+  const safeToken = (value: string | undefined) =>
+    value && /^[a-zA-Z0-9_.:-]{1,100}$/.test(value) ? value : undefined;
   return {
-    errorName: metadata.name,
+    errorName: safeToken(metadata.name) ?? "UnknownError",
     ...(metadata.status !== undefined ? { providerStatus: metadata.status } : {}),
-    ...(metadata.code ? { providerCode: metadata.code.slice(0, 100) } : {}),
-    ...(metadata.type ? { providerType: metadata.type.slice(0, 100) } : {}),
-    ...(metadata.networkCode ? { networkCode: metadata.networkCode.slice(0, 100) } : {}),
+    ...(safeToken(metadata.code) ? { providerCode: safeToken(metadata.code) } : {}),
+    ...(safeToken(metadata.type) ? { providerType: safeToken(metadata.type) } : {}),
+    ...(safeToken(metadata.networkCode) ? { networkCode: safeToken(metadata.networkCode) } : {}),
   };
 }
