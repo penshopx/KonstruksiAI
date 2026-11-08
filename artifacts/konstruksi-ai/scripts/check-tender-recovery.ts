@@ -1,11 +1,237 @@
 /** Offline browser regression: every API request is intercepted. */
 import assert from "node:assert/strict";
-import { chromium } from "playwright-core";
+import { chromium, type Browser } from "playwright-core";
+
+const base = process.env.KONSTRUKSI_AI_TEST_URL ?? "http://localhost:80";
+const storageKey = "tender-request:119:personal";
+const storageCases = [
+  "write-denied", "read-denied", "write-dropped", "read-after-write-denied",
+  "invalid-json", "invalid-shape", "invalid-id", "invalid-digest", "null-reference",
+  "begin-corrupt", "account-network", "account-server", "discovery-network", "extra-properties",
+] as const;
+
+async function checkStorageFailures(browser: Browser) {
+  for (const scenario of storageCases) {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const errors: string[] = [];
+    page.on("pageerror", error => errors.push(error.message));
+    let posts = 0;
+    let accountFailure = false;
+    await context.addInitScript({ content: `
+      (() => {
+        const scenario = ${JSON.stringify(scenario)};
+        const key = ${JSON.stringify(storageKey)};
+        const get = Storage.prototype.getItem;
+        const set = Storage.prototype.setItem;
+        let wrote = false;
+        const broken = {
+          "invalid-json": "{",
+          "invalid-shape": JSON.stringify({id: "valid-request-id-123", fingerprint: null}),
+          "invalid-id": JSON.stringify({id: "", fingerprint: "a".repeat(64)}),
+          "invalid-digest": JSON.stringify({id: "valid-request-id-123", fingerprint: "project text"}),
+          "null-reference": "null"
+        }[scenario];
+        if (broken !== undefined) set.call(localStorage, key, broken);
+        Storage.prototype.getItem = function(k) {
+          if (k === key && (scenario === "read-denied" ||
+            (scenario === "read-after-write-denied" && wrote))) throw new DOMException("Read denied", "SecurityError");
+          return get.call(this, k);
+        };
+        Storage.prototype.setItem = function(k, value) {
+          if (k === key) {
+            if (scenario === "write-denied") throw new DOMException("Full", "QuotaExceededError");
+            if (scenario === "write-dropped") return;
+            wrote = true;
+          }
+          return set.call(this, k, value);
+        };
+      })();
+    ` });
+    await context.route("**/api/**", async route => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === "/api/auth/me") {
+        if (accountFailure) {
+          if (scenario === "account-network") return route.abort("internetdisconnected");
+          return route.fulfill({ status: 503, json: { error: "Unavailable" } });
+        }
+        return route.fulfill({ json: { user: { userId: 119, role: "user", name: "Offline", email: "offline@example.test" } } });
+      }
+      if (path === "/api/tender-intelligence/requests/active") {
+        if (scenario === "discovery-network") return route.abort("internetdisconnected");
+        return route.fulfill({ json: { activeRequest: null } });
+      }
+      if (path === "/api/tender-intelligence/analyze") {
+        posts++;
+        const data = route.request().postDataJSON();
+        const raw = await page.evaluate(key => localStorage.getItem(key), storageKey);
+        assert.deepEqual(JSON.parse(raw!), {
+          id: data.requestId,
+          fingerprint: await page.evaluate(async input => {
+            const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(input)));
+            return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+          }, Object.fromEntries(Object.entries(data).filter(([key]) => key !== "requestId"))),
+        }, "POST must have a durable, minimal identity with the exact input digest");
+        return route.abort("connectionreset");
+      }
+      if (path.startsWith("/api/tender-intelligence/requests/")) {
+        return route.fulfill({ status: 202, json: { status: "running", executionId: "offline-execution" } });
+      }
+      return route.fulfill({ status: 401, json: { error: "Unexpected API denied" } });
+    });
+    try {
+      await page.goto(`${base}/tender-intelligence`, { waitUntil: "networkidle" });
+      await page.getByRole("button", { name: "✅ Kelengkapan", exact: true }).click();
+      const name = page.getByTestId("input-tender-project-name");
+      const input = `PRIVATE_FORM_${scenario}`;
+      await name.fill(input);
+      if (scenario === "account-network" || scenario === "account-server") {
+        accountFailure = true;
+        await page.getByRole("button", { name: "Periksa status", exact: true }).click();
+        await page.getByTestId("status-tender-recovery").getByText(/Status akun belum dapat diperiksa/).waitFor();
+      }
+      if (scenario === "begin-corrupt") {
+        await page.evaluate(key => localStorage.setItem(key, JSON.stringify({ id: "", fingerprint: null })), storageKey);
+      }
+      if (scenario === "extra-properties") {
+        // Insert a valid reference after initial recovery, with untrusted extra input fields.
+        await page.evaluate(async key => {
+          const fingerprint = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",
+            new TextEncoder().encode(JSON.stringify({
+              projectName: "PRIVATE_FORM_extra-properties", tenderType: "Tender Konstruksi",
+              projectDetails: "", workspaceId: null, retryOfId: null, checklistState: {},
+              documents: ["Akta Perusahaan", "NPWP", "SIUP/TDP", "Sertifikat Badan Usaha (SBU)",
+                "Laporan Keuangan Audited", "Surat Referensi Bank", "Sertifikat SMK3", "Daftar Pengalaman Proyek"]
+                .map(documentType => ({ documentType, required: true, present: false, notes: "" })),
+            })))), b => b.toString(16).padStart(2, "0")).join("");
+          localStorage.setItem(key, JSON.stringify({ id: crypto.randomUUID(), fingerprint,
+            projectName: "MUST_NOT_PERSIST", documents: ["PRIVATE_DOCUMENT"] }));
+        }, storageKey);
+      }
+      const analyze = page.getByTestId("button-analyze-tender");
+      if (await analyze.isEnabled()) {
+        await analyze.click();
+        await page.getByTestId("status-tender-analysis-error").waitFor();
+      }
+      assert.equal(await name.inputValue(), input, `${scenario}: failure must preserve form`);
+      assert.equal(posts, scenario === "extra-properties" ? 1 : 0, `${scenario}: no unsafe POST`);
+      assert.deepEqual(errors, [], `${scenario}: no unhandled exceptions`);
+      await page.reload({ waitUntil: "networkidle" });
+      assert.equal(posts, scenario === "extra-properties" ? 1 : 0, `${scenario}: reload never POSTs`);
+      console.log(`PASS: ${scenario}`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
+// Exercise the real hook in an isolated React host. Controllable promises make
+// the workspace/account races deterministic, without involving a real provider.
+async function checkScopeRaces(browser: Browser) {
+  for (const phase of ["account", "digest", "account-during-digest", "account-error-during-digest"] as const) {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    let userId = 119;
+    let posts = 0;
+    let holdAccount = false;
+    let failAccount = false;
+    let releaseAccount!: () => void;
+    let accountStarted!: () => void;
+    const started = new Promise<void>(resolve => { accountStarted = resolve; });
+    const held = new Promise<void>(resolve => { releaseAccount = resolve; });
+    await context.route("**/api/**", async route => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === "/api/auth/me") {
+        if (holdAccount) {
+          holdAccount = false;
+          accountStarted();
+          await held;
+        }
+        if (failAccount) return route.abort("internetdisconnected");
+        return route.fulfill({ json: { user: { userId, role: "user", name: "Offline", email: "offline@example.test" } } });
+      }
+      if (route.request().method() === "POST") {
+        posts++;
+        return route.abort("blockedbyclient");
+      }
+      if (path.endsWith("/active")) return route.fulfill({ json: { activeRequest: null } });
+      return route.fulfill({ status: 401, json: { error: "Unexpected API denied" } });
+    });
+    try {
+      await page.goto(`${base}/tender-intelligence`, { waitUntil: "networkidle" });
+      await page.evaluate(`(async () => {
+        // These are Vite's existing optimized React modules, also used by the hook.
+        const { default: React } = await import(/* @vite-ignore */ "/node_modules/.vite/deps/react.js");
+        const { default: { createRoot } } = await import(/* @vite-ignore */ "/node_modules/.vite/deps/react-dom_client.js");
+        const { useTenderRequest } = await import(/* @vite-ignore */ "/src/lib/use-tender-request.ts");
+        const host = document.createElement("div");
+        host.id = "race-host";
+        document.body.append(host);
+        function Host() {
+          const [workspace, setWorkspace] = React.useState("workspace-a");
+          const [input, setInput] = React.useState("");
+          const [error, setError] = React.useState("");
+          const request = useTenderRequest(workspace, () => {}, () => setInput(""));
+          return React.createElement("div", null,
+            React.createElement("span", { id: "race-state" }, request.state),
+            React.createElement("span", { id: "race-error" }, error),
+            React.createElement("input", { id: "race-input", value: input, onChange: e => setInput(e.target.value) }),
+            React.createElement("button", { id: "race-switch", onClick: () => setWorkspace("workspace-b") }, "Switch"),
+            React.createElement("button", { id: "race-send", onClick: async () => {
+              try {
+                const identity = await request.begin({ projectName: input, workspaceId: workspace });
+                await fetch("/api/tender-intelligence/analyze", { method: "POST",
+                  body: JSON.stringify({ projectName: input, workspaceId: workspace, requestId: identity.id }) });
+              } catch (e) { setError(e.message); }
+            } }, "Send"));
+        }
+        createRoot(host).render(React.createElement(Host));
+      })()`);
+      await page.locator("#race-state").getByText("empty", { exact: true }).waitFor();
+      await page.locator("#race-input").fill("OLD_PRIVATE_INPUT");
+      if (phase === "account") holdAccount = true;
+      else await page.evaluate(() => {
+        const digest = crypto.subtle.digest.bind(crypto.subtle);
+        crypto.subtle.digest = async (...args) => {
+          document.documentElement.dataset.digestStarted = "yes";
+          await new Promise<void>(resolve => {
+            document.addEventListener("release-digest", () => resolve(), { once: true });
+          });
+          return digest(...args);
+        };
+      });
+      await page.locator("#race-send").click();
+      if (phase === "account") await started;
+      else await page.waitForFunction(() => document.documentElement.dataset.digestStarted === "yes");
+      if (phase === "account" || phase === "digest") {
+        await page.locator("#race-switch").click();
+        await page.waitForFunction(() => (document.querySelector("#race-input") as HTMLInputElement).value === "");
+        await page.locator("#race-input").fill("NEW_WORKSPACE_INPUT");
+      } else if (phase === "account-during-digest") userId = 120;
+      else failAccount = true;
+      if (phase === "account") releaseAccount();
+      else await page.evaluate(() => document.dispatchEvent(new Event("release-digest")));
+      await page.locator("#race-error").getByText(/Konteks berubah|Akun berubah|Status akun belum dapat diperiksa/).waitFor();
+      assert.equal(posts, 0, `${phase}: old input never POSTs`);
+      assert.equal(await page.locator("#race-input").inputValue(),
+        phase === "account-error-during-digest" ? "OLD_PRIVATE_INPUT"
+          : phase === "account-during-digest" ? "" : "NEW_WORKSPACE_INPUT");
+      const references = await page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith("tender-request:")));
+      assert.deepEqual(references, [], `${phase}: stale begin never persists a new identity`);
+      console.log(`PASS: scope race during ${phase}`);
+    } finally {
+      releaseAccount();
+      await context.close();
+    }
+  }
+}
 
 const browser = await chromium.launch({
   executablePath: process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE, headless: true,
 });
 try {
+  await checkStorageFailures(browser);
+  await checkScopeRaces(browser);
   const context = await browser.newContext();
   let userId = 119;
   let calls = 0;
@@ -50,7 +276,6 @@ try {
     }
     return route.fulfill({ status: 401, json: { error: "Offline test: unexpected API denied" } });
   });
-  const base = process.env.KONSTRUKSI_AI_TEST_URL ?? "http://localhost:80";
   const page = await context.newPage();
   page.on("pageerror", error => errors.push(error.message));
   page.on("dialog", dialog => dialog.accept());

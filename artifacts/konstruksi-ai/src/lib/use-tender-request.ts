@@ -4,6 +4,30 @@ import type { TenderAnalysisResult } from "./tender-history";
 
 interface RequestIdentity { id: string; fingerprint: string | null; recoveryOnly?: boolean }
 
+function readIdentity(key: string): RequestIdentity | null {
+  const raw = localStorage.getItem(key);
+  if (raw === null) return null;
+  const value: unknown = JSON.parse(raw);
+  if (!value || typeof value !== "object") throw new Error("Identitas pemulihan rusak.");
+  const { id, fingerprint, recoveryOnly } = value as RequestIdentity;
+  if (typeof id !== "string" || !/^[a-zA-Z0-9_-]{16,128}$/.test(id)
+    || !(recoveryOnly === true ? fingerprint === null
+      : recoveryOnly === undefined && typeof fingerprint === "string" && /^[a-f0-9]{64}$/.test(fingerprint))) {
+    throw new Error("Identitas pemulihan rusak.");
+  }
+  // Do not carry arbitrary stored properties (especially project inputs) forward.
+  return recoveryOnly ? { id, fingerprint: null, recoveryOnly: true } : { id, fingerprint };
+}
+
+function saveIdentity(key: string, identity: RequestIdentity) {
+  localStorage.setItem(key, JSON.stringify(identity));
+  const persisted = readIdentity(key);
+  if (!persisted || persisted.id !== identity.id || persisted.fingerprint !== identity.fingerprint
+    || persisted.recoveryOnly !== identity.recoveryOnly) {
+    throw new Error("ID permintaan belum tersimpan. Aktifkan penyimpanan browser sebelum melanjutkan.");
+  }
+}
+
 // Persist only identity + digest, never project text, documents, or results.
 export function useTenderRequest(workspaceId: string | null, onResult: (result: TenderAnalysisResult) => void, onScopeChange: () => void) {
   const [identity, setIdentity] = useState<RequestIdentity | null>(null);
@@ -47,13 +71,7 @@ export function useTenderRequest(workspaceId: string | null, onResult: (result: 
     setExecutionId(null);
     let saved: RequestIdentity | null = null;
     try {
-      const raw = localStorage.getItem(key);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed.id === "string" && (typeof parsed.fingerprint === "string"
-          || (parsed.recoveryOnly === true && parsed.fingerprint === null))) saved = parsed;
-        else throw new Error("Invalid identity");
-      }
+      saved = readIdentity(key);
     } catch {
       setState("unknown");
       setMessage("Identitas pemulihan tidak dapat dibaca. Aktifkan penyimpanan browser sebelum melanjutkan.");
@@ -84,7 +102,7 @@ export function useTenderRequest(workspaceId: string | null, onResult: (result: 
       if (discovered.activeRequest) {
         // Persist a read-only server reference, never a reusable POST identity.
         saved = { id: discovered.activeRequest.executionId, fingerprint: null, recoveryOnly: true };
-        localStorage.setItem(key, JSON.stringify(saved));
+        saveIdentity(key, saved);
         setIdentity(saved);
       }
       if (!saved) { setState("empty"); setMessage(""); return; }
@@ -154,16 +172,28 @@ export function useTenderRequest(workspaceId: string | null, onResult: (result: 
     if (version !== generation.current) throw new Error("Konteks berubah. Periksa akun dan ruang proyek sebelum melanjutkan.");
     if (session.status !== "authenticated") throw new Error("Masuk kembali sebelum menjalankan analisis.");
     const key = `tender-request:${session.user.userId}:${workspaceId ?? "personal"}`;
-    if (storageKey.current && storageKey.current !== key) {
+    if (storageKey.current !== key) {
       generation.current++;
       onScopeChangeRef.current();
       throw new Error("Akun berubah. Muat ulang halaman sebelum menjalankan analisis.");
     }
     const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(input)));
     if (version !== generation.current) throw new Error("Konteks berubah. Periksa akun dan ruang proyek sebelum melanjutkan.");
+    // Digest creation can yield long enough for a logout/login in another tab.
+    const confirmedSession = await getSessionLookup();
+    if (version !== generation.current) throw new Error("Konteks berubah. Periksa akun dan ruang proyek sebelum melanjutkan.");
+    if (confirmedSession.status === "error") throw new Error("Status akun belum dapat diperiksa. Data formulir tetap tersedia.");
+    if (confirmedSession.status !== "authenticated" || confirmedSession.user.userId !== session.user.userId
+      || storageKey.current !== key) {
+      generation.current++;
+      storageKey.current = null;
+      setIdentity(null);
+      setState("unknown");
+      onScopeChangeRef.current();
+      throw new Error("Akun berubah. Periksa akun sebelum menjalankan analisis.");
+    }
     const fingerprint = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
-    const raw = localStorage.getItem(key);
-    const saved = raw ? JSON.parse(raw) as RequestIdentity : null;
+    const saved = readIdentity(key);
     if (saved?.recoveryOnly) {
       throw new Error("Permintaan dari perangkat lain hanya dapat dipulihkan. Pilih Analisis baru setelah proses selesai.");
     }
@@ -172,7 +202,7 @@ export function useTenderRequest(workspaceId: string | null, onResult: (result: 
     }
     const next = saved ?? { id: crypto.randomUUID(), fingerprint };
     // Fail before POST when durable browser identity cannot be saved.
-    localStorage.setItem(key, JSON.stringify(next));
+    saveIdentity(key, next);
     storageKey.current = key;
     setIdentity(next);
     setState("running");
