@@ -241,6 +241,23 @@ export function reconcileCompletenessChecks(
   });
 }
 
+export function calculateComplianceScore(
+  documents: Pick<DocumentInput, "required" | "present">[],
+  aiComplianceScore: number | null,
+  overallCompleteness: number,
+  riskCount: number,
+): number {
+  const score = aiComplianceScore ?? Math.max(0, overallCompleteness - riskCount * 5);
+  const requiredDocuments = documents.filter((document) => document.required);
+  if (requiredDocuments.length === 0) return score;
+
+  const presentRequiredDocuments = requiredDocuments.filter((document) => document.present).length;
+  const requiredDocumentScoreCap = Math.floor(
+    (presentRequiredDocuments / requiredDocuments.length) * 100,
+  );
+  return Math.min(score, requiredDocumentScoreCap);
+}
+
 interface RiskAI {
   category: string;
   description: string;
@@ -560,7 +577,12 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
 
     const risks = aiResult.risks.map((risk, index) => ({ id: `risk-${index + 1}`, ...risk }));
 
-    const complianceScore = aiResult.complianceScore ?? Math.max(0, overallCompleteness - risks.length * 5);
+    const complianceScore = calculateComplianceScore(
+      documents,
+      aiResult.complianceScore,
+      overallCompleteness,
+      risks.length,
+    );
 
     const savedResult = await persistSuccessfulTenderAnalysis({
       executionId,

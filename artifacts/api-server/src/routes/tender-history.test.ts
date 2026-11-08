@@ -15,7 +15,7 @@ const { default: app } = await import("../app");
 const { db, projectWorkspaceMembers, tenderAnalysisResults } = await import("../db");
 const { createExecutionRecord, transitionExecutionRecord } = await import("../lib/execution-history");
 const { persistSuccessfulTenderAnalysis } = await import("../lib/tender-history");
-const { reconcileCompletenessChecks } = await import("./tender-intelligence");
+const { calculateComplianceScore, reconcileCompletenessChecks } = await import("./tender-intelligence");
 const { and, eq } = await import("drizzle-orm");
 
 let server: Server;
@@ -106,6 +106,24 @@ test("Tender document statuses override AI scores and retain actionable explanat
   assert.deepEqual(checks[1]?.missingElements, []);
   assert.equal(checks[2]?.completenessScore, 28);
   assert.deepEqual(checks[2]?.missingElements, ["Data klasifikasi usaha belum sesuai."]);
+});
+
+test("Tender compliance score is capped by missing required documents", () => {
+  const documents = [
+    { documentType: "SBU", required: true, present: true, notes: "" },
+    { documentType: "SMK3", required: true, present: false, notes: "" },
+  ];
+
+  assert.equal(calculateComplianceScore(documents, 98, 100, 0), 50);
+  assert.equal(
+    calculateComplianceScore(
+      documents.map((document) => ({ ...document, present: true })),
+      98,
+      100,
+      0,
+    ),
+    98,
+  );
 });
 
 async function createWorkspace(owner: Session): Promise<string> {
