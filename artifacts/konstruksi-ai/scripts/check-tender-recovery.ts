@@ -53,8 +53,17 @@ try {
   await page.goto(`${base}/tender-intelligence`, { waitUntil: "networkidle" });
   const completeness = () => page.getByRole("button", { name: "✅ Kelengkapan", exact: true }).click();
   await completeness();
+  await page.getByTestId("input-tender-project-name").fill("Proyek Koneksi Terputus");
   await page.getByTestId("button-analyze-tender").click();
   await page.getByTestId("status-tender-recovery").getByText(/Analisis masih berjalan/).waitFor();
+  await page.getByTestId("status-tender-analysis-error").getByText(
+    "Koneksi terputus saat mengirim atau membaca respons analisis.", { exact: true },
+  ).waitFor();
+  assert.doesNotMatch(await page.locator("body").innerText(), /Failed to fetch|TypeError|SyntaxError|Unexpected token/);
+  assert.equal(await page.getByTestId("input-tender-project-name").inputValue(), "Proyek Koneksi Terputus");
+  await page.getByRole("button", { name: "📊 Overview", exact: true }).click();
+  assert.equal(await page.getByTestId("status-tender-recovery").getByText(/Analisis masih berjalan/).isVisible(), true);
+  await completeness();
   assert.equal(calls, 1);
   const raw = await page.evaluate(() => localStorage.getItem("tender-request:119:personal"));
   assert.ok(raw?.includes(currentId));
@@ -81,6 +90,9 @@ try {
   await page.getByTestId("status-tender-recovery").getByText(/Analisis masih berjalan/).waitFor();
   assert.equal(calls, 2, "explicit new action permits another POST");
   state = "failed";
+  await page.getByRole("button", { name: "Periksa status", exact: true }).click();
+  await page.getByTestId("status-tender-recovery").getByText(/Proses terhenti setelah restart\./).waitFor();
+  assert.equal(calls, 2, "A confirmed failure after response loss must not dispatch another analysis");
   await page.reload({ waitUntil: "networkidle" });
   await completeness();
   await page.getByTestId("status-tender-recovery").getByText(/Proses terhenti/).waitFor();

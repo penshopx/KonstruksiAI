@@ -57,6 +57,7 @@ interface AnalysisFailure {
   message: string;
   action: string;
   retryable: boolean;
+  source?: "connection";
 }
 
 let nextDocumentId = 0;
@@ -202,6 +203,7 @@ export default function TenderIntelligencePage() {
     setAnalysisError(null);
     setAnalysis(null);
 
+    let requestSent = false;
     try {
       const input = {
         projectName: projectName.trim(), tenderType: tenderType.trim() || DEFAULT_TENDER_TYPE,
@@ -211,6 +213,7 @@ export default function TenderIntelligencePage() {
         })),
       };
       const identity = await request.begin(input);
+      requestSent = true;
       const res = await fetch("/api/tender-intelligence/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -267,7 +270,10 @@ export default function TenderIntelligencePage() {
       setActiveTab("overview");
     } catch (error) {
       setAnalysisError({
-        message: error instanceof Error ? error.message : "Koneksi terputus atau respons layanan analisis tidak dapat dibaca.",
+        source: requestSent ? "connection" : undefined,
+        message: requestSent
+          ? "Koneksi terputus saat mengirim atau membaca respons analisis."
+          : error instanceof Error ? error.message : "Permintaan analisis belum dapat disiapkan.",
         action: "Gunakan Periksa status untuk memulihkan permintaan tanpa memanggil AI lagi. Data formulir tetap tersedia.",
         retryable: true,
       });
@@ -706,7 +712,7 @@ export default function TenderIntelligencePage() {
         )}
 
         <div data-testid="status-tender-recovery" className="mb-6 text-sm text-blue-100">
-          <p role="status">{!analysisError && request.message}</p>
+          <p role="status">{(!analysisError || analysisError.source === "connection" || request.state === "running") && request.message}</p>
           <div className="flex flex-wrap gap-3 mt-2">
             <button type="button" onClick={() => void request.recover()} className="underline">Periksa status</button>
             {request.identity && (
