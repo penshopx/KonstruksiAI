@@ -226,10 +226,139 @@ async function checkScopeRaces(browser: Browser) {
   }
 }
 
+// Exercise handleAnalyze itself (not just the hook): the old POST fails only
+// after a different account/workspace has its own message, form and result.
+async function checkLateAnalysisFailures(browser: Browser) {
+  for (const scope of ["workspace", "account"] as const) {
+    for (const recovered of [false, true]) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      page.setDefaultTimeout(15_000);
+      const errors: string[] = [];
+      page.on("pageerror", error => errors.push(error.message));
+      let userId = 119;
+      let switched = false;
+      let posts = 0;
+      let recoveries = 0;
+      let postedInput: Record<string, unknown> | undefined;
+      let release!: () => void;
+      let started!: () => void;
+      const held = new Promise<void>(resolve => { release = resolve; });
+      const postStarted = new Promise<void>(resolve => { started = resolve; });
+      const oldKey = `tender-request:119:${scope === "workspace" ? "workspace-a" : "personal"}`;
+      const newKey = `tender-request:${scope === "account" ? 120 : 119}:personal`;
+      const savedResult = {
+        id: "new-context-result", executionId: "new-context-execution", workspaceId: null,
+        projectName: "PROYEK_KONTEKS_BARU", tenderType: "Tender Konstruksi",
+        projectDetails: "DETAIL_KONTEKS_BARU",
+        documents: [{ documentType: "NPWP", required: true, present: true, notes: "CATATAN_BARU" }],
+        checklistState: {}, completenessChecks: [], overallCompleteness: 97, complianceScore: 96,
+        risks: [], recommendations: ["HASIL_KONTEKS_BARU"], summary: {},
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      };
+      await context.route("**/api/**", async route => {
+        const path = new URL(route.request().url()).pathname;
+        if (path === "/api/auth/me") return route.fulfill({ json: {
+          user: { userId, name: "Offline", email: "offline@example.test", role: "user" },
+        } });
+        if (path === "/api/project-workspaces/workspace-a") return route.fulfill({ json: {
+          workspace: { id: "workspace-a", name: "Ruang Lama", stageId: "tender", notes: "",
+            createdAt: savedResult.createdAt, updatedAt: savedResult.updatedAt, archivedAt: null },
+        } });
+        if (route.request().method() === "POST") {
+          posts++;
+          assert.equal(path, "/api/tender-intelligence/analyze");
+          postedInput = route.request().postDataJSON();
+          started();
+          await held;
+          return route.abort("internetdisconnected");
+        }
+        if (path.startsWith("/api/tender-intelligence/requests/")) {
+          recoveries++;
+          if (path.endsWith("/active")) {
+            if (switched && !recovered) return route.fulfill({
+              status: 503, json: { error: "STATUS_KONTEKS_BARU" },
+            });
+            return route.fulfill({ json: { activeRequest: switched
+              ? { executionId: savedResult.executionId } : null } });
+          }
+          if (switched && recovered) return route.fulfill({ json: {
+            status: "succeeded", executionId: savedResult.executionId, result: savedResult,
+          } });
+          return route.fulfill({ status: 202, json: { status: "running", executionId: "old-execution" } });
+        }
+        return route.fulfill({ status: 401, json: { error: "Unexpected API denied" } });
+      });
+      try {
+        await page.goto(`${base}/tender-intelligence${scope === "workspace" ? "?workspace=workspace-a" : ""}`,
+          { waitUntil: "networkidle" });
+        const completeness = () => page.getByRole("button", { name: "✅ Kelengkapan", exact: true }).click();
+        await completeness();
+        const name = page.getByTestId("input-tender-project-name");
+        await name.fill("INPUT_RUANG_LAMA");
+        await page.getByTestId("button-analyze-tender").click();
+        await postStarted;
+        const oldIdentity = await page.evaluate(key => localStorage.getItem(key), oldKey);
+        assert.equal(JSON.parse(oldIdentity!).id, postedInput!.requestId);
+        assert.equal(postedInput!.workspaceId, scope === "workspace" ? "workspace-a" : null);
+
+        switched = true;
+        if (scope === "workspace") {
+          await page.getByRole("button", { name: "Tanpa konteks", exact: true }).click();
+        } else {
+          userId = 120;
+          await page.evaluate(() => window.dispatchEvent(new Event("storage")));
+        }
+        const recovery = page.getByTestId("status-tender-recovery");
+        await recovery.getByText(recovered
+          ? /Hasil tersimpan berhasil dipulihkan/ : "STATUS_KONTEKS_BARU").waitFor();
+        if (recovered) {
+          await page.getByText("HASIL_KONTEKS_BARU", { exact: true }).waitFor();
+          await completeness();
+          assert.equal(await name.inputValue(), savedResult.projectName);
+        }
+        await name.fill("INPUT_BARU_JANGAN_DITIMPA");
+        const details = page.locator("textarea");
+        await details.fill("DETAIL_BARU_JANGAN_DITIMPA");
+        assert.equal(await page.getByTestId("button-analyze-tender").isEnabled(), true,
+          "An old scope's pending POST must not keep the new scope busy");
+        const messageBefore = await recovery.getByRole("status").innerText();
+        const newIdentity = await page.evaluate(key => localStorage.getItem(key), newKey);
+        const recoveryCount = recoveries;
+        const failed = page.waitForEvent("requestfailed",
+          request => new URL(request.url()).pathname === "/api/tender-intelligence/analyze");
+        release();
+        await failed;
+        // Flush the rejected fetch's catch/finally and React's resulting render.
+        await page.evaluate(`new Promise(resolve => requestAnimationFrame(() =>
+          requestAnimationFrame(resolve)))`);
+        assert.equal(await page.getByTestId("status-tender-analysis-error").count(), 0,
+          `${scope}/${recovered}: a stale rejection must not show an error`);
+        assert.equal(await recovery.getByRole("status").innerText(), messageBefore, "New scope's message is unchanged");
+        assert.equal(await name.inputValue(), "INPUT_BARU_JANGAN_DITIMPA");
+        assert.equal(await details.inputValue(), "DETAIL_BARU_JANGAN_DITIMPA");
+        assert.equal(recoveries, recoveryCount, "Stale catch must not recover its old scope");
+        assert.equal(posts, 1, "No analysis is dispatched again");
+        assert.equal(await page.evaluate(key => localStorage.getItem(key), oldKey), oldIdentity,
+          "The original request identity is immutable");
+        assert.equal(await page.evaluate(key => localStorage.getItem(key), newKey), newIdentity);
+        await page.getByRole("button", { name: "📊 Overview", exact: true }).click();
+        assert.equal(await page.getByText("HASIL_KONTEKS_BARU", { exact: true }).count(), recovered ? 1 : 0);
+        assert.deepEqual(errors, []);
+        console.log(`PASS: late analysis rejection after ${scope} switch (${recovered ? "saved result" : "new message"})`);
+      } finally {
+        release();
+        await context.close();
+      }
+    }
+  }
+}
+
 const browser = await chromium.launch({
   executablePath: process.env.REPLIT_PLAYWRIGHT_CHROMIUM_EXECUTABLE, headless: true,
 });
 try {
+  await checkLateAnalysisFailures(browser);
   await checkStorageFailures(browser);
   await checkScopeRaces(browser);
   const context = await browser.newContext();

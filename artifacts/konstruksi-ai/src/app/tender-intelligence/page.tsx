@@ -95,6 +95,8 @@ export default function TenderIntelligencePage() {
   const [retryOfId, setRetryOfId] = useState<string | null>(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const request = useTenderRequest(workspaceContext.workspaceId, handleOpenSavedAnalysis, () => {
+    analysisInFlight.current = false;
+    setIsAnalyzing(false);
     setAnalysis(null);
     setAnalysisError(null);
     setRetryOfId(null);
@@ -198,6 +200,7 @@ export default function TenderIntelligencePage() {
       return;
     }
 
+    const version = request.getVersion();
     analysisInFlight.current = true;
     setIsAnalyzing(true);
     setAnalysisError(null);
@@ -225,6 +228,7 @@ export default function TenderIntelligencePage() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        if (!request.isCurrent(version)) return;
         if (typeof body.executionId === "string") {
           setHistoryRefreshKey((current) => current + 1);
         } else if (res.status === 400 || res.status === 403 || res.status === 404) {
@@ -269,6 +273,9 @@ export default function TenderIntelligencePage() {
       setHistoryRefreshKey((current) => current + 1);
       setActiveTab("overview");
     } catch (error) {
+      // A rejected fetch (or begin/body read) can settle after a scope change.
+      // Never show its error or recover with its captured workspace callback.
+      if (!request.isCurrent(version)) return;
       setAnalysisError({
         source: requestSent ? "connection" : undefined,
         message: requestSent
@@ -279,8 +286,10 @@ export default function TenderIntelligencePage() {
       });
       void request.recover();
     } finally {
-      analysisInFlight.current = false;
-      setIsAnalyzing(false);
+      if (request.isCurrent(version)) {
+        analysisInFlight.current = false;
+        setIsAnalyzing(false);
+      }
     }
   };
 

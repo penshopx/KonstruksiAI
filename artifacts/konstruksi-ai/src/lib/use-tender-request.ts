@@ -222,5 +222,6 @@ export function useTenderRequest(workspaceId: string | null, onResult: (result: 
   }
 
   return { identity, state, message, executionId, begin, recover, reset,
+    getVersion: () => generation.current,
     isCurrent: (version: number) => version === generation.current };
 }
