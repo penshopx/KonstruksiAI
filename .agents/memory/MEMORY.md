@@ -27,3 +27,4 @@
 - [KonstruksiAI portal audience](konstruksi-ai-portal-audience.md) — the product is intended for construction professionals, construction-service businesses, and academia.
 - [Jakarta workforce pilot](konstruksi-ai-workforce-pilot.md) — start with tukang in an internal-only prototype; no contractor or credential-verification partners are confirmed yet.
 - [Tender provider administration](tender-provider-administration.md) — shared provider diagnostics require current application-admin permission, not workspace ownership.
+- [Tender request recovery](tender-request-recovery.md) — never redispatch an unknown provider outcome; durable SQLite admission coordinates only processes sharing the same file.

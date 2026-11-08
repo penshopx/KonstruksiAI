@@ -159,6 +159,13 @@ export function initializeDatabase() {
       ON ai_execution_history(user_id, created_at)`);
     db.run(sql`CREATE INDEX IF NOT EXISTS ai_execution_history_workspace_created_idx
       ON ai_execution_history(workspace_id, created_at)`);
+    db.run(sql`CREATE TABLE IF NOT EXISTS tender_analysis_requests (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      workspace_scope TEXT NOT NULL,
+      input_hash TEXT NOT NULL,
+      execution_id TEXT NOT NULL UNIQUE REFERENCES ai_execution_history(id) ON DELETE CASCADE
+    )`);
 
     db.run(sql`CREATE TABLE IF NOT EXISTS solver_analysis_results (
       id TEXT PRIMARY KEY,

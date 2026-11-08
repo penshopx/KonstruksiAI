@@ -24,6 +24,9 @@ import type {
   LearningProgressInput,
   LearningProgressList,
   LearningProgressSyncInput,
+  RecoverTenderRequestParams,
+  TenderAnalysisInput,
+  TenderRequestState,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -34,6 +37,214 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * @summary Recover an account-scoped Tender request without calling AI
+ */
+export const getRecoverTenderRequestUrl = (
+  requestId: string,
+  params?: RecoverTenderRequestParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tender-intelligence/requests/${requestId}?${stringifiedParams}`
+    : `/api/tender-intelligence/requests/${requestId}`;
+};
+
+export const recoverTenderRequest = async (
+  requestId: string,
+  params?: RecoverTenderRequestParams,
+  options?: RequestInit,
+): Promise<TenderRequestState> => {
+  return customFetch<TenderRequestState>(
+    getRecoverTenderRequestUrl(requestId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getRecoverTenderRequestQueryKey = (
+  requestId: string,
+  params?: RecoverTenderRequestParams,
+) => {
+  return [
+    `/api/tender-intelligence/requests/${requestId}`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getRecoverTenderRequestQueryOptions = <
+  TData = Awaited<ReturnType<typeof recoverTenderRequest>>,
+  TError = ErrorType<void>,
+>(
+  requestId: string,
+  params?: RecoverTenderRequestParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof recoverTenderRequest>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getRecoverTenderRequestQueryKey(requestId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof recoverTenderRequest>>
+  > = ({ signal }) =>
+    recoverTenderRequest(requestId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!requestId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof recoverTenderRequest>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type RecoverTenderRequestQueryResult = NonNullable<
+  Awaited<ReturnType<typeof recoverTenderRequest>>
+>;
+export type RecoverTenderRequestQueryError = ErrorType<void>;
+
+/**
+ * @summary Recover an account-scoped Tender request without calling AI
+ */
+
+export function useRecoverTenderRequest<
+  TData = Awaited<ReturnType<typeof recoverTenderRequest>>,
+  TError = ErrorType<void>,
+>(
+  requestId: string,
+  params?: RecoverTenderRequestParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof recoverTenderRequest>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getRecoverTenderRequestQueryOptions(
+    requestId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Stable requestId replays status or stored result. Changed input or workspace returns 409. New analysis needs a new requestId. Legacy callers without requestId receive a server-generated identity but cannot recover a lost response by identity. Instances must share the existing SQLite database file.
+ * @summary Analyze Tender once per durable request identity
+ */
+export const getAnalyzeTenderUrl = () => {
+  return `/api/tender-intelligence/analyze`;
+};
+
+export const analyzeTender = async (
+  tenderAnalysisInput: TenderAnalysisInput,
+  options?: RequestInit,
+): Promise<TenderRequestState> => {
+  return customFetch<TenderRequestState>(getAnalyzeTenderUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(tenderAnalysisInput),
+  });
+};
+
+export const getAnalyzeTenderMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeTender>>,
+    TError,
+    { data: BodyType<TenderAnalysisInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeTender>>,
+  TError,
+  { data: BodyType<TenderAnalysisInput> },
+  TContext
+> => {
+  const mutationKey = ["analyzeTender"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeTender>>,
+    { data: BodyType<TenderAnalysisInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return analyzeTender(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeTenderMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeTender>>
+>;
+export type AnalyzeTenderMutationBody = BodyType<TenderAnalysisInput>;
+export type AnalyzeTenderMutationError = ErrorType<void>;
+
+/**
+ * @summary Analyze Tender once per durable request identity
+ */
+export const useAnalyzeTender = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeTender>>,
+    TError,
+    { data: BodyType<TenderAnalysisInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeTender>>,
+  TError,
+  { data: BodyType<TenderAnalysisInput> },
+  TContext
+> => {
+  return useMutation(getAnalyzeTenderMutationOptions(options));
+};
 
 /**
  * @summary Check whether the current account can run the AI setup check

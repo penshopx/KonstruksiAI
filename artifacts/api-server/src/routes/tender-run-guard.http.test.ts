@@ -9,7 +9,8 @@ process.env.API_SERVER_DB_PATH = path.join(os.tmpdir(), `tender-run-guard-${rand
 process.env.NODE_ENV = "production";
 
 const { default: app } = await import("../app");
-const { acquireTenderAnalysisRun } = await import("../lib/tender-run-guard");
+const { claimTenderRequest } = await import("../lib/tender-run-guard");
+const { transitionExecutionRecord } = await import("../lib/execution-history");
 const { db, aiExecutionHistory } = await import("../db");
 const { eq } = await import("drizzle-orm");
 
@@ -46,16 +47,19 @@ async function registerUser() {
   return { userId: body.user.id, cookie: `auth-token=${cookie}` };
 }
 
-test("concurrent tabs receive 409 without another execution; lock is released on validation return", async () => {
+test("concurrent tabs receive 409 without another execution; terminal state releases durable admission", async () => {
   const user = await registerUser();
   const otherUser = await registerUser();
   const post = (cookie: string) => fetch(`${baseUrl}/api/tender-intelligence/analyze`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: cookie },
-    body: JSON.stringify({ projectName: "" }),
+    body: JSON.stringify({ requestId: randomUUID(), projectName: "Proyek",
+      documents: [{ documentType: "NPWP", required: true, present: true, notes: "" }] }),
   });
-  const release = acquireTenderAnalysisRun(user.userId);
-  assert.ok(release);
+  const claimed = claimTenderRequest({ userId: user.userId, requestId: randomUUID(), workspaceId: null,
+    inputHash: "offline-hash", retryOfId: null, inputSummary: { label: "Offline active run" } });
+  assert.equal(claimed.kind, "claimed");
+  if (claimed.kind !== "claimed") throw new Error("Expected claim");
   try {
     const responses = await Promise.all([post(user.cookie), post(user.cookie)]);
     for (const response of responses) {
@@ -65,14 +69,17 @@ test("concurrent tabs receive 409 without another execution; lock is released on
       assert.match(body.action, /tab lain/);
       assert.equal(body.executionId, undefined);
     }
-    assert.equal((await post(otherUser.cookie)).status, 400);
+    const invalid = await fetch(`${baseUrl}/api/tender-intelligence/analyze`, {
+      method: "POST", headers: { "Content-Type": "application/json", Cookie: otherUser.cookie },
+      body: JSON.stringify({ projectName: "" }),
+    });
+    assert.equal(invalid.status, 400);
     const executions = await db.select().from(aiExecutionHistory).where(eq(aiExecutionHistory.userId, user.userId));
-    assert.equal(executions.length, 0);
+    assert.equal(executions.length, 1);
   } finally {
-    release();
+    await transitionExecutionRecord(claimed.execution.id, "running", { status: "failed" });
   }
-  assert.equal((await post(user.cookie)).status, 400);
-  const afterValidation = acquireTenderAnalysisRun(user.userId);
-  assert.ok(afterValidation, "validation must release the admission lock");
-  afterValidation();
+  const next = claimTenderRequest({ userId: user.userId, requestId: randomUUID(), workspaceId: null,
+    inputHash: "next-hash", retryOfId: null, inputSummary: { label: "Next offline run" } });
+  assert.equal(next.kind, "claimed", "terminal state releases durable admission");
 });

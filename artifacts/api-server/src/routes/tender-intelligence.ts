@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 import { getSessionFromRequest } from "../lib/auth";
 import OpenAI from "openai";
@@ -12,9 +13,8 @@ import {
   isRetryableTenderProviderError,
   TenderAnalysisFailureError,
 } from "../lib/tender-analysis-errors";
-import { acquireTenderAnalysisRun } from "../lib/tender-run-guard";
+import { claimTenderRequest, findTenderRequest, reconcileTenderRequests, tenderInputHash } from "../lib/tender-run-guard";
 import {
-  createExecutionRecord,
   resolveExecutionWorkspace,
   transitionExecutionRecord,
   validateRetryReference,
@@ -431,6 +431,50 @@ export function validateTenderAIResult(
 
 // ─── Tender Intelligence endpoint ─────────────────────────────────────────────
 
+async function sendRequestState(res: Response, userId: number, requestId: string, workspaceId: string | null) {
+  res.setHeader("Cache-Control", "no-store");
+  reconcileTenderRequests(userId);
+  const saved = findTenderRequest(userId, requestId, workspaceId);
+  if (!saved) {
+    res.status(404).json({ error: "Permintaan Tender tidak ditemukan." });
+    return;
+  }
+  const { execution } = saved;
+  if (execution.status === "succeeded") {
+    const result = await getTenderAnalysisResult({ userId, id: execution.id });
+    if (!result) {
+      res.status(404).json({ error: "Hasil Tender tidak ditemukan atau akses telah dicabut." });
+      return;
+    }
+    const payload = toTenderAnalysisResult(result);
+    res.json({ ...payload, status: "succeeded", executionId: execution.id,
+      resultRef: execution.resultRef, result: payload });
+  } else if (execution.status === "failed") {
+    res.status(409).json({
+      status: "failed", executionId: execution.id, code: "ANALYSIS_PREVIOUSLY_FAILED",
+      error: execution.errorMessage || "Permintaan sebelumnya tidak selesai.",
+      action: "Permintaan ini tidak akan dijalankan ulang otomatis. Periksa riwayat, lalu pilih Analisis baru bila diperlukan.",
+      retryable: false,
+    });
+  } else {
+    res.status(202).json({ status: "running", executionId: execution.id,
+      message: "Analisis masih berjalan. Status dipulihkan tanpa memanggil AI kembali." });
+  }
+}
+
+router.get("/tender-intelligence/requests/:requestId", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const session = await getSessionFromRequest(req);
+  if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const workspace = await resolveExecutionWorkspace(req.query.workspaceId, session.userId);
+  if ("error" in workspace) { res.status(workspace.status).json({ error: workspace.error }); return; }
+  const requestId = String(req.params.requestId);
+  if (!/^[a-zA-Z0-9_-]{16,128}$/.test(requestId)) {
+    res.status(400).json({ error: "ID permintaan tidak valid." }); return;
+  }
+  await sendRequestState(res, session.userId, requestId, workspace.workspaceId);
+});
+
 router.get("/tender-intelligence/history", async (req: Request, res: Response) => {
   const session = await getSessionFromRequest(req);
   if (!session) {
@@ -484,32 +528,12 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
   const session = await getSessionFromRequest(req);
   if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
 
-  const releaseRun = acquireTenderAnalysisRun(session.userId);
-  if (!releaseRun) {
-    res.status(409).json({
-      error: "Analisis Tender lain untuk akun Anda masih berjalan.",
-      code: "ANALYSIS_IN_PROGRESS",
-      action: "Tunggu analisis yang sedang berjalan selesai, termasuk di tab lain, lalu periksa riwayat hasil sebelum mencoba kembali.",
-      retryable: true,
-    });
-    return;
-  }
-
   let executionId: string | null = null;
   let processingProviderResponse = false;
   let attempt = 0;
   const requestStartedAt = performance.now();
 
   try {
-    if (!checkRateLimit(session.userId)) {
-      res.status(429).json({
-        error: "Batas permintaan analisis aplikasi tercapai.",
-        code: "REQUEST_RATE_LIMITED",
-        action: "Tunggu satu menit sebelum menjalankan analisis kembali.",
-        retryable: true,
-      });
-      return;
-    }
     const {
       projectName,
       tenderType,
@@ -518,6 +542,7 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       checklistState: rawChecklistState,
       workspaceId,
       retryOfId,
+      requestId: rawRequestId,
     } = req.body as {
       projectName?: string;
       tenderType?: string;
@@ -526,7 +551,14 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       checklistState?: unknown;
       workspaceId?: string | null;
       retryOfId?: string | null;
+      requestId?: string;
     };
+    // Legacy callers remain supported; recovery-capable clients must supply a
+    // stable ID before sending. Never derive it from input (new runs are explicit).
+    const requestId = rawRequestId === undefined ? randomUUID() : rawRequestId;
+    if (typeof requestId !== "string" || !/^[a-zA-Z0-9_-]{16,128}$/.test(requestId)) {
+      res.status(400).json({ error: "ID permintaan tidak valid." }); return;
+    }
 
     if (typeof projectName !== "string" || !projectName.trim()) {
       res.status(400).json({ error: "Nama proyek wajib diisi." });
@@ -573,10 +605,15 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
 
     const userContent = buildUserContent(projectName.trim(), resolvedTenderType, resolvedDetails, documents);
 
-    const execution = await createExecutionRecord({
+    const claim = claimTenderRequest({
       userId: session.userId,
+      requestId,
+      inputHash: tenderInputHash({
+        projectName: projectName.trim(), tenderType: resolvedTenderType,
+        projectDetails: resolvedDetails, documents, checklistState,
+        retryOfId: retryResolution.retryOfId,
+      }),
       workspaceId: workspaceResolution.workspaceId,
-      module: "tender",
       retryOfId: retryResolution.retryOfId,
       inputSummary: {
         label: `Tender Intelligence — ${projectName.trim()}`,
@@ -589,8 +626,30 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
         },
       },
     });
-    executionId = execution.id;
-    await transitionExecutionRecord(executionId, "pending", { status: "running" });
+    if (claim.kind === "conflict") {
+      res.status(409).json({ code: "REQUEST_INPUT_CHANGED",
+        error: "ID permintaan sudah digunakan dengan input atau ruang proyek berbeda.",
+        action: "Pulihkan permintaan lama atau pilih Analisis baru untuk input yang berubah.", retryable: false });
+      return;
+    }
+    if (claim.kind === "replay") {
+      await sendRequestState(res, session.userId, requestId, workspaceResolution.workspaceId);
+      return;
+    }
+    if (claim.kind === "busy") {
+      res.status(409).json({ code: "ANALYSIS_IN_PROGRESS",
+        error: "Analisis Tender lain untuk akun Anda masih berjalan.",
+        action: "Tunggu analisis di tab lain selesai, lalu periksa riwayat.", retryable: true });
+      return;
+    }
+    executionId = claim.execution.id;
+    if (!checkRateLimit(session.userId)) {
+      await transitionExecutionRecord(executionId, "running", { status: "failed", completedAt: new Date(),
+        errorMessage: "Batas permintaan analisis aplikasi tercapai. Tunggu satu menit." });
+      res.status(429).json({ error: "Batas permintaan analisis aplikasi tercapai.", code: "REQUEST_RATE_LIMITED",
+        action: "Tunggu satu menit sebelum memulai analisis baru.", retryable: true, executionId });
+      return;
+    }
 
     let raw: string | null = null;
     let lastErr: unknown;
@@ -702,6 +761,8 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       recommendations: aiResult.recommendations,
       complianceScore,
       summary: aiResult.summary,
+      result: toTenderAnalysisResult(savedResult),
+      status: "succeeded",
     });
   } catch (err) {
     const classifiedFailure = classifyTenderAnalysisError(processingProviderResponse
@@ -736,7 +797,6 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       ...(executionId ? { executionId } : {}),
     });
   } finally {
-    releaseRun();
     req.log.info({
       executionId,
       attempts: attempt,

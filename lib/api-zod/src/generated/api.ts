@@ -8,6 +8,112 @@
 import * as zod from "zod";
 
 /**
+ * @summary Recover an account-scoped Tender request without calling AI
+ */
+export const recoverTenderRequestPathRequestIdRegExp = new RegExp(
+  "^[a-zA-Z0-9_-]{16,128}$",
+);
+
+export const RecoverTenderRequestParams = zod.object({
+  requestId: zod.coerce.string().regex(recoverTenderRequestPathRequestIdRegExp),
+});
+
+export const recoverTenderRequestQueryWorkspaceIdMax = 128;
+
+export const RecoverTenderRequestQueryParams = zod.object({
+  workspaceId: zod.coerce
+    .string()
+    .max(recoverTenderRequestQueryWorkspaceIdMax)
+    .optional(),
+});
+
+export const RecoverTenderRequestResponse = zod.object({
+  status: zod.enum(["running", "succeeded", "failed"]),
+  executionId: zod.string(),
+  resultRef: zod.string().nullish(),
+  message: zod.string().optional(),
+  result: zod
+    .record(zod.string(), zod.unknown())
+    .optional()
+    .describe(
+      "Authoritative saved Tender analysis including original input and scores",
+    ),
+});
+
+/**
+ * Stable requestId replays status or stored result. Changed input or workspace returns 409. New analysis needs a new requestId. Legacy callers without requestId receive a server-generated identity but cannot recover a lost response by identity. Instances must share the existing SQLite database file.
+ * @summary Analyze Tender once per durable request identity
+ */
+export const analyzeTenderBodyRequestIdRegExp = new RegExp(
+  "^[a-zA-Z0-9_-]{16,128}$",
+);
+export const analyzeTenderBodyProjectNameMax = 300;
+
+export const analyzeTenderBodyTenderTypeMax = 200;
+
+export const analyzeTenderBodyProjectDetailsMax = 8000;
+
+export const analyzeTenderBodyWorkspaceIdMax = 128;
+
+export const analyzeTenderBodyRetryOfIdMax = 128;
+
+export const analyzeTenderBodyChecklistStateNotesMax = 2000;
+
+export const analyzeTenderBodyDocumentsItemDocumentTypeMax = 200;
+
+export const analyzeTenderBodyDocumentsItemNotesMax = 2000;
+
+export const analyzeTenderBodyDocumentsMax = 40;
+
+export const AnalyzeTenderBody = zod.object({
+  requestId: zod.string().regex(analyzeTenderBodyRequestIdRegExp).optional(),
+  projectName: zod.string().min(1).max(analyzeTenderBodyProjectNameMax),
+  tenderType: zod.string().max(analyzeTenderBodyTenderTypeMax).optional(),
+  projectDetails: zod
+    .string()
+    .max(analyzeTenderBodyProjectDetailsMax)
+    .optional(),
+  workspaceId: zod.string().max(analyzeTenderBodyWorkspaceIdMax).nullish(),
+  retryOfId: zod.string().max(analyzeTenderBodyRetryOfIdMax).nullish(),
+  checklistState: zod
+    .record(
+      zod.string(),
+      zod.object({
+        checked: zod.boolean(),
+        notes: zod.string().max(analyzeTenderBodyChecklistStateNotesMax),
+      }),
+    )
+    .optional(),
+  documents: zod
+    .array(
+      zod.object({
+        documentType: zod
+          .string()
+          .min(1)
+          .max(analyzeTenderBodyDocumentsItemDocumentTypeMax),
+        required: zod.boolean(),
+        present: zod.boolean(),
+        notes: zod.string().max(analyzeTenderBodyDocumentsItemNotesMax),
+      }),
+    )
+    .min(1)
+    .max(analyzeTenderBodyDocumentsMax),
+});
+
+export const AnalyzeTenderResponse = zod.object({
+  status: zod.enum(["running", "succeeded", "failed"]),
+  executionId: zod.string(),
+  resultRef: zod.string().nullish(),
+  message: zod.string().optional(),
+  result: zod
+    .record(zod.string(), zod.unknown())
+    .optional()
+    .describe(
+      "Authoritative saved Tender analysis including original input and scores",
+    ),
+});
+
+/**
  * @summary Check whether the current account can run the AI setup check
  */
 export const GetTenderProviderSetupAccessResponse = zod.object({

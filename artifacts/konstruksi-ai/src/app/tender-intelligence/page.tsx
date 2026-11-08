@@ -14,6 +14,7 @@ import ExecutionHistoryPanel from "@/components/ExecutionHistoryPanel";
 import TenderHistoryPanel from "@/components/TenderHistoryPanel";
 import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
 import type { TenderAnalysisResult as SavedTenderAnalysis } from "@/lib/tender-history";
+import { useTenderRequest } from "@/lib/use-tender-request";
 
 const TABS = [
   { id: "overview", label: "📊 Overview", icon: "📊" },
@@ -92,6 +93,16 @@ export default function TenderIntelligencePage() {
   const [analysisError, setAnalysisError] = useState<AnalysisFailure | null>(null);
   const [retryOfId, setRetryOfId] = useState<string | null>(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const request = useTenderRequest(workspaceContext.workspaceId, handleOpenSavedAnalysis, () => {
+    setAnalysis(null);
+    setAnalysisError(null);
+    setRetryOfId(null);
+    setDocuments(DEFAULT_DOCUMENTS);
+    setProjectName(workspaceContext.workspace?.name ?? "Pembangunan Gedung Kantor");
+    setTenderType(DEFAULT_TENDER_TYPE);
+    setProjectDetails("");
+    setChecklistState({});
+  });
 
   useEffect(() => {
     if (workspaceContext.workspace) {
@@ -145,7 +156,7 @@ export default function TenderIntelligencePage() {
     setDocuments(prev => prev.filter(doc => doc.id !== id));
   };
 
-  const handleOpenSavedAnalysis = (savedResult: SavedTenderAnalysis) => {
+  function handleOpenSavedAnalysis(savedResult: SavedTenderAnalysis) {
     setProjectName(savedResult.projectName);
     setTenderType(savedResult.tenderType);
     setProjectDetails(savedResult.projectDetails);
@@ -170,9 +181,10 @@ export default function TenderIntelligencePage() {
     setAnalysisError(null);
     setRetryOfId(null);
     setActiveTab("overview");
-  };
+  }
 
   const handleAnalyze = async () => {
+    if (request.identity) { await request.recover(); return; }
     if (!projectName.trim() || analysisInFlight.current) return;
     const validDocuments = documents.filter(doc => doc.documentType.trim());
     if (validDocuments.length === 0) {
@@ -191,30 +203,26 @@ export default function TenderIntelligencePage() {
     setAnalysis(null);
 
     try {
+      const input = {
+        projectName: projectName.trim(), tenderType: tenderType.trim() || DEFAULT_TENDER_TYPE,
+        projectDetails, workspaceId: workspaceContext.workspaceId, retryOfId, checklistState,
+        documents: validDocuments.map(({ documentType, required, present, notes }) => ({
+          documentType, required, present, notes,
+        })),
+      };
+      const identity = await request.begin(input);
       const res = await fetch("/api/tender-intelligence/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({
-          projectName: projectName.trim(),
-          tenderType: tenderType.trim() || DEFAULT_TENDER_TYPE,
-          projectDetails,
-          workspaceId: workspaceContext.workspaceId,
-          retryOfId,
-          checklistState,
-          documents: validDocuments.map(({ documentType, required, present, notes }) => ({
-            documentType,
-            required,
-            present,
-            notes,
-          })),
-        }),
+        body: JSON.stringify({ ...input, requestId: identity.id }),
       });
+      if (!request.isCurrent(identity.version)) return;
+      if (res.status === 202) { void request.recover(); return; }
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         if (typeof body.executionId === "string") {
-          setRetryOfId(body.executionId);
           setHistoryRefreshKey((current) => current + 1);
         } else if (res.status === 400 || res.status === 403 || res.status === 404) {
           setRetryOfId(null);
@@ -229,10 +237,18 @@ export default function TenderIntelligencePage() {
             : "Tunggu beberapa saat, lalu coba kembali.",
           retryable: typeof body.retryable === "boolean" ? body.retryable : res.status >= 500 || res.status === 429,
         });
+        void request.recover();
         return;
       }
 
       const data = await res.json();
+      if (!request.isCurrent(identity.version)) return;
+      if (data.result) {
+        handleOpenSavedAnalysis(data.result);
+        setHistoryRefreshKey(current => current + 1);
+        void request.recover();
+        return;
+      }
       setAnalysis({
         id: data.resultRef ?? `analysis-${Date.now()}`,
         projectName: projectName.trim(),
@@ -249,12 +265,13 @@ export default function TenderIntelligencePage() {
       setRetryOfId(null);
       setHistoryRefreshKey((current) => current + 1);
       setActiveTab("overview");
-    } catch {
+    } catch (error) {
       setAnalysisError({
-        message: "Koneksi terputus atau respons layanan analisis tidak dapat dibaca.",
-        action: "Periksa koneksi Anda, lalu coba kembali. Data formulir tetap tersedia.",
+        message: error instanceof Error ? error.message : "Koneksi terputus atau respons layanan analisis tidak dapat dibaca.",
+        action: "Gunakan Periksa status untuk memulihkan permintaan tanpa memanggil AI lagi. Data formulir tetap tersedia.",
         retryable: true,
       });
+      void request.recover();
     } finally {
       analysisInFlight.current = false;
       setIsAnalyzing(false);
@@ -456,13 +473,31 @@ export default function TenderIntelligencePage() {
           </div>
         )}
 
+        <div role="status" data-testid="status-tender-recovery" className="mt-4 text-sm text-blue-100">
+          {request.message}
+          <div className="flex gap-3 mt-2">
+            <button type="button" onClick={() => void request.recover()} className="underline">Periksa status</button>
+            {request.identity && (
+              <button type="button" data-testid="button-new-tender-analysis"
+                disabled={isAnalyzing || request.state === "running" || request.state === "loading"}
+                onClick={() => {
+                  if (request.reset()) {
+                    setRetryOfId(request.state === "failed" ? request.executionId : null);
+                    setAnalysisError(null);
+                  }
+                }} className="underline disabled:opacity-50">
+                Analisis baru
+              </button>
+            )}
+          </div>
+        </div>
         <button
           onClick={handleAnalyze}
           data-testid="button-analyze-tender"
-          disabled={isAnalyzing || !projectName.trim()}
+          disabled={isAnalyzing || request.state === "running" || request.state === "loading" || !projectName.trim()}
           className="mt-6 w-full sm:w-auto px-6 py-3 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {isAnalyzing ? "Menganalisis..." : analysisError && !analysisError.retryable ? "Jalankan setelah perbaikan" : retryOfId ? "🔄 Ulangi & Catat Pengulangan" : "🚀 Jalankan Analisis AI"}
+          {isAnalyzing || request.state === "running" ? "Menganalisis..." : request.identity ? "Pulihkan permintaan yang sama" : "🚀 Jalankan Analisis AI"}
         </button>
       </div>
 

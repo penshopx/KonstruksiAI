@@ -115,6 +115,15 @@ export const aiExecutionHistory = sqliteTable("ai_execution_history", {
 export type AiExecutionHistory = typeof aiExecutionHistory.$inferSelect;
 export type NewAiExecutionHistory = typeof aiExecutionHistory.$inferInsert;
 
+// Immutable scope survives workspace deletion (history's FK is SET NULL).
+export const tenderAnalysisRequests = sqliteTable("tender_analysis_requests", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  workspaceScope: text("workspace_scope").notNull(),
+  inputHash: text("input_hash").notNull(),
+  executionId: text("execution_id").notNull().unique().references(() => aiExecutionHistory.id, { onDelete: "cascade" }),
+});
+
 export const solverAnalysisResults = sqliteTable("solver_analysis_results", {
   id: text("id").primaryKey(),
   executionId: text("execution_id").notNull().unique().references(() => aiExecutionHistory.id, { onDelete: "cascade" }),

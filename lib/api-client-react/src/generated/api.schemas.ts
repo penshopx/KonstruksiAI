@@ -5,6 +5,80 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type TenderAnalysisInputChecklistState = {
+  [key: string]: {
+    checked: boolean;
+    /** @maxLength 2000 */
+    notes: string;
+  };
+};
+
+export interface TenderDocumentInput {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  documentType: string;
+  required: boolean;
+  present: boolean;
+  /** @maxLength 2000 */
+  notes: string;
+}
+
+export interface TenderAnalysisInput {
+  /** @pattern ^[a-zA-Z0-9_-]{16,128}$ */
+  requestId?: string;
+  /**
+   * @minLength 1
+   * @maxLength 300
+   */
+  projectName: string;
+  /** @maxLength 200 */
+  tenderType?: string;
+  /** @maxLength 8000 */
+  projectDetails?: string;
+  /**
+   * @maxLength 128
+   * @nullable
+   */
+  workspaceId?: string | null;
+  /**
+   * @maxLength 128
+   * @nullable
+   */
+  retryOfId?: string | null;
+  checklistState?: TenderAnalysisInputChecklistState;
+  /**
+   * @minItems 1
+   * @maxItems 40
+   */
+  documents: TenderDocumentInput[];
+}
+
+export type TenderRequestStateStatus =
+  (typeof TenderRequestStateStatus)[keyof typeof TenderRequestStateStatus];
+
+export const TenderRequestStateStatus = {
+  running: "running",
+  succeeded: "succeeded",
+  failed: "failed",
+} as const;
+
+/**
+ * Authoritative saved Tender analysis including original input and scores
+ */
+export type TenderRequestStateResult = { [key: string]: unknown };
+
+export interface TenderRequestState {
+  status: TenderRequestStateStatus;
+  executionId: string;
+  /** @nullable */
+  resultRef?: string | null;
+  message?: string;
+  /** Authoritative saved Tender analysis including original input and scores */
+  result?: TenderRequestStateResult;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -43,6 +117,13 @@ export interface LearningProgressList {
 export interface LearningProgressCompletion {
   progress: LearningProgress;
 }
+
+export type RecoverTenderRequestParams = {
+  /**
+   * @maxLength 128
+   */
+  workspaceId?: string;
+};
 
 export type GetTenderProviderSetupAccess200 = {
   canCheck: boolean;

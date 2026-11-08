@@ -20,6 +20,8 @@ try {
   let submitted: { projectName: string; documents: { notes: string }[] };
   let releaseFailure: (() => void) | undefined;
   let pendingFailure: Promise<void>;
+  let recoveryState = "empty";
+  let savedResult: Record<string, unknown>;
   const marker = "HASIL_LAMA_TIDAK_BOLEH_TAMPIL";
   await page.route("**/api/**", async route => {
     const pathname = new URL(route.request().url()).pathname;
@@ -27,7 +29,9 @@ try {
       analysisRequests++;
       submitted = route.request().postDataJSON();
       if (outcome === "failure") {
+        recoveryState = "running";
         await pendingFailure;
+        recoveryState = "failed";
         return route.fulfill({
           status: failure.status, json: {
             code: failure.code, error: failure.error, action: failure.action,
@@ -35,19 +39,32 @@ try {
           },
         });
       }
-      return route.fulfill({ json: {
-        resultRef: "synthetic-result", executionId: "synthetic-success",
+      recoveryState = "succeeded";
+      savedResult = {
+        id: "synthetic-result", executionId: "synthetic-success", workspaceId: null,
+        projectName: submitted!.projectName, tenderType: "Tender Konstruksi", projectDetails: "",
+        documents: submitted!.documents, checklistState: {},
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        resultRef: "synthetic-result",
         completenessChecks: [], overallCompleteness: 95, complianceScore: 95,
         risks: [{ id: "old-risk", category: "technical", description: marker, severity: "low", likelihood: "low", mitigation: ["Periksa"], impact: marker }],
         recommendations: [marker],
         summary: { administrativeRequirements: marker, technicalRequirements: marker, financialRequirements: marker, keyRisks: marker, nextSteps: marker },
-      } });
+      };
+      return route.fulfill({ json: { ...savedResult, result: savedResult } });
+    }
+    if (pathname.startsWith("/api/tender-intelligence/requests/")) {
+      if (recoveryState === "running") return route.fulfill({ status: 202, json: { status: "running" } });
+      if (recoveryState === "failed") return route.fulfill({ status: 409, json: { status: "failed", executionId: "synthetic-failed-execution", error: failure!.error } });
+      if (recoveryState === "succeeded") return route.fulfill({ json: { status: "succeeded", result: savedResult } });
+      return route.fulfill({ status: 404, json: { error: "Belum dikirim." } });
     }
     // Fail closed: never let API requests escape into real accounts or providers.
-    if (pathname === "/api/auth/me") return route.fulfill({ json: { user: null } });
+    if (pathname === "/api/auth/me") return route.fulfill({ json: { user: { userId: 119, name: "Offline", email: "offline@example.test", role: "user" } } });
     return route.fulfill({ status: 401, json: { error: "Sesi uji anonim." } });
   });
   await page.goto(`${base}/tender-intelligence`, { waitUntil: "networkidle" });
+  page.on("dialog", dialog => dialog.accept());
   const cases = [
     { status: 503, code: "AI_PROVIDER_NOT_CONFIGURED", error: "Kredensial layanan AI belum tersedia.", action: "Minta administrator memeriksa konfigurasi layanan AI.", retryable: false },
     { status: 502, code: "AI_PROVIDER_AUTHENTICATION_FAILED", error: "Provider AI menolak autentikasi aplikasi.", action: "Minta administrator memeriksa kredensial dan akses provider AI; mencoba ulang saja tidak akan memperbaikinya.", retryable: false },
@@ -56,8 +73,11 @@ try {
     { status: 502, code: "AI_INVALID_MODEL_RESPONSE", error: "Respons model AI kosong atau tidak sesuai format analisis yang dibutuhkan.", action: "Coba jalankan analisis kembali. Jika terus terjadi, informasikan tim teknis.", retryable: true },
   ];
   for (const scenario of cases) {
-    outcome = "success";
     await page.getByRole("button", { name: "✅ Kelengkapan", exact: true }).click();
+    if (await page.getByTestId("button-new-tender-analysis").count()) {
+      await page.getByTestId("button-new-tender-analysis").click();
+    }
+    outcome = "success";
     await page.getByTestId("input-tender-project-name").fill("Proyek Uji Panduan");
     await page.getByPlaceholder("Catatan (opsional): mis. masa berlaku, kesesuaian bidang, kendala...").first().fill("Catatan tetap tersimpan");
     await page.getByTestId("button-analyze-tender").click();
@@ -67,6 +87,7 @@ try {
     failure = scenario;
     pendingFailure = new Promise(resolve => { releaseFailure = resolve; });
     await page.getByRole("button", { name: "✅ Kelengkapan", exact: true }).click();
+    await page.getByTestId("button-new-tender-analysis").click();
     await page.getByTestId("button-analyze-tender").click();
     await page.waitForFunction(() => (document.querySelector('[data-testid="button-analyze-tender"]') as HTMLButtonElement)?.disabled);
     // Clear stale analysis at request start, not only after the failure response.
@@ -81,8 +102,8 @@ try {
     assert.equal(await page.getByTestId("button-analyze-tender").isEnabled(), true);
     assert.match(
       await page.getByTestId("button-analyze-tender").innerText(),
-      scenario.retryable ? /Ulangi & Catat Pengulangan/ : /Jalankan setelah perbaikan/,
-      "Non-retryable failures must not encourage blind retries",
+      /Pulihkan permintaan yang sama/,
+      "Failures must recover the same request, not encourage blind paid retries",
     );
     assert.equal(await page.getByTestId("input-tender-project-name").inputValue(), "Proyek Uji Panduan");
     assert.equal(await page.getByPlaceholder("Catatan (opsional): mis. masa berlaku, kesesuaian bidang, kendala...").first().inputValue(), "Catatan tetap tersimpan");

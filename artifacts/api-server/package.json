@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:tender-idempotency": "pnpm exec esbuild src/routes/tender-idempotency.http.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --banner:js=\"import{createRequire as __cr}from 'node:module';globalThis.require=__cr(import.meta.url);\" --outfile=.test-dist/tender-idempotency/test.mjs && node --test .test-dist/tender-idempotency/test.mjs",
     "test:tender-provider-setup": "pnpm exec esbuild src/routes/tender-provider-setup.http.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --banner:js=\"import{createRequire as __cr}from 'node:module';globalThis.require=__cr(import.meta.url);\" --outfile=\"${API_TEST_DIST_DIR:-.test-dist/tender-provider-setup}/tender-provider-setup.http.test.mjs\" && node --test \"${API_TEST_DIST_DIR:-.test-dist/tender-provider-setup}/tender-provider-setup.http.test.mjs\"",
     "test:tender-failure-guidance": "pnpm exec esbuild src/routes/tender-failure-guidance.http.test.ts --bundle --platform=node --format=esm --external:better-sqlite3 --banner:js=\"import{createRequire as __cr}from 'node:module';globalThis.require=__cr(import.meta.url);\" --outfile=\"${API_TEST_DIST_DIR:-.test-dist}/tender-failure-guidance.http.test.mjs\" && node --test \"${API_TEST_DIST_DIR:-.test-dist}/tender-failure-guidance.http.test.mjs\"",
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",

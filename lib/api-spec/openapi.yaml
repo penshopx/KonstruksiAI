@@ -11,6 +11,68 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /tender-intelligence/requests/{requestId}:
+    get:
+      operationId: recoverTenderRequest
+      summary: Recover an account-scoped Tender request without calling AI
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema: { type: string, pattern: "^[a-zA-Z0-9_-]{16,128}$" }
+        - in: query
+          name: workspaceId
+          schema: { type: string, maxLength: 128 }
+      responses:
+        "200":
+          description: Stored authoritative result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenderRequestState"
+        "202":
+          description: Still running; never automatically restarted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenderRequestState"
+        "409":
+          description: Previous request failed or was interrupted; explicitly start a new request
+        "401": { description: Authentication required }
+        "403": { description: Workspace access revoked }
+        "404": { description: Request absent in this account and workspace }
+  /tender-intelligence/analyze:
+    post:
+      operationId: analyzeTender
+      summary: Analyze Tender once per durable request identity
+      description: Stable requestId replays status or stored result. Changed input or workspace returns 409. New analysis needs a new requestId. Legacy callers without requestId receive a server-generated identity but cannot recover a lost response by identity. Instances must share the existing SQLite database file.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TenderAnalysisInput"
+      responses:
+        "200":
+          description: Saved analysis, also returned for a successful replay
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenderRequestState"
+        "202":
+          description: Same request is running
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenderRequestState"
+        "400": { description: Invalid input }
+        "401": { description: Authentication required }
+        "403": { description: Workspace access revoked }
+        "409": { description: "Changed input, previous failure, or another active request" }
+        "429": { description: Application rate limit reached }
+        "500": { description: Internal failure }
+        "502": { description: Provider failure }
+        "503": { description: Provider unavailable }
   /tender-intelligence/provider-setup:
     get:
       operationId: getTenderProviderSetupAccess
@@ -124,6 +186,50 @@ paths:
                 $ref: "#/components/schemas/LearningProgressCompletion"
 components:
   schemas:
+    TenderAnalysisInput:
+      type: object
+      required: [projectName, documents]
+      properties:
+        requestId: { type: string, pattern: "^[a-zA-Z0-9_-]{16,128}$" }
+        projectName: { type: string, minLength: 1, maxLength: 300 }
+        tenderType: { type: string, maxLength: 200 }
+        projectDetails: { type: string, maxLength: 8000 }
+        workspaceId: { type: ["string", "null"], maxLength: 128 }
+        retryOfId: { type: ["string", "null"], maxLength: 128 }
+        checklistState:
+          type: object
+          additionalProperties:
+            type: object
+            required: [checked, notes]
+            properties:
+              checked: { type: boolean }
+              notes: { type: string, maxLength: 2000 }
+        documents:
+          type: array
+          minItems: 1
+          maxItems: 40
+          items:
+            $ref: "#/components/schemas/TenderDocumentInput"
+    TenderDocumentInput:
+      type: object
+      required: [documentType, required, present, notes]
+      properties:
+        documentType: { type: string, minLength: 1, maxLength: 200 }
+        required: { type: boolean }
+        present: { type: boolean }
+        notes: { type: string, maxLength: 2000 }
+    TenderRequestState:
+      type: object
+      required: [status, executionId]
+      properties:
+        status: { type: string, enum: [running, succeeded, failed] }
+        executionId: { type: string }
+        resultRef: { type: ["string", "null"] }
+        message: { type: string }
+        result:
+          type: object
+          description: Authoritative saved Tender analysis including original input and scores
+          additionalProperties: true
     HealthStatus:
       type: object
       properties:
