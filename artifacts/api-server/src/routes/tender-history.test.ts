@@ -15,6 +15,7 @@ const { default: app } = await import("../app");
 const { db, projectWorkspaceMembers, tenderAnalysisResults } = await import("../db");
 const { createExecutionRecord, transitionExecutionRecord } = await import("../lib/execution-history");
 const { persistSuccessfulTenderAnalysis } = await import("../lib/tender-history");
+const { reconcileCompletenessChecks } = await import("./tender-intelligence");
 const { and, eq } = await import("drizzle-orm");
 
 let server: Server;
@@ -67,6 +68,45 @@ function authedFetch(session: Session, urlPath: string, init: RequestInit = {}) 
     },
   });
 }
+
+test("Tender document statuses override AI scores and retain actionable explanations", () => {
+  const checks = reconcileCompletenessChecks(
+    [
+      { documentType: "SMK3", required: true, present: false, notes: "" },
+      { documentType: "SBU", required: true, present: true, notes: "" },
+      { documentType: "NIB", required: true, present: true, notes: "" },
+    ],
+    [
+      {
+        documentType: "SMK3",
+        completenessScore: 96,
+        missingElements: [],
+        notes: "AI menyatakan lengkap.",
+      },
+      {
+        documentType: "SBU",
+        completenessScore: 94,
+        missingElements: [],
+        notes: "Masih berlaku.",
+      },
+      {
+        documentType: "NIB",
+        completenessScore: 28,
+        missingElements: ["Data klasifikasi usaha belum sesuai."],
+        notes: "Perlu diperbarui.",
+      },
+    ],
+  );
+
+  assert.equal(checks[0]?.completenessScore, 0);
+  assert.ok(checks[0]?.missingElements.some((element) =>
+    element.includes("SMK3") && element.includes("siapkan"),
+  ));
+  assert.equal(checks[1]?.completenessScore, 94);
+  assert.deepEqual(checks[1]?.missingElements, []);
+  assert.equal(checks[2]?.completenessScore, 28);
+  assert.deepEqual(checks[2]?.missingElements, ["Data klasifikasi usaha belum sesuai."]);
+});
 
 async function createWorkspace(owner: Session): Promise<string> {
   const response = await authedFetch(owner, "/api/project-workspaces", {

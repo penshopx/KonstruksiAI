@@ -216,6 +216,32 @@ interface CompletenessCheckAI {
   notes: string;
 }
 
+export function reconcileCompletenessChecks(
+  documents: DocumentInput[],
+  aiChecks: CompletenessCheckAI[],
+) {
+  const checksByType = new Map(aiChecks.map((check) => [check.documentType.toLowerCase(), check]));
+  return documents.map((doc, index) => {
+    const match = checksByType.get(doc.documentType.toLowerCase()) ?? aiChecks[index] ?? null;
+    const missingDocumentExplanation =
+      `Dokumen ${doc.documentType} belum tersedia; siapkan dokumen ini sebelum pengajuan tender.`;
+
+    return {
+      documentType: doc.documentType,
+      required: doc.required,
+      present: doc.present,
+      completenessScore: doc.present ? (match?.completenessScore ?? 50) : 0,
+      missingElements: doc.present
+        ? (match?.missingElements ?? [])
+        : [
+            ...(match?.missingElements ?? []),
+            missingDocumentExplanation,
+          ],
+      notes: match?.notes || (doc.present ? "Dokumen dilaporkan tersedia." : "Dokumen belum dilengkapi."),
+    };
+  });
+}
+
 interface RiskAI {
   category: string;
   description: string;
@@ -486,25 +512,9 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       throw new Error("AI mengembalikan struktur data yang tidak lengkap. Silakan coba lagi.");
     }
 
-    // Merge the AI's per-document assessment back onto the caller's trusted
-    // document list. `required`/`present` always come from the user's actual
-    // input, never from the model, so the AI cannot silently misreport what
-    // the user declared.
-    const checksByType = new Map(aiResult.completenessChecks.map((c) => [c.documentType.toLowerCase(), c]));
-    const completenessChecks = documents.map((doc, index) => {
-      const match = checksByType.get(doc.documentType.toLowerCase()) ?? aiResult.completenessChecks[index] ?? null;
-      const fallbackScore = doc.present ? 50 : 0;
-      return {
-        documentType: doc.documentType,
-        required: doc.required,
-        present: doc.present,
-        completenessScore: match ? match.completenessScore : fallbackScore,
-        missingElements: match && match.missingElements.length > 0
-          ? match.missingElements
-          : (doc.present ? [] : ["Dokumen belum tersedia"]),
-        notes: match?.notes || (doc.present ? "Dokumen dilaporkan tersedia." : "Dokumen belum dilengkapi."),
-      };
-    });
+    // Trust the user's document status over the model, especially for scores
+    // and the explanation shown when a document has not been provided.
+    const completenessChecks = reconcileCompletenessChecks(documents, aiResult.completenessChecks);
 
     const overallCompleteness = completenessChecks.length > 0
       ? Math.round(completenessChecks.reduce((sum, c) => sum + c.completenessScore, 0) / completenessChecks.length)
