@@ -121,6 +121,119 @@ test("Tender endpoint failures and retry recovery stay safe without provider det
       // The first request must test absence before the lazy client is initialized.
       process.env.OPENROUTER_API_KEY = "sk-synthetic-offline-test-only";
     }
+    await t.test("transient retries stop at the final permanent failure", async t => {
+      // Separate account keeps this matrix below the real per-account request
+      // limit without bypassing middleware or changing production timing.
+      const registration = await fetch(`${base}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Tender Permanent Retry Regression",
+          email: `tender-permanent-${randomUUID()}@example.test`,
+          password: "synthetic-password-123",
+        }),
+      });
+      assert.equal(registration.status, 200);
+      const retryToken = /auth-token=([^;]+)/.exec(registration.headers.get("set-cookie") ?? "")?.[1];
+      assert.ok(retryToken);
+      const permanentFailures = [
+        {
+          name: "401", providerStatus: 401, providerCode: undefined,
+          status: 502, code: "AI_PROVIDER_AUTHENTICATION_FAILED",
+          error: "Provider AI menolak autentikasi aplikasi.",
+          action: "Minta administrator memeriksa kredensial dan akses provider AI; mencoba ulang saja tidak akan memperbaikinya.",
+        },
+        {
+          name: "403", providerStatus: 403, providerCode: undefined,
+          status: 502, code: "AI_PROVIDER_AUTHENTICATION_FAILED",
+          error: "Provider AI menolak autentikasi aplikasi.",
+          action: "Minta administrator memeriksa kredensial dan akses provider AI; mencoba ulang saja tidak akan memperbaikinya.",
+        },
+        {
+          name: "402", providerStatus: 402, providerCode: undefined,
+          status: 402, code: "AI_PROVIDER_CREDITS_EXHAUSTED",
+          error: "Kredit atau kuota provider AI tidak mencukupi.",
+          action: "Minta administrator memeriksa saldo, billing, atau batas penggunaan provider AI.",
+        },
+        {
+          name: "429 insufficient_quota", providerStatus: 429, providerCode: "insufficient_quota",
+          status: 402, code: "AI_PROVIDER_CREDITS_EXHAUSTED",
+          error: "Kredit atau kuota provider AI tidak mencukupi.",
+          action: "Minta administrator memeriksa saldo, billing, atau batas penggunaan provider AI.",
+        },
+      ];
+      for (const statuses of [[503], [429], [503, 429], [429, 503]]) {
+        for (const failure of permanentFailures) {
+          await t.test(`${statuses.join(" then ")} then ${failure.name}`, async () => {
+            providerCalls = 0;
+            transientStatuses = statuses;
+            providerFailure = syntheticProviderFailure(failure.providerStatus, failure.providerCode);
+            modelContent = null;
+            const previousExecutions = await db.select().from(aiExecutionHistory);
+            const previousIds = new Set(previousExecutions.map(row => row.id));
+            const previousResults = await db.select().from(tenderAnalysisResults);
+            const observedIds: string[] = [];
+            observeAttempt = async () => {
+              const executions = await db.select().from(aiExecutionHistory);
+              const current = executions.filter(row => !previousIds.has(row.id));
+              assert.equal(executions.length, previousExecutions.length + 1);
+              assert.equal(current.length, 1, "Retries must share one execution");
+              const execution = current[0]!;
+              observedIds.push(execution.id);
+              assert.equal(execution.status, "running");
+              assert.equal(execution.errorMessage, null);
+              assert.equal(execution.completedAt, null);
+              assert.equal(execution.resultRef, null);
+              assert.deepEqual(await db.select().from(tenderAnalysisResults), previousResults);
+            };
+            try {
+              const response = await fetch(`${base}/api/tender-intelligence/analyze`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Cookie: `auth-token=${retryToken}` },
+                body: JSON.stringify({
+                  requestId: randomUUID(),
+                  projectName: "Proyek Uji Retry Permanen",
+                  documents: [{ documentType: "SBU", present: true, required: true, notes: "" }],
+                }),
+              });
+              assert.equal(response.status, failure.status);
+              const body = await response.json() as { executionId: string };
+              assert.equal(typeof body.executionId, "string");
+              assert.ok(body.executionId.length > 0);
+              assert.deepEqual(body, {
+                executionId: body.executionId,
+                code: failure.code,
+                error: failure.error,
+                action: failure.action,
+                retryable: false,
+              }, "Return the last permanent failure, not a stale transient error");
+              assert.doesNotMatch(JSON.stringify(body),
+                /PROVIDER_PRIVATE_DETAIL|sk-synthetic|Bearer|authorization|OPENROUTER_API_KEY|insufficient_quota|request_id|providerRequestId/);
+              assert.equal(providerCalls, statuses.length + 1,
+                "Stop exactly at the permanent failure, even with retry budget remaining");
+              assert.deepEqual(observedIds, Array(statuses.length + 1).fill(body.executionId));
+              const executions = await db.select().from(aiExecutionHistory);
+              const current = executions.filter(row => !previousIds.has(row.id));
+              assert.equal(executions.length, previousExecutions.length + 1);
+              assert.equal(current.length, 1, "Only one failed execution may be created");
+              const execution = current[0]!;
+              assert.equal(execution.id, body.executionId);
+              assert.equal(execution.status, "failed");
+              assert.equal(execution.errorMessage, `${failure.error} ${failure.action}`);
+              assert.equal(execution.resultRef, null);
+              assert.ok(execution.completedAt);
+              assert.ok(execution.completedAt.getTime() >= execution.startedAt.getTime());
+              assert.deepEqual(await db.select().from(tenderAnalysisResults), previousResults,
+                "Permanent failure must not persist a successful result");
+            } finally {
+              observeAttempt = undefined;
+              transientStatuses = [];
+              providerFailure = undefined;
+            }
+          });
+        }
+      }
+    });
     for (const statuses of [[503], [429], [503, 429], [429, 503]]) {
       await t.test(`${statuses.join(" then ")} then success on attempt ${statuses.length + 1}`, async () => {
         providerCalls = 0;
