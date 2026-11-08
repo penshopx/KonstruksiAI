@@ -8,6 +8,36 @@
 import * as zod from "zod";
 
 /**
+ * @summary Check whether the current account can run the AI setup check
+ */
+export const GetTenderProviderSetupAccessResponse = zod.object({
+  canCheck: zod.boolean(),
+});
+
+/**
+ * Uses a small amount of provider quota. Limited to three checks per minute across administrators. No credentials or provider response text are returned.
+ * @summary Administrator-only minimal provider probe without project data
+ */
+export const CheckTenderProviderSetupResponse = zod.object({
+  ready: zod.boolean(),
+  code: zod.enum([
+    "AI_PROVIDER_READY",
+    "AI_PROVIDER_NOT_CONFIGURED",
+    "AI_PROVIDER_AUTHENTICATION_FAILED",
+    "AI_PROVIDER_CREDITS_EXHAUSTED",
+    "AI_PROVIDER_RATE_LIMITED",
+    "AI_INVALID_MODEL_RESPONSE",
+    "AI_PROVIDER_REQUEST_REJECTED",
+    "AI_PROVIDER_UNAVAILABLE",
+    "AI_INTERNAL_ERROR",
+  ]),
+  checkedAt: zod.coerce.date(),
+  message: zod.string(),
+  action: zod.string(),
+  retryable: zod.boolean(),
+});
+
+/**
  * Returns server health status
  * @summary Health check
  */

@@ -11,6 +11,56 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /tender-intelligence/provider-setup:
+    get:
+      operationId: getTenderProviderSetupAccess
+      summary: Check whether the current account can run the AI setup check
+      responses:
+        "200":
+          description: Current administrator capability
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [canCheck]
+                properties:
+                  canCheck:
+                    type: boolean
+        "401":
+          description: Authentication required
+    post:
+      operationId: checkTenderProviderSetup
+      summary: Administrator-only minimal provider probe without project data
+      description: Uses a small amount of provider quota. Limited to three checks per minute across administrators. No credentials or provider response text are returned.
+      responses:
+        "200":
+          description: Safe point-in-time provider diagnostic
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ready, code, checkedAt, message, action, retryable]
+                properties:
+                  ready:
+                    type: boolean
+                  code:
+                    type: string
+                    enum: [AI_PROVIDER_READY, AI_PROVIDER_NOT_CONFIGURED, AI_PROVIDER_AUTHENTICATION_FAILED, AI_PROVIDER_CREDITS_EXHAUSTED, AI_PROVIDER_RATE_LIMITED, AI_INVALID_MODEL_RESPONSE, AI_PROVIDER_REQUEST_REJECTED, AI_PROVIDER_UNAVAILABLE, AI_INTERNAL_ERROR]
+                  checkedAt:
+                    type: string
+                    format: date-time
+                  message:
+                    type: string
+                  action:
+                    type: string
+                  retryable:
+                    type: boolean
+        "401":
+          description: Authentication required
+        "403":
+          description: Current account is not an administrator
+        "429":
+          description: Application diagnostic limit reached
   /healthz:
     get:
       operationId: healthCheck

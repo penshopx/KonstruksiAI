@@ -26,3 +26,4 @@
 - [Playwright init-script stubs](playwright-init-script-stubs.md) — use literal content scripts when TS callback serialization fails to install browser-global test doubles.
 - [KonstruksiAI portal audience](konstruksi-ai-portal-audience.md) — the product is intended for construction professionals, construction-service businesses, and academia.
 - [Jakarta workforce pilot](konstruksi-ai-workforce-pilot.md) — start with tukang in an internal-only prototype; no contractor or credential-verification partners are confirmed yet.
+- [Tender provider administration](tender-provider-administration.md) — shared provider diagnostics require current application-admin permission, not workspace ownership.

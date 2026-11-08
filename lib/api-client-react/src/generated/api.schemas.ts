@@ -43,3 +43,31 @@ export interface LearningProgressList {
 export interface LearningProgressCompletion {
   progress: LearningProgress;
 }
+
+export type GetTenderProviderSetupAccess200 = {
+  canCheck: boolean;
+};
+
+export type CheckTenderProviderSetup200Code =
+  (typeof CheckTenderProviderSetup200Code)[keyof typeof CheckTenderProviderSetup200Code];
+
+export const CheckTenderProviderSetup200Code = {
+  AI_PROVIDER_READY: "AI_PROVIDER_READY",
+  AI_PROVIDER_NOT_CONFIGURED: "AI_PROVIDER_NOT_CONFIGURED",
+  AI_PROVIDER_AUTHENTICATION_FAILED: "AI_PROVIDER_AUTHENTICATION_FAILED",
+  AI_PROVIDER_CREDITS_EXHAUSTED: "AI_PROVIDER_CREDITS_EXHAUSTED",
+  AI_PROVIDER_RATE_LIMITED: "AI_PROVIDER_RATE_LIMITED",
+  AI_INVALID_MODEL_RESPONSE: "AI_INVALID_MODEL_RESPONSE",
+  AI_PROVIDER_REQUEST_REJECTED: "AI_PROVIDER_REQUEST_REJECTED",
+  AI_PROVIDER_UNAVAILABLE: "AI_PROVIDER_UNAVAILABLE",
+  AI_INTERNAL_ERROR: "AI_INTERNAL_ERROR",
+} as const;
+
+export type CheckTenderProviderSetup200 = {
+  ready: boolean;
+  code: CheckTenderProviderSetup200Code;
+  checkedAt: string;
+  message: string;
+  action: string;
+  retryable: boolean;
+};

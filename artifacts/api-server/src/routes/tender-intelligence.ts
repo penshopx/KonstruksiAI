@@ -2,6 +2,9 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import { getSessionFromRequest } from "../lib/auth";
 import OpenAI from "openai";
+import { rateLimit } from "express-rate-limit";
+import { eq } from "drizzle-orm";
+import { db, users } from "../db";
 import {
   classifyTenderAnalysisError,
   getTenderAnalysisErrorDiagnostics,
@@ -26,6 +29,62 @@ import {
 } from "../lib/tender-history";
 
 const router = Router();
+const TENDER_MODEL = "openai/gpt-4o-mini";
+
+// Global cap: this diagnostic spends provider tokens and must not be abused.
+const setupCheckLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 3,
+  keyGenerator: () => "tender-provider-setup",
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Batas pemeriksaan tercapai. Tunggu satu menit lalu coba kembali." },
+});
+
+// Check the current account, not a role claim that can be stale in a seven-day JWT.
+router.use("/tender-intelligence/provider-setup", async (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  const session = await getSessionFromRequest(req);
+  if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const [account] = await db.select({ role: users.role }).from(users)
+    .where(eq(users.id, session.userId)).limit(1);
+  const canCheck = account?.role === "admin";
+  if (req.method === "GET") { res.json({ canCheck }); return; }
+  if (!canCheck) {
+    res.status(403).json({ error: "Pemeriksaan ini hanya tersedia untuk administrator." });
+    return;
+  }
+  next();
+});
+
+router.post("/tender-intelligence/provider-setup", setupCheckLimiter, async (_req, res) => {
+  const checkedAt = new Date().toISOString();
+  try {
+    const completion = await getOpenAI().chat.completions.create({
+      model: TENDER_MODEL,
+      max_tokens: 16,
+      temperature: 0,
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content: 'Reply with JSON: {"ok":true}' }],
+    }, { timeout: 15_000, maxRetries: 0 });
+    if (!completion.choices[0]?.message?.content?.trim()) {
+      throw new TenderAnalysisFailureError("AI_INVALID_MODEL_RESPONSE");
+    }
+    res.json({
+      ready: true, code: "AI_PROVIDER_READY", checkedAt,
+      message: "Provider AI siap menerima permintaan Tender.",
+      action: "Hasil ini hanya memastikan koneksi saat pemeriksaan, bukan menjamin keberhasilan analisis.",
+      retryable: false,
+    });
+  } catch (error) {
+    // Only allowlisted guidance crosses the API boundary; never echo SDK output.
+    const failure = classifyTenderAnalysisError(error);
+    res.json({
+      ready: false, code: failure.code, checkedAt,
+      message: failure.error, action: failure.action, retryable: failure.retryable,
+    });
+  }
+});
 
 // ─── OpenAI client (lazy init) ────────────────────────────────────────────────
 
@@ -542,7 +601,7 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       const attemptStartedAt = performance.now();
       try {
         const { data: completion, response, request_id } = await getOpenAI().chat.completions.create({
-          model: "openai/gpt-4o-mini",
+          model: TENDER_MODEL,
           max_tokens: 4096,
           temperature: 0.3,
           response_format: { type: "json_object" },

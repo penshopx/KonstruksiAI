@@ -9,6 +9,7 @@ import {
   type TenderAnalysisResult,
 } from "@/lib/tender-intelligence";
 import NavbarAuth from "@/components/NavbarAuth";
+import TenderProviderSetup from "@/components/TenderProviderSetup";
 import ExecutionHistoryPanel from "@/components/ExecutionHistoryPanel";
 import TenderHistoryPanel from "@/components/TenderHistoryPanel";
 import { WorkspaceContextBanner, useWorkspaceContext } from "@/lib/workspace-context";
@@ -630,6 +631,7 @@ export default function TenderIntelligencePage() {
       <NavbarAuth />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <WorkspaceContextBanner context={workspaceContext} />
+        <TenderProviderSetup />
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-100 mb-2">🎯 Tender Intelligence</h1>
           <p className="text-slate-400">Analisis mendalam dokumen tender dan persiapan penawaran yang optimal</p>

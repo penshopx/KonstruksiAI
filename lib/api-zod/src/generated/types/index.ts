@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./checkTenderProviderSetup200";
+export * from "./checkTenderProviderSetup200Code";
+export * from "./getTenderProviderSetupAccess200";
 export * from "./healthStatus";
 export * from "./learningProgress";
 export * from "./learningProgressCompletion";
