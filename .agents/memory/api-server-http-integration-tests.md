@@ -34,3 +34,17 @@ route, unref it too.
 `server.close()` in the test's `after()` hook — `fetch()`'s keep-alive
 connection pool otherwise keeps sockets open and `server.close()` alone waits
 forever for them to drain.
+
+## SDK import identity in bundled tests
+
+Use the same public SDK entry point as runtime code when replacing provider
+resource methods in an offline test.
+
+**Why:** deep resource imports in the OpenAI SDK can pass TypeScript checks but
+produce undefined exports through circular initialization in an esbuild bundle.
+This is a test-bundle initialization issue, not a reason to add test hooks to
+production routes.
+
+**How to apply:** obtain SDK resource classes through the public SDK export;
+keep a transport-level tripwire and synthetic credentials so an incorrectly
+installed test double cannot make a real provider request.

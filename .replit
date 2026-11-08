@@ -56,6 +56,14 @@ args = "web-desktop"
 task = "workflow.run"
 args = "web-responsive"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "tender-failure-endpoint"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "tender-failure-browser"
+
 [[workflows.workflow]]
 name = "artifacts/api-server: API Server"
 author = "agent"
@@ -164,6 +172,28 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/konstruksi-ai run test:landing-responsive"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "tender-failure-endpoint"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/api-server run test:tender-failure-guidance"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "tender-failure-browser"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/konstruksi-ai run test:tender-failure-guidance"
 
 [workflows.workflow.metadata]
 isValidation = true

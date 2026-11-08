@@ -2,6 +2,7 @@
  * Opt-in live verification; uses the running development API and real provider
  * credits. Never register as an automatic gate. Creates a synthetic test user.
  * Run: pnpm --filter @workspace/konstruksi-ai exec tsx scripts/check-tender-live.ts
+ * Offline failure regression (no credits): pnpm run test:tender-failure-guidance
  */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
