@@ -17,6 +17,12 @@ import { SKK_EXAM_BANK } from "../data/skk-exam-bank";
 
 export function initializeDatabase() {
   try {
+    db.run(sql`CREATE TABLE IF NOT EXISTS tender_provider_audit (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      account_id INTEGER NOT NULL,
+      checked_at TEXT NOT NULL,
+      code TEXT NOT NULL
+    )`);
     db.run(sql`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,

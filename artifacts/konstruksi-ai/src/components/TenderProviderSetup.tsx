@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CheckTenderProviderSetup200 } from "@workspace/api-client-react";
+import TenderProviderAuditHistory from "./TenderProviderAuditHistory";
 
 export default function TenderProviderSetup() {
   const [canCheck, setCanCheck] = useState(false);
@@ -7,6 +8,7 @@ export default function TenderProviderSetup() {
   const [result, setResult] = useState<CheckTenderProviderSetup200 | null>(null);
   const [error, setError] = useState("");
   const inFlight = useRef(false);
+  const [auditRefresh, setAuditRefresh] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -45,6 +47,7 @@ export default function TenderProviderSetup() {
     } catch {
       setError("Tidak dapat menghubungi server. Periksa koneksi lalu coba kembali.");
     } finally {
+      setAuditRefresh(value => value + 1);
       inFlight.current = false;
       setChecking(false);
     }
@@ -69,6 +72,7 @@ export default function TenderProviderSetup() {
         </>}
         {error && <p className="text-amber-300">{error}</p>}
       </div>
+      <TenderProviderAuditHistory refreshVersion={auditRefresh} />
     </section>
   );
 }

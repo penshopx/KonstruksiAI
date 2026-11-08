@@ -15,6 +15,15 @@ export const users = sqliteTable("users", {
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
+// No profile/contact details or provider payloads. Preserve internal actor IDs
+// even if an account is later removed.
+export const tenderProviderAudit = sqliteTable("tender_provider_audit", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  accountId: integer("account_id").notNull(),
+  checkedAt: text("checked_at").notNull(),
+  code: text("code").notNull(),
+});
+
 export const paymentSubscriptions = sqliteTable("payment_subscriptions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

@@ -123,6 +123,22 @@ paths:
           description: Current account is not an administrator
         "429":
           description: Application diagnostic limit reached
+  /tender-intelligence/provider-setup/history:
+    get:
+      operationId: getTenderProviderAudit
+      summary: Administrator-only audit of the latest 50 provider setup checks
+      description: Newest first, ordered by audit ID. Contains only internal account IDs, server timestamps and allowlisted outcome codes. Separate from Tender analyses.
+      responses:
+        "200":
+          description: Latest 50 administrative checks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenderProviderAuditHistory"
+        "401":
+          description: Authentication required
+        "403":
+          description: Current account is not an administrator
   /healthz:
     get:
       operationId: healthCheck
@@ -186,6 +202,27 @@ paths:
                 $ref: "#/components/schemas/LearningProgressCompletion"
 components:
   schemas:
+    TenderProviderAuditEvent:
+      type: object
+      additionalProperties: false
+      required: [id, accountId, checkedAt, code]
+      properties:
+        id: { type: integer, minimum: 1 }
+        accountId: { type: integer, minimum: 1 }
+        checkedAt: { type: string, format: date-time }
+        code:
+          type: string
+          enum: [AI_PROVIDER_READY, AI_PROVIDER_NOT_CONFIGURED, AI_PROVIDER_AUTHENTICATION_FAILED, AI_PROVIDER_CREDITS_EXHAUSTED, AI_PROVIDER_RATE_LIMITED, AI_INVALID_MODEL_RESPONSE, AI_PROVIDER_REQUEST_REJECTED, AI_PROVIDER_UNAVAILABLE, AI_INTERNAL_ERROR, AI_SETUP_RATE_LIMITED]
+    TenderProviderAuditHistory:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/TenderProviderAuditEvent"
     TenderAnalysisInput:
       type: object
       required: [projectName, documents]

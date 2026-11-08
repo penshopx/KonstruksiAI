@@ -144,6 +144,37 @@ export const CheckTenderProviderSetupResponse = zod.object({
 });
 
 /**
+ * Newest first, ordered by audit ID. Contains only internal account IDs, server timestamps and allowlisted outcome codes. Separate from Tender analyses.
+ * @summary Administrator-only audit of the latest 50 provider setup checks
+ */
+
+export const getTenderProviderAuditResponseItemsMax = 50;
+
+export const GetTenderProviderAuditResponse = zod.object({
+  items: zod
+    .array(
+      zod.object({
+        id: zod.number().min(1),
+        accountId: zod.number().min(1),
+        checkedAt: zod.coerce.date(),
+        code: zod.enum([
+          "AI_PROVIDER_READY",
+          "AI_PROVIDER_NOT_CONFIGURED",
+          "AI_PROVIDER_AUTHENTICATION_FAILED",
+          "AI_PROVIDER_CREDITS_EXHAUSTED",
+          "AI_PROVIDER_RATE_LIMITED",
+          "AI_INVALID_MODEL_RESPONSE",
+          "AI_PROVIDER_REQUEST_REJECTED",
+          "AI_PROVIDER_UNAVAILABLE",
+          "AI_INTERNAL_ERROR",
+          "AI_SETUP_RATE_LIMITED",
+        ]),
+      }),
+    )
+    .max(getTenderProviderAuditResponseItemsMax),
+});
+
+/**
  * Returns server health status
  * @summary Health check
  */

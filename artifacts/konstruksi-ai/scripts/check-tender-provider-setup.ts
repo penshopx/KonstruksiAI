@@ -79,6 +79,8 @@ try {
   let role: string | null = "admin";
   let getCalls = 0;
   let postCalls = 0;
+  let auditItems: Array<{ id: number; accountId: number; checkedAt: string; code: string }> = [];
+  let auditStatus = 200;
   let permissionReply: (route: Route) => Promise<void>;
   let probeReply: (route: Route) => Promise<void> = route => route.fulfill({ json: ready });
 
@@ -86,6 +88,11 @@ try {
     const request = route.request();
     const url = new URL(request.url());
     if (url.pathname.startsWith("/api/")) {
+      if (url.pathname === `${endpoint}/history`) {
+        assert.equal(request.method(), "GET");
+        return route.fulfill({ status: auditStatus, json: auditStatus === 200
+          ? { items: auditItems } : { error: rawDetail } });
+      }
       if (url.pathname === endpoint) {
         if (request.method() === "GET") {
           getCalls++;
@@ -234,8 +241,37 @@ try {
   // A failed connection must not leave the panel stuck: an explicit retry works.
   await runProbe(route => route.fulfill({ json: ready }), () => verifyResult(ready));
   assert.equal(postCalls, 20);
+  const auditHeading = section.getByRole("heading", { name: "Riwayat pemeriksaan konfigurasi AI", exact: true });
+  await auditHeading.waitFor();
+  await section.getByText("Belum ada pemeriksaan konfigurasi AI.", { exact: true }).waitFor();
+  auditItems = [
+    { id: 2, accountId: 119, checkedAt, code: "AI_PROVIDER_READY" },
+    { id: 1, accountId: 120, checkedAt, code: "AI_PROVIDER_AUTHENTICATION_FAILED" },
+  ];
+  const refreshAudit = section.getByRole("button", { name: "Muat ulang riwayat", exact: true });
+  await refreshAudit.click();
+  await section.getByRole("cell", { name: "Akun #120", exact: true }).waitFor();
+  assert.equal(await section.locator("tbody tr").count(), 2);
+  assert.match(await section.locator("tbody tr").first().innerText(), /Akun #119.*Provider siap/s);
+  assert.match(await section.locator("tbody tr").last().innerText(), /AI_PROVIDER_AUTHENTICATION_FAILED/);
+  // A reload must fetch the saved history without running a paid probe.
+  await navigate();
+  await section.getByRole("cell", { name: "Akun #120", exact: true }).waitFor();
+  assert.equal(postCalls, 20);
+  auditStatus = 500;
+  await refreshAudit.click();
+  await section.getByRole("alert").getByText("Riwayat pemeriksaan gagal dimuat. Coba muat ulang.", { exact: true }).waitFor();
+  assert.equal(await section.locator("tbody tr").count(), 0);
+  auditStatus = 200;
+  await refreshAudit.click();
+  await section.getByRole("cell", { name: "Akun #120", exact: true }).waitFor();
+  auditStatus = 403;
+  await refreshAudit.click();
+  await section.getByText("Riwayat hanya tersedia bagi administrator aktif.", { exact: true }).waitFor();
+  assert.equal(await section.locator("tbody tr").count(), 0, "Clear cached audit after access denial");
+  await assertSafe();
   assert.deepEqual(pageErrors, []);
-  console.log("PASS: Tender admin permissions (7 denied cases + pending), single-flight checking, ready + 8 provider failures, all tabs, 401/403/429/500/disconnect, safe messages and explicit retry. All API traffic synthetic; no AI quota used.");
+  console.log("PASS: Tender admin permissions, single-flight checking, safe results/errors, audit empty/list/reload/read-only/failed-fetch/revocation states. All API traffic synthetic; no AI quota used.");
   await context.close();
 } finally {
   await browser.close();

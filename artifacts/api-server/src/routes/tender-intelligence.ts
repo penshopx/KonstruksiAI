@@ -6,6 +6,8 @@ import OpenAI from "openai";
 import { rateLimit } from "express-rate-limit";
 import { eq } from "drizzle-orm";
 import { db, users } from "../db";
+import { listTenderProviderChecks, recordTenderProviderCheck } from "../lib/tender-provider-audit";
+import type { CheckTenderProviderSetup200 } from "@workspace/api-zod";
 import {
   classifyTenderAnalysisError,
   getTenderAnalysisErrorDiagnostics,
@@ -38,7 +40,10 @@ const setupCheckLimiter = rateLimit({
   keyGenerator: () => "tender-provider-setup",
   standardHeaders: "draft-8",
   legacyHeaders: false,
-  message: { error: "Batas pemeriksaan tercapai. Tunggu satu menit lalu coba kembali." },
+  handler: (_req, res) => {
+    recordTenderProviderCheck(res.locals.setupAccountId, new Date().toISOString(), "AI_SETUP_RATE_LIMITED");
+    res.status(429).json({ error: "Batas pemeriksaan tercapai. Tunggu satu menit lalu coba kembali." });
+  },
 });
 
 // Check the current account, not a role claim that can be stale in a seven-day JWT.
@@ -49,16 +54,26 @@ router.use("/tender-intelligence/provider-setup", async (req, res, next) => {
   const [account] = await db.select({ role: users.role }).from(users)
     .where(eq(users.id, session.userId)).limit(1);
   const canCheck = account?.role === "admin";
-  if (req.method === "GET") { res.json({ canCheck }); return; }
+  // Express strips this middleware's mount path; "/" is the capability route,
+  // while "/history" must continue through the administrator check.
+  if (req.method === "GET" && req.path === "/") {
+    res.json({ canCheck }); return;
+  }
   if (!canCheck) {
     res.status(403).json({ error: "Pemeriksaan ini hanya tersedia untuk administrator." });
     return;
   }
+  res.locals.setupAccountId = session.userId;
   next();
+});
+
+router.get("/tender-intelligence/provider-setup/history", async (_req, res): Promise<void> => {
+  res.json(listTenderProviderChecks());
 });
 
 router.post("/tender-intelligence/provider-setup", setupCheckLimiter, async (_req, res) => {
   const checkedAt = new Date().toISOString();
+  let result: Omit<CheckTenderProviderSetup200, "checkedAt"> & { checkedAt: string };
   try {
     const completion = await getOpenAI().chat.completions.create({
       model: TENDER_MODEL,
@@ -70,20 +85,24 @@ router.post("/tender-intelligence/provider-setup", setupCheckLimiter, async (_re
     if (!completion.choices[0]?.message?.content?.trim()) {
       throw new TenderAnalysisFailureError("AI_INVALID_MODEL_RESPONSE");
     }
-    res.json({
+    result = {
       ready: true, code: "AI_PROVIDER_READY", checkedAt,
       message: "Provider AI siap menerima permintaan Tender.",
       action: "Hasil ini hanya memastikan koneksi saat pemeriksaan, bukan menjamin keberhasilan analisis.",
       retryable: false,
-    });
+    };
   } catch (error) {
     // Only allowlisted guidance crosses the API boundary; never echo SDK output.
     const failure = classifyTenderAnalysisError(error);
-    res.json({
+    result = {
       ready: false, code: failure.code, checkedAt,
       message: failure.error, action: failure.action, retryable: failure.retryable,
-    });
+    };
   }
+  // Outside the provider catch: a failed audit write must not be reported as a
+  // successful check (nor misclassified as a provider error).
+  recordTenderProviderCheck(res.locals.setupAccountId, checkedAt, result.code);
+  res.json(result);
 });
 
 // ─── OpenAI client (lazy init) ────────────────────────────────────────────────

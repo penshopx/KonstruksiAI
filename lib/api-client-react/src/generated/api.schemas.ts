@@ -5,6 +5,36 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type TenderProviderAuditEventCode =
+  (typeof TenderProviderAuditEventCode)[keyof typeof TenderProviderAuditEventCode];
+
+export const TenderProviderAuditEventCode = {
+  AI_PROVIDER_READY: "AI_PROVIDER_READY",
+  AI_PROVIDER_NOT_CONFIGURED: "AI_PROVIDER_NOT_CONFIGURED",
+  AI_PROVIDER_AUTHENTICATION_FAILED: "AI_PROVIDER_AUTHENTICATION_FAILED",
+  AI_PROVIDER_CREDITS_EXHAUSTED: "AI_PROVIDER_CREDITS_EXHAUSTED",
+  AI_PROVIDER_RATE_LIMITED: "AI_PROVIDER_RATE_LIMITED",
+  AI_INVALID_MODEL_RESPONSE: "AI_INVALID_MODEL_RESPONSE",
+  AI_PROVIDER_REQUEST_REJECTED: "AI_PROVIDER_REQUEST_REJECTED",
+  AI_PROVIDER_UNAVAILABLE: "AI_PROVIDER_UNAVAILABLE",
+  AI_INTERNAL_ERROR: "AI_INTERNAL_ERROR",
+  AI_SETUP_RATE_LIMITED: "AI_SETUP_RATE_LIMITED",
+} as const;
+
+export interface TenderProviderAuditEvent {
+  /** @minimum 1 */
+  id: number;
+  /** @minimum 1 */
+  accountId: number;
+  checkedAt: string;
+  code: TenderProviderAuditEventCode;
+}
+
+export interface TenderProviderAuditHistory {
+  /** @maxItems 50 */
+  items: TenderProviderAuditEvent[];
+}
+
 export type TenderAnalysisInputChecklistState = {
   [key: string]: {
     checked: boolean;

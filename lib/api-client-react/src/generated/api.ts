@@ -26,6 +26,7 @@ import type {
   LearningProgressSyncInput,
   RecoverTenderRequestParams,
   TenderAnalysisInput,
+  TenderProviderAuditHistory,
   TenderRequestState,
 } from "./api.schemas";
 
@@ -410,6 +411,86 @@ export const useCheckTenderProviderSetup = <
 > => {
   return useMutation(getCheckTenderProviderSetupMutationOptions(options));
 };
+
+/**
+ * Newest first, ordered by audit ID. Contains only internal account IDs, server timestamps and allowlisted outcome codes. Separate from Tender analyses.
+ * @summary Administrator-only audit of the latest 50 provider setup checks
+ */
+export const getGetTenderProviderAuditUrl = () => {
+  return `/api/tender-intelligence/provider-setup/history`;
+};
+
+export const getTenderProviderAudit = async (
+  options?: RequestInit,
+): Promise<TenderProviderAuditHistory> => {
+  return customFetch<TenderProviderAuditHistory>(
+    getGetTenderProviderAuditUrl(),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetTenderProviderAuditQueryKey = () => {
+  return [`/api/tender-intelligence/provider-setup/history`] as const;
+};
+
+export const getGetTenderProviderAuditQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTenderProviderAudit>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTenderProviderAudit>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTenderProviderAuditQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTenderProviderAudit>>
+  > = ({ signal }) => getTenderProviderAudit({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTenderProviderAudit>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTenderProviderAuditQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTenderProviderAudit>>
+>;
+export type GetTenderProviderAuditQueryError = ErrorType<void>;
+
+/**
+ * @summary Administrator-only audit of the latest 50 provider setup checks
+ */
+
+export function useGetTenderProviderAudit<
+  TData = Awaited<ReturnType<typeof getTenderProviderAudit>>,
+  TError = ErrorType<void>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getTenderProviderAudit>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTenderProviderAuditQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Returns server health status
