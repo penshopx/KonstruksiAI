@@ -18,13 +18,16 @@ import type {
 
 import type {
   CheckTenderProviderSetup200,
+  DiscoverActiveTenderRequestParams,
   GetTenderProviderSetupAccess200,
   HealthStatus,
   LearningProgressCompletion,
   LearningProgressInput,
   LearningProgressList,
   LearningProgressSyncInput,
+  RecoverTenderExecutionParams,
   RecoverTenderRequestParams,
+  TenderActiveRequest,
   TenderAnalysisInput,
   TenderProviderAuditHistory,
   TenderRequestState,
@@ -38,6 +41,236 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * @summary Discover only the current account's active request in an authorized scope
+ */
+export const getDiscoverActiveTenderRequestUrl = (
+  params?: DiscoverActiveTenderRequestParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tender-intelligence/requests/active?${stringifiedParams}`
+    : `/api/tender-intelligence/requests/active`;
+};
+
+export const discoverActiveTenderRequest = async (
+  params?: DiscoverActiveTenderRequestParams,
+  options?: RequestInit,
+): Promise<TenderActiveRequest> => {
+  return customFetch<TenderActiveRequest>(
+    getDiscoverActiveTenderRequestUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getDiscoverActiveTenderRequestQueryKey = (
+  params?: DiscoverActiveTenderRequestParams,
+) => {
+  return [
+    `/api/tender-intelligence/requests/active`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getDiscoverActiveTenderRequestQueryOptions = <
+  TData = Awaited<ReturnType<typeof discoverActiveTenderRequest>>,
+  TError = ErrorType<void>,
+>(
+  params?: DiscoverActiveTenderRequestParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof discoverActiveTenderRequest>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getDiscoverActiveTenderRequestQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof discoverActiveTenderRequest>>
+  > = ({ signal }) =>
+    discoverActiveTenderRequest(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof discoverActiveTenderRequest>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type DiscoverActiveTenderRequestQueryResult = NonNullable<
+  Awaited<ReturnType<typeof discoverActiveTenderRequest>>
+>;
+export type DiscoverActiveTenderRequestQueryError = ErrorType<void>;
+
+/**
+ * @summary Discover only the current account's active request in an authorized scope
+ */
+
+export function useDiscoverActiveTenderRequest<
+  TData = Awaited<ReturnType<typeof discoverActiveTenderRequest>>,
+  TError = ErrorType<void>,
+>(
+  params?: DiscoverActiveTenderRequestParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof discoverActiveTenderRequest>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getDiscoverActiveTenderRequestQueryOptions(
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Read a discovered execution without dispatching AI
+ */
+export const getRecoverTenderExecutionUrl = (
+  executionId: string,
+  params?: RecoverTenderExecutionParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tender-intelligence/requests/executions/${executionId}?${stringifiedParams}`
+    : `/api/tender-intelligence/requests/executions/${executionId}`;
+};
+
+export const recoverTenderExecution = async (
+  executionId: string,
+  params?: RecoverTenderExecutionParams,
+  options?: RequestInit,
+): Promise<TenderRequestState> => {
+  return customFetch<TenderRequestState>(
+    getRecoverTenderExecutionUrl(executionId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getRecoverTenderExecutionQueryKey = (
+  executionId: string,
+  params?: RecoverTenderExecutionParams,
+) => {
+  return [
+    `/api/tender-intelligence/requests/executions/${executionId}`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getRecoverTenderExecutionQueryOptions = <
+  TData = Awaited<ReturnType<typeof recoverTenderExecution>>,
+  TError = ErrorType<void>,
+>(
+  executionId: string,
+  params?: RecoverTenderExecutionParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof recoverTenderExecution>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getRecoverTenderExecutionQueryKey(executionId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof recoverTenderExecution>>
+  > = ({ signal }) =>
+    recoverTenderExecution(executionId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!executionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof recoverTenderExecution>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type RecoverTenderExecutionQueryResult = NonNullable<
+  Awaited<ReturnType<typeof recoverTenderExecution>>
+>;
+export type RecoverTenderExecutionQueryError = ErrorType<void>;
+
+/**
+ * @summary Read a discovered execution without dispatching AI
+ */
+
+export function useRecoverTenderExecution<
+  TData = Awaited<ReturnType<typeof recoverTenderExecution>>,
+  TError = ErrorType<void>,
+>(
+  executionId: string,
+  params?: RecoverTenderExecutionParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof recoverTenderExecution>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getRecoverTenderExecutionQueryOptions(
+    executionId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Recover an account-scoped Tender request without calling AI

@@ -33,8 +33,12 @@ try {
       // Simulate a response lost after the server accepted the request.
       return route.abort("connectionreset");
     }
+    if (pathname === "/api/tender-intelligence/requests/active") {
+      return route.fulfill({ json: { activeRequest: userId === 119 && currentId && state === "running"
+        ? { executionId: "offline-execution" } : null } });
+    }
     if (pathname.startsWith("/api/tender-intelligence/requests/")) {
-      assert.equal(pathname.split("/").at(-1), currentId);
+      assert.ok([currentId, "offline-execution"].includes(pathname.split("/").at(-1) ?? ""));
       if (userId !== 119) return route.fulfill({ status: 404, json: { error: "Tidak ditemukan" } });
       if (state === "running") return route.fulfill({ status: 202, json: {
         status: "running", executionId: "offline-execution",
@@ -66,14 +70,61 @@ try {
   await completeness();
   assert.equal(calls, 1);
   const raw = await page.evaluate(() => localStorage.getItem("tender-request:119:personal"));
-  assert.ok(raw?.includes(currentId));
+  assert.ok(raw?.includes("offline-execution"));
   assert.ok(!raw?.includes("documents"), "No input text is stored for recovery");
   await page.reload({ waitUntil: "networkidle" });
   await completeness();
   await page.getByTestId("status-tender-recovery").getByText(/Analisis masih berjalan/).waitFor();
   assert.equal(calls, 1, "refresh never POSTs");
   assert.equal(await page.getByTestId("button-new-tender-analysis").isDisabled(), true);
+  // A fresh browser context models a second device: no localStorage identity.
+  const secondContext = await browser.newContext();
+  let secondPosts = 0;
+  let offline = false;
+  let revoked = false;
+  await secondContext.route("**/api/**", async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/auth/me") return route.fulfill({ json: {
+      user: { userId: 119, name: "Second device", email: "second@example.test", role: "user" },
+    } });
+    if (route.request().method() === "POST") {
+      secondPosts++;
+      return route.abort("blockedbyclient");
+    }
+    if (path.startsWith("/api/tender-intelligence/requests/")) {
+      if (offline) return route.abort("internetdisconnected");
+      if (revoked) return route.fulfill({ status: 403, json: { error: "Akses ruang proyek telah dicabut" } });
+      if (path.endsWith("/active")) return route.fulfill({ json: {
+        activeRequest: state === "running" ? { executionId: "offline-execution" } : null,
+      } });
+      assert.ok(path.endsWith("/executions/offline-execution"));
+      if (state === "running") return route.fulfill({ status: 202, json: { status: "running", executionId: "offline-execution" } });
+      return route.fulfill({ json: { status: "succeeded", executionId: "offline-execution", result } });
+    }
+    return route.fulfill({ status: 401, json: { error: "Unexpected API denied" } });
+  });
+  const second = await secondContext.newPage();
+  second.on("pageerror", error => errors.push(error.message));
+  await second.goto(`${base}/tender-intelligence`, { waitUntil: "networkidle" });
+  await second.getByTestId("status-tender-recovery").getByText(/Analisis masih berjalan/).waitFor();
+  assert.equal(secondPosts, 0, "new device discovers active run without POST");
+  offline = true;
+  await second.getByRole("button", { name: "Periksa status", exact: true }).click();
+  await second.getByTestId("status-tender-recovery").getByText(/Koneksi terputus/).waitFor();
+  assert.equal(secondPosts, 0);
+  offline = false;
+  await second.reload({ waitUntil: "networkidle" });
+  await second.getByTestId("status-tender-recovery").getByText(/Analisis masih berjalan/).waitFor();
   state = "succeeded";
+  await second.getByRole("button", { name: "Periksa status", exact: true }).click();
+  await second.getByText("HASIL_PULIH_OFFLINE", { exact: true }).waitFor();
+  assert.equal(secondPosts, 0, "completion is recovered from execution reference without POST");
+  revoked = true;
+  await second.getByRole("button", { name: "Periksa status", exact: true }).click();
+  await second.getByTestId("status-tender-recovery").getByText(/Akses ruang proyek telah dicabut/).waitFor();
+  assert.equal(await second.getByText("HASIL_PULIH_OFFLINE", { exact: true }).count(), 0);
+  assert.equal(secondPosts, 0);
+  await secondContext.close();
   await page.getByRole("button", { name: "Periksa status", exact: true }).click();
   await page.getByRole("heading", { name: "Tender Intelligence Dashboard", exact: true }).waitFor();
   assert.ok((await page.locator("body").innerText()).includes("HASIL_PULIH_OFFLINE"));

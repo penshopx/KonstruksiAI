@@ -53,6 +53,10 @@ try {
       };
       return route.fulfill({ json: { ...savedResult, result: savedResult } });
     }
+    if (pathname === "/api/tender-intelligence/requests/active") {
+      return route.fulfill({ json: { activeRequest: recoveryState === "running"
+        ? { executionId: "synthetic-failed-execution" } : null } });
+    }
     if (pathname.startsWith("/api/tender-intelligence/requests/")) {
       if (recoveryState === "running") return route.fulfill({ status: 202, json: { status: "running" } });
       if (recoveryState === "failed") return route.fulfill({ status: 409, json: { status: "failed", executionId: "synthetic-failed-execution", error: failure!.error } });

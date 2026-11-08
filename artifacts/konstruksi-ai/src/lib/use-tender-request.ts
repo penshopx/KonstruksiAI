@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { getSessionLookup } from "./auth";
 import type { TenderAnalysisResult } from "./tender-history";
 
-interface RequestIdentity { id: string; fingerprint: string }
+interface RequestIdentity { id: string; fingerprint: string | null; recoveryOnly?: boolean }
 
 // Persist only identity + digest, never project text, documents, or results.
 export function useTenderRequest(workspaceId: string | null, onResult: (result: TenderAnalysisResult) => void, onScopeChange: () => void) {
@@ -44,12 +44,14 @@ export function useTenderRequest(workspaceId: string | null, onResult: (result: 
     }
     const scopeVersion = generation.current;
     storageKey.current = key;
+    setExecutionId(null);
     let saved: RequestIdentity | null = null;
     try {
       const raw = localStorage.getItem(key);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (typeof parsed.id === "string" && typeof parsed.fingerprint === "string") saved = parsed;
+        if (typeof parsed.id === "string" && (typeof parsed.fingerprint === "string"
+          || (parsed.recoveryOnly === true && parsed.fingerprint === null))) saved = parsed;
         else throw new Error("Invalid identity");
       }
     } catch {
@@ -58,10 +60,36 @@ export function useTenderRequest(workspaceId: string | null, onResult: (result: 
       return;
     }
     setIdentity(saved);
-    if (!saved) { setState("empty"); setMessage(""); return; }
     try {
       const query = workspaceId ? `?workspaceId=${encodeURIComponent(workspaceId)}` : "";
-      const response = await fetch(`/api/tender-intelligence/requests/${encodeURIComponent(saved.id)}${query}`,
+      // Check the server even when a different, terminal local identity exists.
+      // Discovery is active-only, never a replacement for completed history.
+      const discovery = await fetch(`/api/tender-intelligence/requests/active${query}`,
+        { credentials: "include", cache: "no-store" });
+      const discovered = await discovery.json();
+      if (scopeVersion !== generation.current || lookupId !== lookup.current || storageKey.current !== key) return;
+      if (!discovery.ok) {
+        if (discovery.status === 401 || discovery.status === 403 || discovery.status === 404) {
+          onScopeChangeRef.current();
+          setIdentity(null);
+        }
+        setState("unknown");
+        setMessage(discovered.error || "Permintaan aktif belum dapat diperiksa. Periksa status sebelum memulai analisis baru.");
+        return;
+      }
+      if (!Object.hasOwn(discovered, "activeRequest")
+        || (discovered.activeRequest !== null && typeof discovered.activeRequest?.executionId !== "string")) {
+        throw new Error("Invalid discovery response");
+      }
+      if (discovered.activeRequest) {
+        // Persist a read-only server reference, never a reusable POST identity.
+        saved = { id: discovered.activeRequest.executionId, fingerprint: null, recoveryOnly: true };
+        localStorage.setItem(key, JSON.stringify(saved));
+        setIdentity(saved);
+      }
+      if (!saved) { setState("empty"); setMessage(""); return; }
+      const reference = saved.recoveryOnly ? "executions/" : "";
+      const response = await fetch(`/api/tender-intelligence/requests/${reference}${encodeURIComponent(saved.id)}${query}`,
         { credentials: "include", cache: "no-store" });
       const body = await response.json();
       if (scopeVersion !== generation.current || lookupId !== lookup.current || storageKey.current !== key) return;
@@ -77,7 +105,10 @@ export function useTenderRequest(workspaceId: string | null, onResult: (result: 
         setState("failed");
         setMessage(`${body.error} Pilih Analisis baru untuk memulai percobaan terpisah.`);
       } else {
-        if (response.status === 401 || response.status === 403) onScopeChangeRef.current();
+        if (response.status === 401 || response.status === 403 || response.status === 404) {
+          onScopeChangeRef.current();
+          setIdentity(null);
+        }
         setState("unknown");
         setMessage(body.error || "Status belum dapat dipastikan. Periksa status sebelum memulai analisis baru.");
       }
@@ -115,6 +146,7 @@ export function useTenderRequest(workspaceId: string | null, onResult: (result: 
   }, [state, recover]);
 
   async function begin(input: unknown): Promise<{ id: string; version: number }> {
+    if (state !== "empty") throw new Error("Periksa status permintaan aktif sebelum memulai analisis baru.");
     const version = generation.current;
     // Recheck account on every send; an old tab must not send with another
     // account's local request ID after logout/login elsewhere.
@@ -132,6 +164,9 @@ export function useTenderRequest(workspaceId: string | null, onResult: (result: 
     const fingerprint = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
     const raw = localStorage.getItem(key);
     const saved = raw ? JSON.parse(raw) as RequestIdentity : null;
+    if (saved?.recoveryOnly) {
+      throw new Error("Permintaan dari perangkat lain hanya dapat dipulihkan. Pilih Analisis baru setelah proses selesai.");
+    }
     if (saved && saved.fingerprint !== fingerprint) {
       throw new Error("Input berubah. Pulihkan permintaan sebelumnya atau pilih Analisis baru secara eksplisit.");
     }

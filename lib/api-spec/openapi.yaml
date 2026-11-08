@@ -11,6 +11,55 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /tender-intelligence/requests/active:
+    get:
+      operationId: discoverActiveTenderRequest
+      summary: Discover only the current account's active request in an authorized scope
+      parameters:
+        - in: query
+          name: workspaceId
+          schema: { type: string, maxLength: 128 }
+      responses:
+        "200":
+          description: Read-only execution reference or null; excludes completed history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenderActiveRequest"
+        "400": { description: Invalid workspace }
+        "401": { description: Authentication required }
+        "403": { description: Workspace access revoked }
+        "404": { description: Workspace absent }
+  /tender-intelligence/requests/executions/{executionId}:
+    get:
+      operationId: recoverTenderExecution
+      summary: Read a discovered execution without dispatching AI
+      parameters:
+        - in: path
+          name: executionId
+          required: true
+          schema: { type: string, pattern: "^[a-zA-Z0-9_-]{16,128}$" }
+        - in: query
+          name: workspaceId
+          schema: { type: string, maxLength: 128 }
+      responses:
+        "200":
+          description: Authoritative completed result for the discovered execution
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenderRequestState"
+        "202":
+          description: Execution is still running; never restarted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TenderRequestState"
+        "400": { description: Invalid reference or workspace }
+        "401": { description: Authentication required }
+        "403": { description: Workspace access revoked }
+        "404": { description: Execution absent in account and immutable workspace scope }
+        "409": { description: Execution failed; never restarted }
   /tender-intelligence/requests/{requestId}:
     get:
       operationId: recoverTenderRequest
@@ -255,6 +304,15 @@ components:
         required: { type: boolean }
         present: { type: boolean }
         notes: { type: string, maxLength: 2000 }
+    TenderActiveRequest:
+      type: object
+      required: [activeRequest]
+      properties:
+        activeRequest:
+          type: ["object", "null"]
+          required: [executionId]
+          properties:
+            executionId: { type: string }
     TenderRequestState:
       type: object
       required: [status, executionId]

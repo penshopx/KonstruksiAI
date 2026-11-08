@@ -8,6 +8,7 @@
 
 export * from "./checkTenderProviderSetup200";
 export * from "./checkTenderProviderSetup200Code";
+export * from "./discoverActiveTenderRequestParams";
 export * from "./getTenderProviderSetupAccess200";
 export * from "./healthStatus";
 export * from "./learningProgress";
@@ -15,7 +16,10 @@ export * from "./learningProgressCompletion";
 export * from "./learningProgressInput";
 export * from "./learningProgressList";
 export * from "./learningProgressSyncInput";
+export * from "./recoverTenderExecutionParams";
 export * from "./recoverTenderRequestParams";
+export * from "./tenderActiveRequest";
+export * from "./tenderActiveRequestActiveRequest";
 export * from "./tenderAnalysisInput";
 export * from "./tenderAnalysisInputChecklistState";
 export * from "./tenderDocumentInput";

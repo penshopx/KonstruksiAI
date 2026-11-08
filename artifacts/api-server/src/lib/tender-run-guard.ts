@@ -29,6 +29,21 @@ export function findTenderRequest(userId: number, requestId: string, workspaceId
   return row ? { request: row.tender_analysis_requests, execution: row.ai_execution_history } : null;
 }
 
+// Execution references are read-only: they must never become POST identities.
+export function findTenderExecution(userId: number, workspaceId: string | null, executionId?: string) {
+  const row = db.select().from(tenderAnalysisRequests)
+    .innerJoin(aiExecutionHistory, eq(tenderAnalysisRequests.executionId, aiExecutionHistory.id))
+    .where(and(
+      eq(tenderAnalysisRequests.userId, userId),
+      eq(aiExecutionHistory.userId, userId),
+      eq(aiExecutionHistory.module, "tender"),
+      eq(tenderAnalysisRequests.workspaceScope, workspaceId ?? ""),
+      executionId ? eq(aiExecutionHistory.id, executionId)
+        : inArray(aiExecutionHistory.status, ["pending", "running"]),
+    )).get();
+  return row ? { request: row.tender_analysis_requests, execution: row.ai_execution_history } : null;
+}
+
 // Never resume a provider call after a lease expires: its outcome is unknown.
 // All instances must use the same existing SQLite file; independent files are
 // independent deployments, not a distributed lock.

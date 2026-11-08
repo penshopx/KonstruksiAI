@@ -8,6 +8,61 @@
 import * as zod from "zod";
 
 /**
+ * @summary Discover only the current account's active request in an authorized scope
+ */
+export const discoverActiveTenderRequestQueryWorkspaceIdMax = 128;
+
+export const DiscoverActiveTenderRequestQueryParams = zod.object({
+  workspaceId: zod.coerce
+    .string()
+    .max(discoverActiveTenderRequestQueryWorkspaceIdMax)
+    .optional(),
+});
+
+export const DiscoverActiveTenderRequestResponse = zod.object({
+  activeRequest: zod
+    .object({
+      executionId: zod.string(),
+    })
+    .nullable(),
+});
+
+/**
+ * @summary Read a discovered execution without dispatching AI
+ */
+export const recoverTenderExecutionPathExecutionIdRegExp = new RegExp(
+  "^[a-zA-Z0-9_-]{16,128}$",
+);
+
+export const RecoverTenderExecutionParams = zod.object({
+  executionId: zod.coerce
+    .string()
+    .regex(recoverTenderExecutionPathExecutionIdRegExp),
+});
+
+export const recoverTenderExecutionQueryWorkspaceIdMax = 128;
+
+export const RecoverTenderExecutionQueryParams = zod.object({
+  workspaceId: zod.coerce
+    .string()
+    .max(recoverTenderExecutionQueryWorkspaceIdMax)
+    .optional(),
+});
+
+export const RecoverTenderExecutionResponse = zod.object({
+  status: zod.enum(["running", "succeeded", "failed"]),
+  executionId: zod.string(),
+  resultRef: zod.string().nullish(),
+  message: zod.string().optional(),
+  result: zod
+    .record(zod.string(), zod.unknown())
+    .optional()
+    .describe(
+      "Authoritative saved Tender analysis including original input and scores",
+    ),
+});
+
+/**
  * @summary Recover an account-scoped Tender request without calling AI
  */
 export const recoverTenderRequestPathRequestIdRegExp = new RegExp(

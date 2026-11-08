@@ -85,6 +85,18 @@ export interface TenderAnalysisInput {
   documents: TenderDocumentInput[];
 }
 
+/**
+ * @nullable
+ */
+export type TenderActiveRequestActiveRequest = {
+  executionId: string;
+} | null;
+
+export interface TenderActiveRequest {
+  /** @nullable */
+  activeRequest: TenderActiveRequestActiveRequest;
+}
+
 export type TenderRequestStateStatus =
   (typeof TenderRequestStateStatus)[keyof typeof TenderRequestStateStatus];
 
@@ -147,6 +159,20 @@ export interface LearningProgressList {
 export interface LearningProgressCompletion {
   progress: LearningProgress;
 }
+
+export type DiscoverActiveTenderRequestParams = {
+  /**
+   * @maxLength 128
+   */
+  workspaceId?: string;
+};
+
+export type RecoverTenderExecutionParams = {
+  /**
+   * @maxLength 128
+   */
+  workspaceId?: string;
+};
 
 export type RecoverTenderRequestParams = {
   /**

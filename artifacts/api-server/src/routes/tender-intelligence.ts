@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import { db, users } from "../db";
 import { listTenderProviderChecks, recordTenderProviderCheck } from "../lib/tender-provider-audit";
 import type { CheckTenderProviderSetup200 } from "@workspace/api-zod";
+import { DiscoverActiveTenderRequestResponse, RecoverTenderExecutionParams } from "@workspace/api-zod";
 import {
   classifyTenderAnalysisError,
   getTenderAnalysisErrorDiagnostics,
@@ -15,7 +16,7 @@ import {
   isRetryableTenderProviderError,
   TenderAnalysisFailureError,
 } from "../lib/tender-analysis-errors";
-import { claimTenderRequest, findTenderRequest, reconcileTenderRequests, tenderInputHash } from "../lib/tender-run-guard";
+import { claimTenderRequest, findTenderRequest, findTenderExecution, reconcileTenderRequests, tenderInputHash } from "../lib/tender-run-guard";
 import {
   resolveExecutionWorkspace,
   transitionExecutionRecord,
@@ -450,10 +451,11 @@ export function validateTenderAIResult(
 
 // ─── Tender Intelligence endpoint ─────────────────────────────────────────────
 
-async function sendRequestState(res: Response, userId: number, requestId: string, workspaceId: string | null) {
+async function sendRequestState(res: Response, userId: number, requestId: string, workspaceId: string | null, byExecution = false) {
   res.setHeader("Cache-Control", "no-store");
   reconcileTenderRequests(userId);
-  const saved = findTenderRequest(userId, requestId, workspaceId);
+  const saved = byExecution ? findTenderExecution(userId, workspaceId, requestId)
+    : findTenderRequest(userId, requestId, workspaceId);
   if (!saved) {
     res.status(404).json({ error: "Permintaan Tender tidak ditemukan." });
     return;
@@ -480,6 +482,32 @@ async function sendRequestState(res: Response, userId: number, requestId: string
       message: "Analisis masih berjalan. Status dipulihkan tanpa memanggil AI kembali." });
   }
 }
+
+router.get("/tender-intelligence/requests/active", async (req, res): Promise<void> => {
+  res.setHeader("Cache-Control", "no-store");
+  const session = await getSessionFromRequest(req);
+  if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const workspace = await resolveExecutionWorkspace(req.query.workspaceId, session.userId);
+  if ("error" in workspace) { res.status(workspace.status).json({ error: workspace.error }); return; }
+  reconcileTenderRequests(session.userId);
+  const saved = findTenderExecution(session.userId, workspace.workspaceId);
+  res.json(DiscoverActiveTenderRequestResponse.parse({
+    activeRequest: saved ? { executionId: saved.execution.id } : null,
+  }));
+});
+
+router.get("/tender-intelligence/requests/executions/:executionId", async (req, res): Promise<void> => {
+  res.setHeader("Cache-Control", "no-store");
+  const session = await getSessionFromRequest(req);
+  if (!session) { res.status(401).json({ error: "Unauthorized" }); return; }
+  const workspace = await resolveExecutionWorkspace(req.query.workspaceId, session.userId);
+  if ("error" in workspace) { res.status(workspace.status).json({ error: workspace.error }); return; }
+  const params = RecoverTenderExecutionParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "ID proses tidak valid." }); return;
+  }
+  await sendRequestState(res, session.userId, params.data.executionId, workspace.workspaceId, true);
+});
 
 router.get("/tender-intelligence/requests/:requestId", async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
