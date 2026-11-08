@@ -17,7 +17,7 @@ try {
   let outcome: "success" | "failure" = "success";
   let failure: { status: number; code: string; error: string; action: string; retryable: boolean };
   let analysisRequests = 0;
-  let submitted: { projectName: string; documents: { notes: string }[] };
+  let submitted: { projectName: string; tenderType: string; projectDetails: string; documents: { notes: string }[] };
   let releaseFailure: (() => void) | undefined;
   let pendingFailure: Promise<void>;
   let recoveryState = "empty";
@@ -42,7 +42,7 @@ try {
       recoveryState = "succeeded";
       savedResult = {
         id: "synthetic-result", executionId: "synthetic-success", workspaceId: null,
-        projectName: submitted!.projectName, tenderType: "Tender Konstruksi", projectDetails: "",
+        projectName: submitted!.projectName, tenderType: submitted!.tenderType, projectDetails: submitted!.projectDetails,
         documents: submitted!.documents, checklistState: {},
         createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
         resultRef: "synthetic-result",
@@ -72,13 +72,15 @@ try {
     { status: 503, code: "AI_PROVIDER_UNAVAILABLE", error: "Layanan provider AI sedang tidak tersedia atau koneksinya terputus.", action: "Tunggu beberapa saat, lalu coba kembali.", retryable: true },
     { status: 502, code: "AI_INVALID_MODEL_RESPONSE", error: "Respons model AI kosong atau tidak sesuai format analisis yang dibutuhkan.", action: "Coba jalankan analisis kembali. Jika terus terjadi, informasikan tim teknis.", retryable: true },
   ];
-  for (const scenario of cases) {
+  for (const [index, scenario] of cases.entries()) {
     await page.getByRole("button", { name: "✅ Kelengkapan", exact: true }).click();
     if (await page.getByTestId("button-new-tender-analysis").count()) {
       await page.getByTestId("button-new-tender-analysis").click();
     }
     outcome = "success";
     await page.getByTestId("input-tender-project-name").fill("Proyek Uji Panduan");
+    await page.getByTestId("input-tender-type").fill("Tender EPC Uji");
+    await page.getByPlaceholder("Lingkup pekerjaan, nilai kontrak, tenggat waktu, instansi/klien, atau kendala khusus yang perlu dipertimbangkan...").fill("Detail proyek tetap tersimpan");
     await page.getByPlaceholder("Catatan (opsional): mis. masa berlaku, kesesuaian bidang, kendala...").first().fill("Catatan tetap tersimpan");
     await page.getByTestId("button-analyze-tender").click();
     await page.getByRole("heading", { name: "Tender Intelligence Dashboard", exact: true }).waitFor();
@@ -91,14 +93,23 @@ try {
     await page.getByTestId("button-analyze-tender").click();
     await page.waitForFunction(() => (document.querySelector('[data-testid="button-analyze-tender"]') as HTMLButtonElement)?.disabled);
     // Clear stale analysis at request start, not only after the failure response.
-    await page.getByRole("button", { name: "📊 Overview", exact: true }).click();
+    const pendingTab = index % 2 === 0 ? "📊 Overview" : "⚠️ Risiko";
+    await page.getByRole("button", { name: pendingTab, exact: true }).click();
     await page.getByRole("heading", { name: "Belum ada analisis", exact: true }).waitFor();
     assert.ok(!(await page.locator("body").innerText()).includes(marker));
     releaseFailure!();
-    await page.getByRole("button", { name: "✅ Kelengkapan", exact: true }).click();
     const guidance = page.getByTestId("status-tender-analysis-error");
     await guidance.getByText(scenario.error, { exact: true }).waitFor();
     await guidance.getByText(scenario.action, { exact: true }).waitFor();
+    assert.equal(await guidance.isVisible(), true, `Guidance must appear while still on ${pendingTab}`);
+    assert.equal(await page.getByTestId("button-analyze-tender").count(), 0, "Failure must not force a tab change");
+    const newAnalysis = page.getByTestId("button-new-tender-analysis");
+    await page.waitForFunction(() => !(document.querySelector('[data-testid="button-new-tender-analysis"]') as HTMLButtonElement)?.disabled);
+    assert.equal(await newAnalysis.innerText(), scenario.retryable ? "Analisis baru" : "Analisis baru setelah perbaikan");
+    const beforeRecovery = analysisRequests;
+    await page.getByRole("button", { name: "Periksa status", exact: true }).click();
+    assert.equal(analysisRequests, beforeRecovery, "Status recovery must not dispatch AI again");
+    await page.getByRole("button", { name: "✅ Kelengkapan", exact: true }).click();
     assert.equal(await page.getByTestId("button-analyze-tender").isEnabled(), true);
     assert.match(
       await page.getByTestId("button-analyze-tender").innerText(),
@@ -106,19 +117,29 @@ try {
       "Failures must recover the same request, not encourage blind paid retries",
     );
     assert.equal(await page.getByTestId("input-tender-project-name").inputValue(), "Proyek Uji Panduan");
+    assert.equal(await page.getByTestId("input-tender-type").inputValue(), "Tender EPC Uji");
+    assert.equal(await page.getByPlaceholder("Lingkup pekerjaan, nilai kontrak, tenggat waktu, instansi/klien, atau kendala khusus yang perlu dipertimbangkan...").inputValue(), "Detail proyek tetap tersimpan");
     assert.equal(await page.getByPlaceholder("Catatan (opsional): mis. masa berlaku, kesesuaian bidang, kendala...").first().inputValue(), "Catatan tetap tersimpan");
     assert.equal(submitted!.projectName, "Proyek Uji Panduan");
     assert.equal(submitted!.documents[0].notes, "Catatan tetap tersimpan");
-    for (const tab of ["📊 Overview", "⚠️ Risiko"]) {
+    for (const tab of ["📊 Overview", "⚠️ Risiko", "📋 Persyaratan", "📝 Checklist", "✅ Kelengkapan"]) {
       await page.getByRole("button", { name: tab, exact: true }).click();
-      await page.getByRole("heading", { name: "Belum ada analisis", exact: true }).waitFor();
+      if (tab === "📊 Overview" || tab === "⚠️ Risiko") {
+        await page.getByRole("heading", { name: "Belum ada analisis", exact: true }).waitFor();
+      }
+      assert.equal(await guidance.count(), 1, "Exactly one failure alert across tabs");
+      assert.equal(await guidance.isVisible(), true);
+      assert.equal(await page.getByTestId("text-tender-failure-reason").innerText(), scenario.error);
+      assert.equal(await page.getByTestId("text-tender-failure-action").innerText(), scenario.action);
+      assert.equal(await page.getByTestId("status-tender-recovery").count(), 1);
+      assert.equal(await newAnalysis.innerText(), scenario.retryable ? "Analisis baru" : "Analisis baru setelah perbaikan");
       assert.equal(await page.getByRole("heading", { name: "Tender Intelligence Dashboard", exact: true }).count(), 0);
       assert.ok(!(await page.locator("body").innerText()).includes(marker));
     }
   }
   assert.equal(analysisRequests, cases.length * 2, "Rendering guidance must not automatically resubmit");
   assert.deepEqual(pageErrors, []);
-  console.log(`PASS: ${cases.length} categorized failures after successful analyses; pending/error stale-result clearing, visible guidance, preserved input, no automatic resubmission. All API calls mocked.`);
+  console.log(`PASS: ${cases.length} categorized failures after successful analyses; switch to Overview/Risiko before failure, single shared guidance across all tabs, distinct recovery labels, preserved input, no AI resubmission. All API calls mocked.`);
 } finally {
   await browser.close();
 }

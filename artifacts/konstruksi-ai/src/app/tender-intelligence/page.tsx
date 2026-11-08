@@ -461,36 +461,6 @@ export default function TenderIntelligencePage() {
           />
         </div>
 
-        {analysisError && (
-          <div role="alert" data-testid="status-tender-analysis-error" className="mt-4 bg-red-500/10 border border-red-500/40 rounded-lg p-4 text-red-300 text-sm">
-            <p className="font-semibold" data-testid="text-tender-failure-reason">{analysisError.message}</p>
-            <p className="mt-2 text-red-100" data-testid="text-tender-failure-action">{analysisError.action}</p>
-            {retryOfId && (
-              <p className="mt-1 text-xs text-red-200/70">
-                Percobaan berikutnya akan ditautkan ke eksekusi gagal ini.
-              </p>
-            )}
-          </div>
-        )}
-
-        <div role="status" data-testid="status-tender-recovery" className="mt-4 text-sm text-blue-100">
-          {request.message}
-          <div className="flex gap-3 mt-2">
-            <button type="button" onClick={() => void request.recover()} className="underline">Periksa status</button>
-            {request.identity && (
-              <button type="button" data-testid="button-new-tender-analysis"
-                disabled={isAnalyzing || request.state === "running" || request.state === "loading"}
-                onClick={() => {
-                  if (request.reset()) {
-                    setRetryOfId(request.state === "failed" ? request.executionId : null);
-                    setAnalysisError(null);
-                  }
-                }} className="underline disabled:opacity-50">
-                Analisis baru
-              </button>
-            )}
-          </div>
-        </div>
         <button
           onClick={handleAnalyze}
           data-testid="button-analyze-tender"
@@ -720,6 +690,38 @@ export default function TenderIntelligencePage() {
               placeholder="Contoh: Tender EPC"
               data-testid="input-tender-type"
             />
+          </div>
+        </div>
+
+        {analysisError && (
+          <div role="alert" data-testid="status-tender-analysis-error" className="mb-4 bg-red-500/10 border border-red-500/40 rounded-lg p-4 text-red-300 text-sm">
+            <p className="font-semibold" data-testid="text-tender-failure-reason">{analysisError.message}</p>
+            <p className="mt-2 text-red-100" data-testid="text-tender-failure-action">{analysisError.action}</p>
+            {retryOfId && (
+              <p className="mt-1 text-xs text-red-200/70">
+                Percobaan berikutnya akan ditautkan ke eksekusi gagal ini.
+              </p>
+            )}
+          </div>
+        )}
+
+        <div data-testid="status-tender-recovery" className="mb-6 text-sm text-blue-100">
+          <p role="status">{!analysisError && request.message}</p>
+          <div className="flex flex-wrap gap-3 mt-2">
+            <button type="button" onClick={() => void request.recover()} className="underline">Periksa status</button>
+            {request.identity && (
+              <button type="button" data-testid="button-new-tender-analysis"
+                disabled={isAnalyzing || request.state === "running" || request.state === "loading"}
+                onClick={() => {
+                  if (request.reset()) {
+                    setRetryOfId(request.state === "failed" ? request.executionId : null);
+                    setAnalysisError(null);
+                    setActiveTab("completeness");
+                  }
+                }} className="underline disabled:opacity-50">
+                {analysisError && !analysisError.retryable ? "Analisis baru setelah perbaikan" : "Analisis baru"}
+              </button>
+            )}
           </div>
         </div>
 
