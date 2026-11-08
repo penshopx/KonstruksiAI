@@ -77,7 +77,21 @@ try {
   assert.deepEqual(submitted.documents.map((doc: { notes: string }) => doc.notes), notes);
   const result = await response.json();
   if (!response.ok()) {
-    await page.getByText(result.error, { exact: true }).first().waitFor();
+    assert.ok(
+      ["AI_PROVIDER_NOT_CONFIGURED", "AI_PROVIDER_AUTHENTICATION_FAILED", "AI_PROVIDER_CREDITS_EXHAUSTED",
+        "AI_PROVIDER_RATE_LIMITED", "AI_INVALID_MODEL_RESPONSE", "AI_PROVIDER_REQUEST_REJECTED",
+        "AI_PROVIDER_UNAVAILABLE", "AI_INTERNAL_ERROR"]
+        .includes(result.code),
+      "Analysis failures must have a safe, documented category",
+    );
+    assert.equal(typeof result.error, "string");
+    assert.equal(typeof result.action, "string");
+    assert.doesNotMatch(
+      result.error,
+      /OPENROUTER_API_KEY|openrouter\.ai|invalid_api_key|insufficient_quota|sk-[\w-]+/i,
+    );
+    await page.getByTestId("status-tender-analysis-error").getByText(result.error, { exact: true }).waitFor();
+    await page.getByTestId("status-tender-analysis-error").getByText(result.action, { exact: true }).waitFor();
     assert.equal(await page.getByRole("heading", { name: "Tender Intelligence Dashboard" }).count(), 0);
     await page.getByRole("button", { name: /Ulangi & Catat Pengulangan/ }).waitFor();
     await page.getByRole("button", { name: "📊 Overview", exact: true }).click();
@@ -88,7 +102,8 @@ try {
       httpStatus: response.status(),
       error: result.error,
       passed: ["401 unauthenticated", "400 empty documents", "Overview/Risiko empty states",
-        "actual browser input payload", "error banner", "retry button", "no fabricated results", "no browser crashes"],
+        "actual browser input payload", "categorized safe error guidance", "retry button",
+        "no fabricated results", "no browser crashes"],
     }, null, 2));
     process.exitCode = 2;
   } else {

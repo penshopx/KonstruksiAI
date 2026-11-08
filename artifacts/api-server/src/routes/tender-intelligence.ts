@@ -78,6 +78,10 @@ setInterval(() => {
 
 const MAX_COMPLETION_ATTEMPTS = 3;
 const RETRY_BASE_DELAY_MS = 500;
+
+function isRetryableOpenAIError(error: unknown): boolean {
+  return isRetryableTenderProviderError(error);
+}
 function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -556,9 +560,12 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       summary: aiResult.summary,
     });
   } catch (err) {
-    const failure = classifyTenderAnalysisError(processingProviderResponse
+    const classifiedFailure = classifyTenderAnalysisError(processingProviderResponse
       ? err
       : new TenderAnalysisFailureError("AI_INTERNAL_ERROR"));
+    const failure = processingProviderResponse && classifiedFailure.code === "AI_INTERNAL_ERROR"
+      ? classifyTenderAnalysisError(new TenderAnalysisFailureError("AI_PROVIDER_UNAVAILABLE"))
+      : classifiedFailure;
     if (executionId) {
       try {
         await transitionExecutionRecord(executionId, ["pending", "running"], {

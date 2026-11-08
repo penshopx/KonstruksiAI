@@ -25,7 +25,7 @@ export class TenderAnalysisFailureError extends Error {
 
 const FAILURE_MESSAGES: Record<TenderAnalysisErrorCode, Omit<TenderAnalysisFailure, "code">> = {
   AI_PROVIDER_NOT_CONFIGURED: {
-    error: "Analisis AI belum bisa dijalankan karena provider AI belum dikonfigurasi.",
+    error: "Kredensial layanan AI belum tersedia.",
     action: "Minta administrator memeriksa konfigurasi layanan AI.",
     retryable: false,
     statusCode: 503,

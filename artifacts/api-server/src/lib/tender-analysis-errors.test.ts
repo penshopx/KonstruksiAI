@@ -14,6 +14,7 @@ test("classifies missing provider configuration with an administrator action", (
 
   assert.equal(failure.code, "AI_PROVIDER_NOT_CONFIGURED");
   assert.equal(failure.retryable, false);
+  assert.match(failure.error, /Kredensial layanan AI belum tersedia/);
   assert.match(failure.action, /administrator/);
 });
 
@@ -27,6 +28,7 @@ test("classifies provider authentication errors without exposing provider text",
   assert.equal(failure.code, "AI_PROVIDER_AUTHENTICATION_FAILED");
   assert.equal(failure.retryable, false);
   assert.equal(failure.error.includes("sk-do-not-expose-this"), false);
+  assert.equal(failure.action.includes("sk-do-not-expose-this"), false);
 });
 
 test("credits exhaustion takes precedence over a provider 429", () => {
@@ -38,6 +40,7 @@ test("credits exhaustion takes precedence over a provider 429", () => {
 
   assert.equal(failure.code, "AI_PROVIDER_CREDITS_EXHAUSTED");
   assert.equal(failure.retryable, false);
+  assert.equal(isRetryableTenderProviderError({ status: 429, code: "insufficient_quota" }), false);
 });
 
 test("classifies transient provider rate limits and outages as retryable", () => {
@@ -53,6 +56,7 @@ test("classifies transient provider rate limits and outages as retryable", () =>
     classifyTenderAnalysisError({ cause: { code: "ETIMEDOUT" }, message: "request timed out" }).retryable,
     true,
   );
+  assert.equal(isRetryableTenderProviderError({ status: 503 }), true);
 });
 
 test("classifies invalid model responses and rejected model requests", () => {
@@ -79,6 +83,7 @@ test("falls back to a safe internal error and records only bounded diagnostic me
   const diagnostics = getTenderAnalysisErrorDiagnostics(error);
 
   assert.equal(failure.code, "AI_PROVIDER_UNAVAILABLE");
+  assert.equal(failure.error.includes("sensitive provider response content"), false);
   assert.equal("message" in diagnostics, false);
   assert.equal(diagnostics.providerCode, "upstream_error");
 });

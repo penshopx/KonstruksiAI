@@ -185,6 +185,7 @@ export default function TenderIntelligencePage() {
 
     setIsAnalyzing(true);
     setAnalysisError(null);
+    setAnalysis(null);
 
     try {
       const res = await fetch("/api/tender-intelligence/analyze", {
