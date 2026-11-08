@@ -15,7 +15,11 @@ const { default: app } = await import("../app");
 const { db, projectWorkspaceMembers, tenderAnalysisResults } = await import("../db");
 const { createExecutionRecord, transitionExecutionRecord } = await import("../lib/execution-history");
 const { persistSuccessfulTenderAnalysis } = await import("../lib/tender-history");
-const { calculateComplianceScore, reconcileCompletenessChecks } = await import("./tender-intelligence");
+const {
+  calculateComplianceScore,
+  reconcileCompletenessChecks,
+  validateTenderAIResult,
+} = await import("./tender-intelligence");
 const { and, eq } = await import("drizzle-orm");
 
 let server: Server;
@@ -106,6 +110,52 @@ test("Tender document statuses override AI scores and retain actionable explanat
   assert.deepEqual(checks[1]?.missingElements, []);
   assert.equal(checks[2]?.completenessScore, 28);
   assert.deepEqual(checks[2]?.missingElements, ["Data klasifikasi usaha belum sesuai."]);
+});
+
+test("Tender assessments match by document type even when the AI changes their order", () => {
+  const documents = [
+    { documentType: "SMK3", required: true, present: true, notes: "" },
+    { documentType: "SBU", required: true, present: true, notes: "" },
+  ];
+  const assessments = [
+    { documentType: "SBU", completenessScore: 91, missingElements: [], notes: "SBU sesuai." },
+    { documentType: "SMK3", completenessScore: 37, missingElements: ["Perlu diperiksa."], notes: "SMK3 bermasalah." },
+  ];
+
+  const aiResult = validateTenderAIResult({ completenessChecks: assessments }, documents);
+  assert.ok(aiResult);
+  const checks = reconcileCompletenessChecks(documents, aiResult.completenessChecks);
+
+  assert.equal(checks[0]?.completenessScore, 37);
+  assert.equal(checks[0]?.notes, "SMK3 bermasalah.");
+  assert.equal(checks[1]?.completenessScore, 91);
+  assert.equal(checks[1]?.notes, "SBU sesuai.");
+});
+
+test("Tender rejects omitted, duplicate, and unknown document assessments", () => {
+  const documents = [
+    { documentType: "SBU", required: true, present: true, notes: "" },
+    { documentType: "SMK3", required: true, present: false, notes: "" },
+  ];
+  const assessment = (documentType: string, completenessScore: number) => ({
+    documentType,
+    completenessScore,
+    missingElements: [],
+    notes: "Dinilai AI.",
+  });
+  const invalidAssessmentSets = [
+    [assessment("SBU", 88)],
+    [assessment("SBU", 88), assessment("SBU", 42)],
+    [assessment("SBU", 88), assessment("NIB", 42)],
+  ];
+
+  for (const completenessChecks of invalidAssessmentSets) {
+    assert.equal(validateTenderAIResult({ completenessChecks }, documents), null);
+    assert.throws(
+      () => reconcileCompletenessChecks(documents, completenessChecks),
+      /do not match the input documents/,
+    );
+  }
 });
 
 test("Tender compliance score is capped by missing required documents", () => {

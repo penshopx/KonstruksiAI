@@ -113,6 +113,7 @@ function parseDocuments(raw: unknown): { documents: DocumentInput[] } | { error:
   }
 
   const documents: DocumentInput[] = [];
+  const documentTypes = new Set<string>();
   for (const item of raw) {
     if (!item || typeof item !== "object") {
       return { error: "Format data dokumen tidak valid." };
@@ -125,6 +126,11 @@ function parseDocuments(raw: unknown): { documents: DocumentInput[] } | { error:
     if (documentType.length > MAX_DOCUMENT_TYPE_CHARS) {
       return { error: `Nama dokumen tidak boleh melebihi ${MAX_DOCUMENT_TYPE_CHARS} karakter.` };
     }
+    const normalizedDocumentType = documentType.toLowerCase();
+    if (documentTypes.has(normalizedDocumentType)) {
+      return { error: `Jenis dokumen "${documentType}" dicantumkan lebih dari sekali.` };
+    }
+    documentTypes.add(normalizedDocumentType);
     const notes = typeof obj.notes === "string" ? obj.notes : "";
     if (notes.length > MAX_NOTES_CHARS) {
       return { error: `Catatan dokumen tidak boleh melebihi ${MAX_NOTES_CHARS} karakter.` };
@@ -219,9 +225,13 @@ export function reconcileCompletenessChecks(
   documents: DocumentInput[],
   aiChecks: CompletenessCheckAI[],
 ) {
-  const checksByType = new Map(aiChecks.map((check) => [check.documentType.toLowerCase(), check]));
-  return documents.map((doc, index) => {
-    const match = checksByType.get(doc.documentType.toLowerCase()) ?? aiChecks[index] ?? null;
+  const checks = validateCompletenessChecks(aiChecks, documents);
+  if (!checks) {
+    throw new Error("Tender AI completeness checks do not match the input documents.");
+  }
+  const checksByType = new Map(checks.map((check) => [check.documentType.toLowerCase(), check]));
+  return documents.map((doc) => {
+    const match = checksByType.get(doc.documentType.toLowerCase())!;
     const missingDocumentExplanation =
       `Dokumen ${doc.documentType} belum tersedia; siapkan dokumen ini sebelum pengajuan tender.`;
 
@@ -229,14 +239,14 @@ export function reconcileCompletenessChecks(
       documentType: doc.documentType,
       required: doc.required,
       present: doc.present,
-      completenessScore: doc.present ? (match?.completenessScore ?? 50) : 0,
+      completenessScore: doc.present ? match.completenessScore : 0,
       missingElements: doc.present
-        ? (match?.missingElements ?? [])
+        ? match.missingElements
         : [
-            ...(match?.missingElements ?? []),
+            ...match.missingElements,
             missingDocumentExplanation,
           ],
-      notes: match?.notes || (doc.present ? "Dokumen dilaporkan tersedia." : "Dokumen belum dilengkapi."),
+      notes: match.notes || (doc.present ? "Dokumen dilaporkan tersedia." : "Dokumen belum dilengkapi."),
     };
   });
 }
@@ -281,18 +291,26 @@ interface TenderAIResult {
   };
 }
 
-function validateTenderAIResult(parsed: unknown): TenderAIResult | null {
-  if (!parsed || typeof parsed !== "object") return null;
-  const obj = parsed as Record<string, unknown>;
+function validateCompletenessChecks(
+  rawChecks: unknown,
+  documents: Pick<DocumentInput, "documentType">[],
+): CompletenessCheckAI[] | null {
+  if (!Array.isArray(rawChecks) || rawChecks.length !== documents.length) return null;
 
-  const rawChecks = Array.isArray(obj.completenessChecks) ? obj.completenessChecks : null;
-  if (!rawChecks) return null;
+  const expectedTypes = new Set(documents.map((document) => document.documentType.toLowerCase()));
+  if (expectedTypes.size !== documents.length) return null;
 
+  const seenTypes = new Set<string>();
   const completenessChecks: CompletenessCheckAI[] = [];
   for (const item of rawChecks) {
-    if (!item || typeof item !== "object") continue;
+    if (!item || typeof item !== "object") return null;
     const ci = item as Record<string, unknown>;
-    if (typeof ci.documentType !== "string" || !ci.documentType.trim()) continue;
+    if (typeof ci.documentType !== "string" || !ci.documentType.trim()) return null;
+    const documentType = ci.documentType.trim();
+    const normalizedDocumentType = documentType.toLowerCase();
+    if (!expectedTypes.has(normalizedDocumentType) || seenTypes.has(normalizedDocumentType)) return null;
+    seenTypes.add(normalizedDocumentType);
+
     const score = typeof ci.completenessScore === "number" && Number.isFinite(ci.completenessScore)
       ? Math.min(100, Math.max(0, Math.round(ci.completenessScore)))
       : 0;
@@ -300,9 +318,21 @@ function validateTenderAIResult(parsed: unknown): TenderAIResult | null {
       ? ci.missingElements.filter((m): m is string => typeof m === "string" && m.trim().length > 0)
       : [];
     const notes = typeof ci.notes === "string" ? ci.notes.trim() : "";
-    completenessChecks.push({ documentType: ci.documentType.trim(), completenessScore: score, missingElements, notes });
+    completenessChecks.push({ documentType, completenessScore: score, missingElements, notes });
   }
-  if (completenessChecks.length === 0) return null;
+
+  return seenTypes.size === expectedTypes.size ? completenessChecks : null;
+}
+
+export function validateTenderAIResult(
+  parsed: unknown,
+  documents: Pick<DocumentInput, "documentType">[],
+): TenderAIResult | null {
+  if (!parsed || typeof parsed !== "object") return null;
+  const obj = parsed as Record<string, unknown>;
+
+  const completenessChecks = validateCompletenessChecks(obj.completenessChecks, documents);
+  if (!completenessChecks) return null;
 
   const rawRisks = Array.isArray(obj.risks) ? obj.risks : [];
   const risks: RiskAI[] = [];
@@ -561,7 +591,7 @@ router.post("/tender-intelligence/analyze", async (req: Request, res: Response) 
       throw new TenderAnalysisFailureError("AI_INVALID_MODEL_RESPONSE");
     }
 
-    const aiResult = validateTenderAIResult(parsed);
+    const aiResult = validateTenderAIResult(parsed, documents);
     if (!aiResult) {
       throw new TenderAnalysisFailureError("AI_INVALID_MODEL_RESPONSE");
     }
