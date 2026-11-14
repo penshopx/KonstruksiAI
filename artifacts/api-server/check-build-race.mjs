@@ -6,6 +6,9 @@ import { fileURLToPath } from "node:url";
 const artifactDir = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(artifactDir, "dist");
 const testDistDir = path.join(artifactDir, `.test-dist-build-race-${process.pid}`);
+const testBatchSize = 4;
+const commandTimeoutMs = 3 * 60 * 1000;
+const commandKillGraceMs = 5 * 1000;
 const packageJson = await import("./package.json", { with: { type: "json" } });
 const testScripts = Object.entries(packageJson.default.scripts)
   .filter(([name]) => name.startsWith("test:"))
@@ -95,6 +98,7 @@ function runScript(name, args) {
   return new Promise((resolve) => {
     const child = spawn(process.platform === "win32" ? "pnpm.cmd" : "pnpm", args, {
       cwd: artifactDir,
+      detached: process.platform !== "win32",
       env: {
         ...process.env,
         CI: "1",
@@ -103,6 +107,26 @@ function runScript(name, args) {
       stdio: ["ignore", "pipe", "pipe"],
     });
     let output = "";
+    let timeout;
+    let killTimeout;
+    let timedOut = false;
+
+    const signalProcessTree = (signal) => {
+      if (process.platform === "win32" || !child.pid) {
+        child.kill(signal);
+        return;
+      }
+      try {
+        process.kill(-child.pid, signal);
+      } catch (error) {
+        if (error?.code !== "ESRCH") throw error;
+      }
+    };
+
+    const clearTimers = () => {
+      clearTimeout(timeout);
+      clearTimeout(killTimeout);
+    };
 
     child.stdout.on("data", (chunk) => {
       output += chunk;
@@ -113,15 +137,28 @@ function runScript(name, args) {
       process.stderr.write(`[${name}] ${chunk}`);
     });
     child.on("error", (error) => {
+      clearTimers();
       resolve({ name, code: null, output: `${output}${error.stack ?? error}` });
     });
     child.on("close", (code, signal) => {
+      clearTimers();
       resolve({
         name,
-        code,
-        output: signal ? `${output}\nTerminated by ${signal}` : output,
+        code: timedOut ? null : code,
+        output: timedOut
+          ? `${output}\nTimed out after ${commandTimeoutMs}ms${signal ? `; terminated by ${signal}` : ""}`
+          : signal ? `${output}\nTerminated by ${signal}` : output,
       });
     });
+
+    timeout = setTimeout(() => {
+      timedOut = true;
+      output += `\nTimed out after ${commandTimeoutMs}ms; sending SIGTERM to the command process group.\n`;
+      signalProcessTree("SIGTERM");
+      killTimeout = setTimeout(() => signalProcessTree("SIGKILL"), commandKillGraceMs);
+      killTimeout.unref();
+    }, commandTimeoutMs);
+    timeout.unref();
   });
 }
 
@@ -182,10 +219,16 @@ if (configuredViolations.length > 0) {
   );
 }
 
-const results = await Promise.all([
-  runScript("build", ["run", "build"]),
-  ...testScripts.map(({ name }) => runScript(name, ["run", name])),
-]);
+const results = [];
+for (let start = 0; start < testScripts.length; start += testBatchSize) {
+  const batch = testScripts.slice(start, start + testBatchSize);
+  const batchNumber = Math.floor(start / testBatchSize) + 1;
+  const batchResults = await Promise.all([
+    runScript(`build batch ${batchNumber}`, ["run", "build"]),
+    ...batch.map(({ name }) => runScript(name, ["run", name])),
+  ]);
+  results.push(...batchResults);
+}
 
 const failedResults = results.filter(({ code }) => code !== 0);
 const testResults = results

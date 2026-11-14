@@ -8,7 +8,7 @@ out-tsc
 *.db-wal
 *.db-shm
 artifacts/api-server/konstruksi.db
-artifacts/api-server/.test-dist/
+/artifacts/api-server/.test-dist*/
 .expo
 .expo-shared
 
