@@ -6,7 +6,10 @@ import OpenAI from "openai";
 import { rateLimit } from "express-rate-limit";
 import { eq } from "drizzle-orm";
 import { db, users } from "../db";
-import { listTenderProviderChecks, recordTenderProviderCheck } from "../lib/tender-provider-audit";
+import {
+  beginTenderProviderCheck, finishTenderProviderCheck,
+  listTenderProviderChecks, recordTenderProviderCheck,
+} from "../lib/tender-provider-audit";
 import type { CheckTenderProviderSetup200 } from "@workspace/api-zod";
 import { DiscoverActiveTenderRequestResponse, RecoverTenderExecutionParams } from "@workspace/api-zod";
 import {
@@ -74,6 +77,9 @@ router.get("/tender-intelligence/provider-setup/history", async (_req, res): Pro
 
 router.post("/tender-intelligence/provider-setup", setupCheckLimiter, async (_req, res) => {
   const checkedAt = new Date().toISOString();
+  // Commit admission before any SDK initialization or potentially billable I/O.
+  // If storage fails, Express returns an error without calling the provider.
+  const auditId = beginTenderProviderCheck(res.locals.setupAccountId, checkedAt);
   let result: Omit<CheckTenderProviderSetup200, "checkedAt"> & { checkedAt: string };
   try {
     const completion = await getOpenAI().chat.completions.create({
@@ -102,7 +108,7 @@ router.post("/tender-intelligence/provider-setup", setupCheckLimiter, async (_re
   }
   // Outside the provider catch: a failed audit write must not be reported as a
   // successful check (nor misclassified as a provider error).
-  recordTenderProviderCheck(res.locals.setupAccountId, checkedAt, result.code);
+  finishTenderProviderCheck(auditId, result.code);
   res.json(result);
 });
 

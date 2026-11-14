@@ -9,8 +9,10 @@ const { initializeDatabase } = await import("../db/migrate");
 const {
   recordTenderProviderCheck, listTenderProviderChecks, pruneTenderProviderAuditBatch,
   PROVIDER_AUDIT_RETENTION_MS, PROVIDER_AUDIT_BATCH_SIZE,
+  beginTenderProviderCheck, finishTenderProviderCheck, reconcileTenderProviderChecks,
+  PROVIDER_CHECK_MAX_DURATION_MS,
 } = await import("./tender-provider-audit");
-const { startTenderProviderAuditScheduler, PROVIDER_AUDIT_CLEANUP_INTERVAL_MS } =
+const { startTenderProviderAuditScheduler, startTenderProviderAuditRecovery, PROVIDER_AUDIT_CLEANUP_INTERVAL_MS } =
   await import("./tender-provider-audit-scheduler");
 const { logger } = await import("./logger");
 
@@ -23,6 +25,62 @@ function seed(checkedAt: string) {
 }
 beforeEach(() => {
   db.delete(tenderProviderAudit).run();
+});
+
+test("probe lifecycle is atomic, safe, and terminal results cannot be overwritten", (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: now.getTime() });
+  const id = beginTenderProviderCheck(123, now.toISOString());
+  assert.deepEqual(listTenderProviderChecks().items[0], {
+    id, accountId: 123, checkedAt: now, code: "AI_SETUP_IN_PROGRESS",
+  });
+  assert.throws(() => finishTenderProviderCheck(id, "PRIVATE_ERROR" as never));
+  assert.throws(() => finishTenderProviderCheck(id, "AI_SETUP_IN_PROGRESS" as never));
+  assert.throws(() => beginTenderProviderCheck(-1, now.toISOString()));
+  finishTenderProviderCheck(id, "AI_PROVIDER_READY");
+  assert.throws(() => finishTenderProviderCheck(id, "AI_PROVIDER_UNAVAILABLE"));
+  assert.equal(reconcileTenderProviderChecks(new Date(now.getTime() + 60_000)), 0);
+  assert.equal(listTenderProviderChecks().items[0].code, "AI_PROVIDER_READY");
+  assert.equal(db.select().from(tenderProviderAudit).all().length, 1);
+});
+
+test("recovery respects the probe deadline and never revives an interrupted row", (t) => {
+  t.mock.timers.enable({ apis: ["Date"], now: now.getTime() });
+  const id = beginTenderProviderCheck(123, now.toISOString());
+  assert.equal(reconcileTenderProviderChecks(new Date(now.getTime() + PROVIDER_CHECK_MAX_DURATION_MS - 1)), 0);
+  assert.equal(reconcileTenderProviderChecks(new Date(now.getTime() + PROVIDER_CHECK_MAX_DURATION_MS)), 1);
+  assert.equal(reconcileTenderProviderChecks(new Date(now.getTime() + 60_000)), 0);
+  assert.throws(() => finishTenderProviderCheck(id, "AI_PROVIDER_READY"));
+  assert.equal(listTenderProviderChecks().items[0].code, "AI_SETUP_INTERRUPTED");
+});
+
+test("startup recovery and periodic recovery are idempotent and retry storage failures safely", (t) => {
+  t.mock.timers.enable({ apis: ["Date", "setInterval"], now: now.getTime() });
+  const staleId = beginTenderProviderCheck(123, new Date(now.getTime() - 60_000).toISOString());
+  const freshId = beginTenderProviderCheck(123, now.toISOString());
+  const stop = startTenderProviderAuditRecovery();
+  t.after(() => {
+    stop();
+    db.run(sql`DROP TRIGGER IF EXISTS setup_recovery_test_abort`);
+  });
+  assert.equal(startTenderProviderAuditRecovery(), stop);
+  const rows = () => db.select().from(tenderProviderAudit).all();
+  assert.equal(rows().find(r => r.id === staleId)?.code, "AI_SETUP_INTERRUPTED");
+  assert.equal(rows().find(r => r.id === freshId)?.code, "AI_SETUP_IN_PROGRESS");
+  db.run(sql`CREATE TRIGGER setup_recovery_test_abort BEFORE UPDATE ON tender_provider_audit
+    BEGIN SELECT RAISE(ABORT, 'synthetic storage failure'); END`);
+  const errors = t.mock.method(logger, "error", () => {});
+  t.mock.timers.tick(PROVIDER_CHECK_MAX_DURATION_MS);
+  assert.equal(errors.mock.callCount(), 1);
+  assert.equal(rows().find(r => r.id === freshId)?.code, "AI_SETUP_IN_PROGRESS");
+  assert.doesNotMatch(JSON.stringify(errors.mock.calls[0].arguments), /synthetic storage/);
+  db.run(sql`DROP TRIGGER setup_recovery_test_abort`);
+  t.mock.timers.tick(PROVIDER_CHECK_MAX_DURATION_MS);
+  assert.equal(rows().find(r => r.id === freshId)?.code, "AI_SETUP_INTERRUPTED");
+  assert.equal(rows().length, 2);
+  stop();
+  beginTenderProviderCheck(123, new Date().toISOString());
+  t.mock.timers.tick(PROVIDER_CHECK_MAX_DURATION_MS * 2);
+  assert.equal(rows().at(-1)?.code, "AI_SETUP_IN_PROGRESS", "Recovery timer stops cleanly");
 });
 
 test("migration preserves legacy audits and adds its index idempotently", () => {

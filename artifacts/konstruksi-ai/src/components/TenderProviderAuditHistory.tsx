@@ -12,6 +12,8 @@ const outcomes: Record<TenderProviderAuditEvent["code"], string> = {
   AI_PROVIDER_UNAVAILABLE: "Provider tidak tersedia",
   AI_INTERNAL_ERROR: "Kesalahan internal",
   AI_SETUP_RATE_LIMITED: "Batas pemeriksaan aplikasi tercapai",
+  AI_SETUP_IN_PROGRESS: "Pemeriksaan sedang berlangsung",
+  AI_SETUP_INTERRUPTED: "Pemeriksaan terputus; hasil provider tidak diketahui. Tidak dikirim ulang otomatis.",
 };
 
 export default function TenderProviderAuditHistory({ refreshVersion }: { refreshVersion: number }) {

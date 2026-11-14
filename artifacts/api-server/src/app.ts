@@ -5,9 +5,11 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { initializeDatabase } from "./db/migrate";
+import { startTenderProviderAuditRecovery } from "./lib/tender-provider-audit-scheduler";
 import billingRouter from "./routes/billing";
 
 initializeDatabase();
+startTenderProviderAuditRecovery();
 
 const app: Express = express();
 

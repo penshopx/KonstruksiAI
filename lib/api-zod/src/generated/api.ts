@@ -223,6 +223,8 @@ export const GetTenderProviderAuditResponse = zod.object({
           "AI_PROVIDER_UNAVAILABLE",
           "AI_INTERNAL_ERROR",
           "AI_SETUP_RATE_LIMITED",
+          "AI_SETUP_IN_PROGRESS",
+          "AI_SETUP_INTERRUPTED",
         ]),
       }),
     )

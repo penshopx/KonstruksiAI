@@ -1,5 +1,31 @@
 import { logger } from "./logger";
-import { pruneTenderProviderAuditBatch, PROVIDER_AUDIT_BATCH_SIZE } from "./tender-provider-audit";
+import {
+  pruneTenderProviderAuditBatch, PROVIDER_AUDIT_BATCH_SIZE,
+  reconcileTenderProviderChecks, PROVIDER_CHECK_MAX_DURATION_MS,
+} from "./tender-provider-audit";
+
+let stopRecovery: (() => void) | undefined;
+
+/** Startup + periodic recovery also covers crashes immediately before restart. */
+export function startTenderProviderAuditRecovery(): () => void {
+  if (stopRecovery) return stopRecovery;
+  // Fail startup rather than serving probes when durable audit recovery failed.
+  reconcileTenderProviderChecks();
+  const recoveryTimer = setInterval(() => {
+    try {
+      reconcileTenderProviderChecks();
+    } catch {
+      // No DB/SDK error text: only a fixed operational code is logged.
+      logger.error({ code: "AI_SETUP_RECOVERY_FAILED" }, "Provider audit recovery failed");
+    }
+  }, PROVIDER_CHECK_MAX_DURATION_MS);
+  recoveryTimer.unref();
+  stopRecovery = () => {
+    clearInterval(recoveryTimer);
+    stopRecovery = undefined;
+  };
+  return stopRecovery;
+}
 
 export const PROVIDER_AUDIT_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
 let stopScheduler: (() => void) | undefined;
