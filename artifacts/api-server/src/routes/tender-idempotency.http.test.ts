@@ -82,6 +82,14 @@ if (process.argv.includes("--offline-server")) {
       return fetch(`${base}/api/tender-intelligence/requests/${id}${workspace ? `?workspaceId=${workspace}` : ""}`,
         { headers: { Cookie: cookie } });
     }
+    function executionStatus(base: string, cookie: string, id: string, workspace = "") {
+      return fetch(`${base}/api/tender-intelligence/requests/executions/${id}${workspace ? `?workspaceId=${workspace}` : ""}`,
+        { headers: { Cookie: cookie } });
+    }
+    function active(base: string, cookie: string, workspace = "") {
+      return fetch(`${base}/api/tender-intelligence/requests/active${workspace ? `?workspaceId=${workspace}` : ""}`,
+        { headers: { Cookie: cookie } });
+    }
     async function waitCalls(expected: number) {
       const deadline = Date.now() + 5000;
       while (calls < expected && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10));
@@ -99,6 +107,14 @@ if (process.argv.includes("--offline-server")) {
       const b = await boot();
       const first = post(a.base, owner.cookie);
       await waitCalls(1);
+      const discovered = await (await active(b.base, owner.cookie)).json() as {
+        activeRequest: { executionId: string } | null;
+      };
+      assert.ok(discovered.activeRequest?.executionId, "signed-in owner can discover an active personal request");
+      assert.equal((await executionStatus(b.base, owner.cookie, discovered.activeRequest.executionId)).status, 202);
+      assert.equal((await (await active(b.base, stranger.cookie)).json() as {
+        activeRequest: unknown;
+      }).activeRequest, null, "active request discovery is isolated by account");
       const duplicates = await Promise.all([post(a.base, owner.cookie), post(b.base, owner.cookie)]);
       for (const duplicate of duplicates) assert.equal(duplicate.status, 202);
       assert.equal((await status(b.base, owner.cookie)).status, 202, "refresh reads running status");
@@ -108,6 +124,9 @@ if (process.argv.includes("--offline-server")) {
       const replay = await (await post(b.base, owner.cookie)).json() as { executionId: string; result: { projectName: string } };
       assert.equal(replay.result.projectName, input.projectName);
       assert.equal(calls, 1);
+      assert.equal((await (await active(b.base, owner.cookie)).json() as {
+        activeRequest: unknown;
+      }).activeRequest, null, "completed requests are excluded from active discovery");
       assert.equal((await status(b.base, stranger.cookie)).status, 404, "other account cannot read identity");
 
       // A dropped HTTP response does not cancel authoritative result storage.
@@ -152,13 +171,26 @@ if (process.argv.includes("--offline-server")) {
       const scopedId = randomUUID();
       assert.equal((await post(a.base, stranger.cookie, scopedId, { workspaceId })).status, 403);
       assert.equal(calls, 4);
-      assert.equal((await post(a.base, owner.cookie, scopedId, { workspaceId })).status, 200);
+      const workspaceRun = post(a.base, owner.cookie, scopedId, { workspaceId });
+      await waitCalls(5);
+      const discoveredWorkspace = await (await active(a.base, owner.cookie, workspaceId)).json() as {
+        activeRequest: { executionId: string } | null;
+      };
+      assert.ok(discoveredWorkspace.activeRequest?.executionId, "workspace owner can discover active scoped request");
+      assert.equal((await executionStatus(a.base, owner.cookie, discoveredWorkspace.activeRequest.executionId, workspaceId)).status, 202);
+      assert.equal((await active(a.base, owner.cookie)).status, 200);
+      assert.equal((await (await active(a.base, owner.cookie)).json() as {
+        activeRequest: unknown;
+      }).activeRequest, null, "workspace request is not discovered in personal scope");
+      assert.equal((await active(a.base, stranger.cookie, workspaceId)).status, 403);
+      assert.equal((await workspaceRun).status, 200);
       assert.equal((await post(a.base, owner.cookie, scopedId)).status, 409, "cannot move identity to personal scope");
       assert.equal((await status(a.base, owner.cookie, scopedId)).status, 404);
       assert.equal((await status(a.base, stranger.cookie, scopedId, workspaceId)).status, 403);
       sqlite.prepare("UPDATE project_workspaces SET user_id = ? WHERE id = ?").run(stranger.user.id, workspaceId);
       assert.equal((await status(a.base, owner.cookie, scopedId, workspaceId)).status, 403, "current authorization required on replay");
       assert.equal((await post(a.base, owner.cookie, scopedId, { workspaceId })).status, 403);
+      assert.equal((await active(a.base, owner.cookie, workspaceId)).status, 403, "active discovery rechecks current workspace authorization");
       assert.equal(calls, 5);
       const independent = await post(a.base, stranger.cookie);
       assert.equal(independent.status, 200, "same opaque ID in another account creates an independent authorized run");
