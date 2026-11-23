@@ -343,7 +343,7 @@ function ExpandableSection({
         <div className="flex items-center gap-4">
           <span className="text-xl">{icon}</span>
           <div>
-            <span className="text-white font-semibold">{title}</span>
+            <span className="text-white font-semibold capitalize">{title}</span>
             {subtitle && (
               <p className="text-slate-500 text-sm mt-0.5 hidden sm:block">{subtitle}</p>
             )}
