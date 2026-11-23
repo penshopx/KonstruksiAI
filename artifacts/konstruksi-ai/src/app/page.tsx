@@ -368,6 +368,7 @@ function ExpandableSection({
 // ============================================================
 
 const learningNav = [
+  { href: "/panduan", label: "Panduan", icon: BookOpen, tone: "text-cyan-300" },
   { href: "/knowledge", label: "Knowledge", icon: BookOpen, tone: "text-violet-300" },
   { href: "/bimtek", label: "Bimtek", icon: GraduationCap, tone: "text-blue-300" },
   { href: "/simulasi", label: "Simulasi", icon: Target, tone: "text-fuchsia-300" },

@@ -1,4 +1,4 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -41,6 +41,7 @@ import WorkforceAssignmentPage from "@/app/workforce-assignment/page";
 import AgentPage from "@/app/agent/[businessId]/[columnId]/page";
 import RadarKonstruksiPage from "@/app/radar-konstruksi/page";
 import ProjectWorkspacePage from "@/app/ruang-proyek/page";
+import UserGuidePage from "@/app/panduan/page";
 
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ function Router() {
       <Route path="/register" component={RegisterPage} />
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/profile" component={ProfilePage} />
+      <Route path="/panduan" component={UserGuidePage} />
       <Route path="/chat" component={ChatPage} />
       <Route path="/konstruksi" component={KonstruksiPage} />
       <Route path="/energi" component={EnergiPage} />
@@ -89,13 +91,23 @@ function Router() {
   );
 }
 
+function AppRoutesAndWidgets() {
+  const [location] = useLocation();
+
+  return (
+    <>
+      <Router />
+      {location !== "/panduan" && <FloatingChatbots />}
+    </>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-          <FloatingChatbots />
+            <AppRoutesAndWidgets />
         </WouterRouter>
         <Toaster />
       </TooltipProvider>
